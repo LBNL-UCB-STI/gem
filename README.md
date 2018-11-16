@@ -1,3 +1,3 @@
 # gem
 
-Grid-integrated electric mobility model
+Grid-integrated Electric Mobility model
