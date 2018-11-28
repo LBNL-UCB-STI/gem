@@ -23,7 +23,7 @@ git add manyFiles*
 Commit the staged files:
 
 ```bash
-git commit -m 
+git commit -m "one sentence description of what changed"
 ```
 
 Push all commits back to github:
