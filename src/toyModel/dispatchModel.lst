@@ -1,0 +1,225 @@
+GAMS 24.1.3  r41464 Released Jul 26, 2013 XXX-DEG Mac x86_64/Darwin                                                                                                                                                                    11/28/18 13:08:38 Page 1
+toyModel
+C o m p i l a t i o n
+
+
+   2   
+   3  sets
+   4          g                       Generators              /g1,g2,g3/
+   5          t                       Time Period             /t1,t2,t3/
+   6          r                       Region                  /r1,r2,r3/
+   7          ;
+   8   
+   9  parameters
+  10          genCost(g)              /g1 10,
+  11                                          g2 20,
+  12                                          g3 30/
+  13          maxGen(g)               /g1 100,
+  14                                          g2 100,
+  15                                          g3 100/
+  16          ;
+  17   
+  18  table demandLoad(r,t)
+  19                          t1              t2              t3
+  20          r1              5               15              20
+  21          r2              15              10              10
+  22          r3              10              15              10  ;
+  23   
+  24  variable
+  25          systemCost
+  26          ;
+  27   
+  28  positive variable
+  29          generation(g,t,r)
+  30          ;
+  31   
+  32  display
+  33          genCost
+  34          demandLoad
+  35          maxGen
+  36          ;
+  37   
+  38  equations
+  39          obj                             Objective function minimizing total cost
+  40          constraint1             Generation must equal load
+  41          constraint2             Max generation for each generator
+  42          constraint3             Renewable generation cannot exceed wind or sun supply
+  43          ;
+  44   
+  45  obj..
+  46          systemCost =e= sum((g,t,r),generation(g,t,r)*genCost(g));
+  47   
+  48  constraint1(t,r)..
+  49          sum(g,generation(g,t,r))-demandLoad(r,t) =g= 0;
+  50   
+  51  constraint2(g,t,r)..
+  52          maxGen(g)-generation(g,t,r) =g= 0;
+  53   
+  54  model
+GAMS 24.1.3  r41464 Released Jul 26, 2013 XXX-DEG Mac x86_64/Darwin                                                                                                                                                                    11/28/18 13:08:38 Page 2
+toyModel
+C o m p i l a t i o n
+
+
+  55          toyModel /obj/
+  56          ;
+  57   
+  58  options
+  59          lp = cplex
+  60          ;
+  61   
+  64  toyModel.optFile = 1;
+  65  toyModel.holdfixed = 1;
+  66   
+  67  solve
+  68          toyModel
+  69          using lp
+  70          minimizing systemCost
+  71          ;
+  72   
+  73  display
+  74          generation.l
+  75          ;
+  76   
+  77  Execute_Unload "results.gdx";
+
+
+COMPILATION TIME     =        0.001 SECONDS      3 MB  24.1.3 r41464 XXX-DEG
+GAMS 24.1.3  r41464 Released Jul 26, 2013 XXX-DEG Mac x86_64/Darwin                                                                                                                                                                    11/28/18 13:08:38 Page 3
+toyModel
+E x e c u t i o n
+
+
+----     33 PARAMETER genCost  
+
+g1 10.000,    g2 20.000,    g3 30.000
+
+
+----     33 PARAMETER demandLoad  
+
+            t1          t2          t3
+
+r1       5.000      15.000      20.000
+r2      15.000      10.000      10.000
+r3      10.000      15.000      10.000
+
+
+----     33 PARAMETER maxGen  
+
+g1 100.000,    g2 100.000,    g3 100.000
+
+GAMS 24.1.3  r41464 Released Jul 26, 2013 XXX-DEG Mac x86_64/Darwin                                                                                                                                                                    11/28/18 13:08:38 Page 4
+toyModel
+Equation Listing    SOLVE toyModel Using LP From line 71
+
+
+---- obj  =E=  Objective function minimizing total cost
+
+obj..  systemCost - 10*generation(g1,t1,r1) - 10*generation(g1,t1,r2) - 10*generation(g1,t1,r3) - 10*generation(g1,t2,r1) - 10*generation(g1,t2,r2) - 10*generation(g1,t2,r3) - 10*generation(g1,t3,r1) - 10*generation(g1,t3,r2) - 10*generation(g1,t3,r3)
+     
+      - 20*generation(g2,t1,r1) - 20*generation(g2,t1,r2) - 20*generation(g2,t1,r3) - 20*generation(g2,t2,r1) - 20*generation(g2,t2,r2) - 20*generation(g2,t2,r3) - 20*generation(g2,t3,r1) - 20*generation(g2,t3,r2) - 20*generation(g2,t3,r3)
+     
+      - 30*generation(g3,t1,r1) - 30*generation(g3,t1,r2) - 30*generation(g3,t1,r3) - 30*generation(g3,t2,r1) - 30*generation(g3,t2,r2) - 30*generation(g3,t2,r3) - 30*generation(g3,t3,r1) - 30*generation(g3,t3,r2) - 30*generation(g3,t3,r3) =E= 0 ;
+     
+      (LHS = 0)
+     
+GAMS 24.1.3  r41464 Released Jul 26, 2013 XXX-DEG Mac x86_64/Darwin                                                                                                                                                                    11/28/18 13:08:38 Page 5
+toyModel
+Column Listing      SOLVE toyModel Using LP From line 71
+
+
+---- systemCost  
+
+systemCost
+                (.LO, .L, .UP, .M = -INF, 0, +INF, 0)
+        1       obj
+
+
+---- generation  
+
+generation(g1,t1,r1)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+      -10       obj
+
+generation(g1,t1,r2)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+      -10       obj
+
+generation(g1,t1,r3)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+      -10       obj
+
+REMAINING 24 ENTRIES SKIPPED
+GAMS 24.1.3  r41464 Released Jul 26, 2013 XXX-DEG Mac x86_64/Darwin                                                                                                                                                                    11/28/18 13:08:38 Page 6
+toyModel
+Model Statistics    SOLVE toyModel Using LP From line 71
+
+
+MODEL STATISTICS
+
+BLOCKS OF EQUATIONS           1     SINGLE EQUATIONS            1
+BLOCKS OF VARIABLES           2     SINGLE VARIABLES           28
+NON ZERO ELEMENTS            28
+
+
+GENERATION TIME      =        0.007 SECONDS      4 MB  24.1.3 r41464 XXX-DEG
+
+
+EXECUTION TIME       =        0.007 SECONDS      4 MB  24.1.3 r41464 XXX-DEG
+GAMS 24.1.3  r41464 Released Jul 26, 2013 XXX-DEG Mac x86_64/Darwin                                                                                                                                                                    11/28/18 13:08:38 Page 7
+toyModel
+Solution Report     SOLVE toyModel Using LP From line 71
+
+
+               S O L V E      S U M M A R Y
+
+     MODEL   toyModel            OBJECTIVE  systemCost
+     TYPE    LP                  DIRECTION  MINIMIZE
+     SOLVER  CPLEX               FROM LINE  71
+
+**** SOLVER STATUS     13 System Failure           
+**** MODEL STATUS      13 Error No Solution        
+**** OBJECTIVE VALUE               NA
+
+ RESOURCE USAGE, LIMIT         NA          1000.000
+ ITERATION COUNT, LIMIT        NA    2000000000
+
+**** SOLVER DID NOT WRITE A STATUS FILE ****
+
+
+No solution returned
+GAMS 24.1.3  r41464 Released Jul 26, 2013 XXX-DEG Mac x86_64/Darwin                                                                                                                                                                    11/28/18 13:08:38 Page 8
+toyModel
+Solution Report     SOLVE toyModel Using LP From line 71
+
+
+**** SOLVER STATUS FILE LISTED BELOW
+=1
+
+**** SOLVER DID NOT WRITE A STATUS FILE ****
+
+=3
+**** SOLVER STATUS FILE LISTED ABOVE
+GAMS 24.1.3  r41464 Released Jul 26, 2013 XXX-DEG Mac x86_64/Darwin                                                                                                                                                                    11/28/18 13:08:38 Page 9
+toyModel
+E x e c u t i o n
+
+
+----     74 VARIABLE generation.L  
+
+                      ( ALL       0.000 )
+
+
+
+EXECUTION TIME       =        0.003 SECONDS      3 MB  24.1.3 r41464 XXX-DEG
+
+
+USER: Engineering and Public Policy                  G140226:1543AV-GEN
+      Carnegie Mellon University (5 user license)               DC10857
+      License for teaching and research at degree granting institutions
+
+
+**** FILE SUMMARY
+
+Input      /Users/alanjenn/Dropbox/Davis/Research/Project25_LBNLMobility/Analysis_Writeup/toyModel/dispatchModel.gms
+Output     /Users/alanjenn/Dropbox/Davis/Research/Project25_LBNLMobility/Analysis_Writeup/toyModel/dispatchModel.lst
