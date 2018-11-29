@@ -1,0 +1,3 @@
+#TAG-GEM
+gem.project.directory <- '/Users/critter/Dropbox/ucb/vto/beam-all/gem/'
+gams.executable.location <- '/Applications/GAMS25.0/sysdir/'
