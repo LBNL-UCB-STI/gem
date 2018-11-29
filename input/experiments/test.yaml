@@ -1,0 +1,6 @@
+Name: battery.cost
+Factors:
+  - Name: battery.cost
+    Levels:
+      - 100
+      - 200
