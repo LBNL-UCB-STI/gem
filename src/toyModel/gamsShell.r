@@ -1,7 +1,7 @@
 library(gdxrrw)
 library(gdxtools)
 
-igdx('/Applications/GAMS25.0/sysdir/')
+igdx(gams.executable.location)
 
 g <- data.frame('g'=c('g1','g2','g3'))
 gtor <- data.frame('g'=c('g1','g2','g3'),'r'=c('r1','r1','r2'))
