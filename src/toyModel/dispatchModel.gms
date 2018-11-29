@@ -1,25 +1,23 @@
 $title toyModel
 
 sets
-	g			Generators		/g1,g2,g3/
+	g			Generators
 	t 			Time Period		/t1,t2,t3/
 	r			Region			/r1,r2,r3/
+	gtor(g,r)
 	;
 
 parameters
-	genCost(g)		/g1 10,
-					g2 20,
-					g3 30/
-	maxGen(g)		/g1 100,
-					g2 100,
-					g3 100/
+	genCost(g)
+	maxGen(g)
+	demandLoad(r,t)
 	;
-	
-table demandLoad(r,t)
-			t1		t2		t3
-	r1		5		15		20
-	r2		15		10		10
-	r3		10		15		10  ;
+
+$gdxin test
+$load g gtor genCost demandLoad maxGen
+$gdxin
+
+display gtor;
 
 variable
 	systemCost
@@ -52,11 +50,12 @@ constraint2(g,t,r)..
 	maxGen(g)-generation(g,t,r) =g= 0;
 
 model
-	toyModel /obj/
+	toyModel /obj,constraint1,constraint2/
 	;
 
 options
 	lp = cplex
+	solvelink = 2
 	;
 
 $onecho > cplex.opt

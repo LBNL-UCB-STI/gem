@@ -1,0 +1,8 @@
+Name: battery.cost
+Mode: combinatorial
+Factors:
+  - Name: battery.cost
+    Levels:
+      - 100
+      - 200
+      - 300

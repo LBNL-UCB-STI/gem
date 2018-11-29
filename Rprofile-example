@@ -1,0 +1,5 @@
+#TAG-GEM
+gem.project.directory <- '/Users/critter/Dropbox/ucb/vto/beam-all/gem/'
+gem.raw.inputs <- '/Users/critter/odrive/GoogleDriveLBL/VGI4NewMobility/gem-raw-inputs'
+gams.executable.location <- '/Applications/GAMS25.0/sysdir/'
+
