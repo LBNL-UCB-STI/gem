@@ -13,9 +13,9 @@ prep.inputs.static <- function(){
 
   regions <- c('ENC','ESC','MAT-NL','MAT-NY','MTN','NENG','PAC-CA','PAC-NL','SAT-FL','SAT-NL','WNC','WSC-TX','WSC-NL')
 
-  inputs <- list(t=1:48,
-                 r.mobility=as.vector(sapply(regions,function(x){ pp(x,c('-RUR','-URB'))})),
-                 r.grid=regions)
+  inputs <- list(t=pp('t',seq(1,length(days)*24)),
+                 rmob=as.vector(sapply(regions,function(x){ pp(x,c('-RUR','-URB'))})),
+                 r=regions)
 
   inputs
 }

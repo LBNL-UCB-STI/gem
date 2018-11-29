@@ -51,8 +51,9 @@ static.inputs <- prep.inputs.static()
 
 for(i in 1:nrow(exper$runs)){
   my.cat(pp('Prepping inputs for run ',i))
-  common.inputs <- prep.inputs.common(exper$run[i])
-  inputs <- c(static.inputs,common.inputs,prep.inputs.mobility(exper$run[i],common.inputs),prep.inputs.grid(exper$run[i],common.inputs))
+  common.inputs <- c(static.inputs,prep.inputs.common(exper$run[i]))
+  inputs <- c(common.inputs,prep.inputs.mobility(exper$run[i],common.inputs),prep.inputs.grid(exper$run[i],common.inputs))
+  print(inputs)
 }
 
 #####################################################################################

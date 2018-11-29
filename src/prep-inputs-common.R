@@ -11,7 +11,7 @@
 prep.inputs.common <- function(exper.row){
   param.names <- names(exper.row)
 
-  inputs <- list(dists=pp('d',1:num.dist.bins))
+  inputs <- list()
 
   inputs
 }
