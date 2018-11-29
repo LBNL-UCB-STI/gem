@@ -1,4 +1,4 @@
-GAMS 25.1.2  r67455 Released Aug  1, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   11/28/18 17:14:16 Page 1
+GAMS 25.0.2  r65346 Released Jan 31, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   11/28/18 18:01:44 Page 1
 toyModel
 C o m p i l a t i o n
 
@@ -17,7 +17,7 @@ C o m p i l a t i o n
   13          demandLoad(r,t)
   14          ;
   15   
-GDXIN   /Users/alanjenn/Dropbox/Davis/Research/Project25_LBNLMobility/Analysis_Writeup/gem/src/toyModel/test.gdx
+GDXIN   /Users/critter/Dropbox/ucb/vto/beam-all/gem/src/toyModel/test.gdx
 --- LOAD  g = 1:g
 --- LOAD  gtor = 2:gtor
 --- LOAD  genCost = 3:genCost
@@ -56,7 +56,7 @@ GDXIN   /Users/alanjenn/Dropbox/Davis/Research/Project25_LBNLMobility/Analysis_W
   49  constraint2(g,t,r)..
   50          maxGen(g)-generation(g,t,r) =g= 0;
   51   
-GAMS 25.1.2  r67455 Released Aug  1, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   11/28/18 17:14:16 Page 2
+GAMS 25.0.2  r65346 Released Jan 31, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   11/28/18 18:01:44 Page 2
 toyModel
 C o m p i l a t i o n
 
@@ -84,19 +84,19 @@ C o m p i l a t i o n
   74          ;
   75   
   76  Execute_Unload "results.gdx";
-GAMS 25.1.2  r67455 Released Aug  1, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   11/28/18 17:14:16 Page 3
+GAMS 25.0.2  r65346 Released Jan 31, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   11/28/18 18:01:44 Page 3
 toyModel
 Include File Summary
 
 
    SEQ   GLOBAL TYPE      PARENT   LOCAL  FILENAME
 
-     1        1 INPUT          0       0  /Users/alanjenn/Dropbox/Davis/Research/Project25_LBNLMobility/Analysis_Writeup/gem/src/toyModel/dispatchModel.gms
-     2       16 GDXIN          1      16  /Users/alanjenn/Dropbox/Davis/Research/Project25_LBNLMobility/Analysis_Writeup/gem/src/toyModel/test.gdx
+     1        1 INPUT          0       0  /Users/critter/Dropbox/ucb/vto/beam-all/gem/src/toyModel/dispatchModel.gms
+     2       16 GDXIN          1      16  /Users/critter/Dropbox/ucb/vto/beam-all/gem/src/toyModel/test.gdx
 
 
-COMPILATION TIME     =        0.003 SECONDS      3 MB  25.1.2 r67455 DEX-DEG
-GAMS 25.1.2  r67455 Released Aug  1, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   11/28/18 17:14:16 Page 4
+COMPILATION TIME     =        0.004 SECONDS      3 MB  25.0.2 r65346 DEX-DEG
+GAMS 25.0.2  r65346 Released Jan 31, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   11/28/18 18:01:44 Page 4
 toyModel
 E x e c u t i o n
 
@@ -124,7 +124,7 @@ g1 10.000,    g2 20.000,    g3 30.000
 
 g1 100.000,    g2 100.000,    g3 100.000
 
-GAMS 25.1.2  r67455 Released Aug  1, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   11/28/18 17:14:16 Page 5
+GAMS 25.0.2  r65346 Released Jan 31, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   11/28/18 18:01:44 Page 5
 toyModel
 Equation Listing    SOLVE toyModel Using LP From line 70
 
@@ -161,7 +161,7 @@ constraint2(g1,t1,r3)..  - generation(g1,t1,r3) =G= -100 ; (LHS = 0)
      
 REMAINING 24 ENTRIES SKIPPED
 
-GAMS 25.1.2  r67455 Released Aug  1, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   11/28/18 17:14:16 Page 6
+GAMS 25.0.2  r65346 Released Jan 31, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   11/28/18 18:01:44 Page 6
 toyModel
 Column Listing      SOLVE toyModel Using LP From line 70
 
@@ -194,7 +194,7 @@ generation(g1,t1,r3)
        -1       constraint2(g1,t1,r3)
 
 REMAINING 24 ENTRIES SKIPPED
-GAMS 25.1.2  r67455 Released Aug  1, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   11/28/18 17:14:16 Page 7
+GAMS 25.0.2  r65346 Released Jan 31, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   11/28/18 18:01:44 Page 7
 toyModel
 Model Statistics    SOLVE toyModel Using LP From line 70
 
@@ -206,8 +206,8 @@ BLOCKS OF VARIABLES           2     SINGLE VARIABLES           28
 NON ZERO ELEMENTS            82
 
 
-GENERATION TIME      =        0.004 SECONDS      4 MB  25.1.2 r67455 DEX-DEG
-GAMS 25.1.2  r67455 Released Aug  1, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   11/28/18 17:14:16 Page 8
+GENERATION TIME      =        0.025 SECONDS      4 MB  25.0.2 r65346 DEX-DEG
+GAMS 25.0.2  r65346 Released Jan 31, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   11/28/18 18:01:44 Page 8
 toyModel
 Solution Report     SOLVE toyModel Using LP From line 70
 
@@ -222,19 +222,19 @@ Solution Report     SOLVE toyModel Using LP From line 70
 **** MODEL STATUS      1 Optimal                   
 **** OBJECTIVE VALUE                0.0000
 
- RESOURCE USAGE, LIMIT          0.014      1000.000
+ RESOURCE USAGE, LIMIT          0.036      1000.000
  ITERATION COUNT, LIMIT         0    2000000000
 
-IBM ILOG CPLEX   25.1.2 r67455 Released Aug  1, 2018 DEG x86 64bit/Mac OS X   
+IBM ILOG CPLEX   25.0.2 r65346 Released Jan 31, 2018 DEG x86 64bit/Mac OS X   
 Cplex 12.8.0.0
 
-Reading parameter(s) from "/Users/alanjenn/Dropbox/Davis/Research/Project25_LBNLMobility/Analysis_Writeup/gem/src/toyModel/cplex.opt"
+Reading parameter(s) from "/Users/critter/Dropbox/ucb/vto/beam-all/gem/src/toyModel/cplex.opt"
 *** Warning Read from empty file or string
-Finished reading from "/Users/alanjenn/Dropbox/Davis/Research/Project25_LBNLMobility/Analysis_Writeup/gem/src/toyModel/cplex.opt"
+Finished reading from "/Users/critter/Dropbox/ucb/vto/beam-all/gem/src/toyModel/cplex.opt"
 Space for names approximately 0.00 Mb
 Use option 'names no' to turn use of names off
 LP status(1): optimal
-Cplex Time: 0.00sec (det. 0.02 ticks)
+Cplex Time: 0.01sec (det. 0.02 ticks)
 Optimal solution found.
 Objective :           0.000000
 
@@ -258,7 +258,7 @@ t2.r3          .              .            +INF             .
 t3.r1          .              .            +INF             .          
 t3.r2          .              .            +INF             .          
 t3.r3          .              .            +INF             .          
-GAMS 25.1.2  r67455 Released Aug  1, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   11/28/18 17:14:16 Page 9
+GAMS 25.0.2  r65346 Released Jan 31, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   11/28/18 18:01:44 Page 9
 toyModel
 Solution Report     SOLVE toyModel Using LP From line 70
 
@@ -316,7 +316,7 @@ g2.t1.r1          .              .            +INF           20.0000
 g2.t1.r2          .              .            +INF           20.0000      
 g2.t1.r3          .              .            +INF           20.0000      
 g2.t2.r1          .              .            +INF           20.0000      
-GAMS 25.1.2  r67455 Released Aug  1, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                  11/28/18 17:14:16 Page 10
+GAMS 25.0.2  r65346 Released Jan 31, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                  11/28/18 18:01:44 Page 10
 toyModel
 Solution Report     SOLVE toyModel Using LP From line 70
 
@@ -344,7 +344,7 @@ g3.t3.r3          .              .            +INF           30.0000
 **** REPORT SUMMARY :        0     NONOPT
                              0 INFEASIBLE
                              0  UNBOUNDED
-GAMS 25.1.2  r67455 Released Aug  1, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                  11/28/18 17:14:16 Page 11
+GAMS 25.0.2  r65346 Released Jan 31, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                  11/28/18 18:01:44 Page 11
 toyModel
 E x e c u t i o n
 
@@ -355,7 +355,7 @@ E x e c u t i o n
 
 
 
-EXECUTION TIME       =        0.046 SECONDS      4 MB  25.1.2 r67455 DEX-DEG
+EXECUTION TIME       =        0.117 SECONDS      4 MB  25.0.2 r65346 DEX-DEG
 
 
 USER: GAMS Development Corporation, USA              G871201/0000CA-ANY
@@ -364,5 +364,5 @@ USER: GAMS Development Corporation, USA              G871201/0000CA-ANY
 
 **** FILE SUMMARY
 
-Input      /Users/alanjenn/Dropbox/Davis/Research/Project25_LBNLMobility/Analysis_Writeup/gem/src/toyModel/dispatchModel.gms
-Output     /Users/alanjenn/Dropbox/Davis/Research/Project25_LBNLMobility/Analysis_Writeup/gem/src/toyModel/dispatchModel.lst
+Input      /Users/critter/Dropbox/ucb/vto/beam-all/gem/src/toyModel/dispatchModel.gms
+Output     /Users/critter/Dropbox/ucb/vto/beam-all/gem/src/toyModel/dispatchModel.lst
