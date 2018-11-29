@@ -45,7 +45,12 @@ exper <- load.experiment(args$args[1])
 #####################################################################################
 # Pre-Process Inputs
 #####################################################################################
-inputs <- c(prep.inputs.mobility(exper),prep.inputs.grid(exper))
+static.inputs <- prep.inputs.static()
+
+for(i in 1:nrow(exper$runs)){
+  inputs <- c(prep.inputs.mobility(exper),prep.inputs.grid(exper))
+  
+}
 
 #####################################################################################
 # Load GAMS and Run
