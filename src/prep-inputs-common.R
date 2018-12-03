@@ -11,21 +11,7 @@
 prep.inputs.common <- function(exper.row){
   param.names <- names(exper.row)
 
-  my.cat(pp('Creating common inputs'))
-
   inputs <- list()
-
-  #### Region ####
-  if('region' %in% param.names){
-    inputs$region <- exper.row$region
-  }else{
-    inputs$region <- region
-  }
-
-  regions <- c('PAC-CA-URB','PAC-CA-RUR','MTN-URB','MTN-RUR')
-  regions <- 'ALL'
-
-  dists <- pp('d',1:num.dist.bins)
 
   inputs
 }

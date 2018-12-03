@@ -19,9 +19,13 @@ load.experiment <- function(experiment.file){
     exper <- list()
     exper$yaml <- yaml.load(readChar(experiment.file,file.info(args$args[1])$size))
     exper$num.factors <- length(exper$yaml$Factors)
-    exper$runs <- expand.grid(lapply(exper$yaml$Factors,function(fac){ fac$Levels }),stringsAsFactors=F)
-    names(exper$runs) <- unlist(lapply(exper$yaml$Factors,function(fac){ fac$Name }))
-    exper$runs <- data.table(exper$runs)
+    if(exper$yaml$Mode=='combinatorial'){
+      exper$runs <- expand.grid(lapply(exper$yaml$Factors,function(fac){ fac$Levels }),stringsAsFactors=F)
+      names(exper$runs) <- unlist(lapply(exper$yaml$Factors,function(fac){ fac$Name }))
+      exper$runs <- data.table(exper$runs)
+    }else{
+      stop('only combinatorial experiments enabled for now, please set "Mode: combinatorial" in your yaml file')
+    }
     exper
   }else{
     stop(pp("Experiment file not found: ",experiment.file))

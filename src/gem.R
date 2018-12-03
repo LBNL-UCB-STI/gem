@@ -22,6 +22,8 @@ if(!exists('gem.project.directory')){
 }
 setwd(gem.project.directory)
 source('src/load-experiment.R')
+source('src/prep-inputs-static.R')
+source('src/prep-inputs-common.R')
 source('src/prep-inputs-mobility.R')
 source('src/prep-inputs-grid.R')
 source('input/defaults.R')
@@ -48,8 +50,10 @@ exper <- load.experiment(args$args[1])
 static.inputs <- prep.inputs.static()
 
 for(i in 1:nrow(exper$runs)){
-  inputs <- c(prep.inputs.mobility(exper),prep.inputs.grid(exper))
-  
+  my.cat(pp('Prepping inputs for run ',i))
+  common.inputs <- c(static.inputs,prep.inputs.common(exper$run[i]))
+  inputs <- c(common.inputs,prep.inputs.mobility(exper$run[i],common.inputs),prep.inputs.grid(exper$run[i],common.inputs))
+  print(inputs)
 }
 
 #####################################################################################

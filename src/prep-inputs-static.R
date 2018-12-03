@@ -11,21 +11,11 @@
 prep.inputs.static <- function(){
   my.cat(pp('Creating static inputs'))
 
-  inputs <- list()
+  regions <- c('ENC','ESC','MAT-NL','MAT-NY','MTN','NENG','PAC-CA','PAC-NL','SAT-FL','SAT-NL','WNC','WSC-TX','WSC-NL')
 
-  #### Region ####
-  region.mobility <- 
-  if('region' %in% param.names){
-    inputs$region <- exper.row$region
-  }else{
-    inputs$region <- region
-  }
-
-  regions <- c('PAC-CA-URB','PAC-CA-RUR','MTN-URB','MTN-RUR')
-  regions <- 'ALL'
-
-  dists <- pp('d',1:num.dist.bins)
+  inputs <- list(t=pp('t',seq(1,length(days)*24)),
+                 rmob=as.vector(sapply(regions,function(x){ pp(x,c('-RUR','-URB'))})),
+                 r=regions)
 
   inputs
 }
-
