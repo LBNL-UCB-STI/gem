@@ -60,60 +60,42 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
 
   #### DEMAND ####
   if(F){
-    if('day.type' %in% param.names){
-      day.type <- exp.pars$day.type[exp.i]
-    }else{
-      day.type <- 'WEEKDAY'
+    # The following is only needed to reshape the data from Brian Gerke's python script into a single data frame, so only used when that source data is updated
+    dfs <- list()
+    for(file in grep('Rdata',grep('dist_hour_hists',list.files(gem.raw.inputs),value=T),invert=T,value=T)){
+      df <- data.table(read.csv(pp(gem.raw.inputs,file),stringsAsFactors=F))
+      df[,season:=str_split(file,"_")[[1]][4]]
+      df[,transit:=str_split(file,"_")[[1]][5]]
+      dfs[[length(dfs)+1]] <- df
     }
-
-    # Create some scenarios, generate inputs, run and collect results
-    load('input/mobility/nhts/dist_hour_hists.Rdata')
-    dem <- df
-    dem[,d:=AVGDIST]
-    dem[,r:=pp(CDIVLS,'-',URBRURS)]
-    dem[,':='(MILEBIN=NULL,CDIVLS=NULL,URBRURS=NULL,AVGDIST=NULL,NRAW=NULL,NWTD=NULL)]
-    dem[,':='(day.type=WKTIME,WKTIME=NULL)]
-    dem <- melt(dem,id.vars=c('d','r','day.type'),variable.name='t',value.name='trips')
-    dem[,t:=as.numeric(unlist(lapply(str_split(t,"X"),function(x){x[2]})))]
-    #ggplot(dem,aes(x=t,y=trips,colour=factor(d)))+geom_line()+facet_wrap(~r)
-    #ggplot(dem,aes(x=t,y=trips,colour=factor(r)))+geom_line()+facet_wrap(~d)
-    #ggplot(dem,aes(x=t,y=trips.scaled,colour=factor(r)))+geom_line()+facet_wrap(~d,scales='free_y')
-
-    dist.bins <- quantile(u(dem$d),seq(0,1,length.out=num.dist.bins+1))
-    dist.bin.num <- as.numeric(factor(dist.bins))
-    dem[,new.bins:=dist.bin.num[findInterval(d,dist.bins)]]
-    dem[new.bins==tail(dist.bin.num,1),new.bins:=head(tail(dist.bin.num,2),1)]
-    dem[,new.d:=weighted.mean(d,trips),by='new.bins']
-    dem[,':='(new.bins=new.d,new.d=NULL)]
-    dem <- dem[,.(trips=sum(trips)),by=c('r','t','new.bins')]
-    dem[,trips:=trips / (365 * ifelse(day.type=='WEEKDAY',5,2) / 7)] # the data come in total annual trips for weekdays or weekends, so we need to scale them back
-    dem[,':='(d=new.bins,new.bins=NULL)]
-    dem[,trips.scaled:=trips/sum(trips),by=c('d','r')]
-    dist.bins <- sort(u(dem$d))
-    dist.bins.str <- pp('d',roundC(dist.bins,1))
-    dem[,d.str:=pp('d',roundC(d,1))]
-    dem[,':='(d=NULL)]
-    dem[,':='(d=d.str,d.str=NULL)]
-    dem[t<4,t:=t+24]
-
-    num.time.steps <- length(u(dem$t))+1
-    delta.t <- diff(sort(u(dem$t)))[1]
-    times <- c(sort(u(dem$t)),max(dem$t)+delta.t)
-
-    setkey(dem,r,d)
-    zero.dem <- u(dem)
-    zero.dem[,':='(trips=0,trips.scaled=0,t=max(times))]
-    dem <- rbindlist(list(dem,zero.dem))
-    #dem[,r:=str_replace(r,"-","")]
-    if(regions[1]=='ALL'){
-      regions <- u(dem$r)
-    }else{
-      dem <- dem[r%in%regions]
-    }
-    inputs$demand <- dem[,.(t=t,d,r,trips)] 
-  }else{
-    inputs$demand <- 0
+    dem <- rbindlist(dfs)
+    save(dem,file=pp(gem.raw.inputs,'dist_hour_hists.Rdata'))
   }
+  load(pp(gem.raw.inputs,'dist_hour_hists.Rdata'))
+  dem[,d:=AVGDIST]
+  dem[,d.bin:=MILEBIN]
+  dem[,r:=pp(CDIVLS,'-',URBRURS)]
+  dem[,':='(MILEBIN=NULL,CDIVLS=NULL,URBRURS=NULL,AVGDIST=NULL,NRAW=NULL,NWTD=NULL)]
+  dem[,':='(day.type=WKTIME,WKTIME=NULL)]
+  dem <- melt(dem,id.vars=c('d','d.bin','season','transit','r','day.type'),variable.name='t',value.name='trips')
+  dem[,t:=as.numeric(unlist(lapply(str_split(t,"X"),function(x){x[2]})))]
+  #ggplot(dem[,.(trips=sum(trips)),by=c('t','d.bin','season','transit')],aes(x=t,y=trips,colour=d.bin))+geom_line()+facet_grid(season~transit)
+
+  inputs$d <- pp('d',sort(u(dem$d.bin)))
+  inputs$travelDistance <- sort(u(dem$d))
+
+  setkey(dem,r,d)
+  zero.dem <- u(dem)
+  zero.dem[,':='(trips=0,trips.scaled=0,t=max(times))]
+  dem <- rbindlist(list(dem,zero.dem))
+  #dem[,r:=str_replace(r,"-","")]
+  if(regions[1]=='ALL'){
+    regions <- u(dem$r)
+  }else{
+    dem <- dem[r%in%regions]
+  }
+  inputs$demand <- dem[,.(t=t,d,r,trips)] 
+
 
   #### SPEED ####
   velocity.shape <- c(1,0.9,0.8,0.6,1) # not currently used
