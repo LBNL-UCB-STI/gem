@@ -31,32 +31,12 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
     inputs$sharing.factor <- sharing.factor
   }
 
-  ##### DISTANCE BINS #####
-  inputs$travel.distance <- dist.bins
-
   ##### URBAN FORM - STRAIGHT SCALING ALL REGIONS #####
   if('scale.urban.form.factor' %in% param.names){
     inputs$urban.form.factor <- data.table(r=common.inputs$r,urban.form.factor=exper.row$scale.urban.form.factor * 1.3)
   }else{
     inputs$urban.form.factor <- data.table(r=common.inputs$r,urban.form.factor=1.3)
   }
-  #uff <- data.table(read.csv('../StreetLightOutputs/extrapolation/urban-rural predictions.csv'))
-  #uff <- melt(uff,id.vars='div')[variable%in%c('urban_deadhead','rural_deadhead')]
-  #uff[,':='(urban.type=ifelse(grepl("rural",variable),"RUR","URB"),variable=NULL)]
-  #uff[,urban.form.factor:=value+1]
-  #div.to.lab <- c('New York'='NY','Mountain'='MTN','East North Central'='ENC','East South Central'='ESC','Pacific'='PAC','Middle Atlantic'='MAT','New England'='NENG','Texas'='TX','Florida'='FL','West North Central'='WNC','South Atlantic'='SAT','West South Central'='WSC','California'='CA')
-  #uff[,div:=div.to.lab[as.character(uff$div)]]
-
-  #urban.form.factor <- data.table(regions)
-  #urban.form.factor[,div:=unlist(lapply(str_split(regions,'-'),function(ll){ 
-                                          #second.item <- head(tail(ll,2),1)
-                                          #ifelse(second.item=='NL',ll[1],second.item)}))]
-  #urban.form.factor[,urban.type:=unlist(lapply(str_split(regions,'-'),function(ll){ tail(ll,1) }))]
-  #urban.form.factor <- join.on(urban.form.factor,uff,c('div','urban.type'),c('div','urban.type'),'urban.form.factor')
-  #urban.form.factor[,':='(r=regions,regions=NULL,div=NULL,urban.type=NULL)]
-  #if('urban.form'%in%param.names){
-    #urban.form.factor[,urban.form.factor:=exp.pars$urban.form[exp.i]]
-  #}
 
   #### DEMAND ####
   if(F){
@@ -72,41 +52,63 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
     save(dem,file=pp(gem.raw.inputs,'dist_hour_hists.Rdata'))
   }
   load(pp(gem.raw.inputs,'dist_hour_hists.Rdata'))
-  dem[,d:=AVGDIST]
-  dem[,d.bin:=MILEBIN]
+  dem[,dist:=AVGDIST]
+  dem[,d:=MILEBIN]
   dem[,r:=pp(CDIVLS,'-',URBRURS)]
   dem[,':='(MILEBIN=NULL,CDIVLS=NULL,URBRURS=NULL,AVGDIST=NULL,NRAW=NULL,NWTD=NULL)]
   dem[,':='(day.type=WKTIME,WKTIME=NULL)]
-  dem <- melt(dem,id.vars=c('d','d.bin','season','transit','r','day.type'),variable.name='t',value.name='trips')
+  dem <- melt(dem,id.vars=c('d','dist','season','transit','r','day.type'),variable.name='t',value.name='trips')
   dem[,t:=as.numeric(unlist(lapply(str_split(t,"X"),function(x){x[2]})))]
-  #ggplot(dem[,.(trips=sum(trips)),by=c('t','d.bin','season','transit')],aes(x=t,y=trips,colour=d.bin))+geom_line()+facet_grid(season~transit)
+  dem[,use.transit:=transit=='with']
+  #ggplot(dem[,.(trips=sum(trips)),by=c('t','d','season','transit')],aes(x=t,y=trips,colour=d))+geom_line()+facet_grid(season~transit)
 
-  inputs$d <- pp('d',sort(u(dem$d.bin)))
-  inputs$travelDistance <- sort(u(dem$d))
 
-  setkey(dem,r,d)
-  zero.dem <- u(dem)
-  zero.dem[,':='(trips=0,trips.scaled=0,t=max(times))]
-  dem <- rbindlist(list(dem,zero.dem))
-  #dem[,r:=str_replace(r,"-","")]
-  if(regions[1]=='ALL'){
-    regions <- u(dem$r)
-  }else{
-    dem <- dem[r%in%regions]
+  #for a truly weighted average distance by bin, weight the day.type
+  dem[,weighted.trips:=trips*ifelse(day.type=="TU/WE/TH",3,2)]
+
+  # Day of the week for the days in the simulated year (1 == Sunday, 7 == Saturday)
+  wdays <- wday(to.posix(pp(year,'-01-01 00:00:00+00'))+24*3600*(days-1))
+  months <- month(to.posix(pp(year,'-01-01 00:00:00+00'))+24*3600*(days-1))
+  all.dem <- list()
+  for(i in 1:length(days)){
+    the.day <- days[i]
+    the.month <- months[i]
+    the.wday <- wdays[i]
+    if(the.wday==1 || the.wday==7){
+      the.day.type <- "SA/SU"
+    }else if(the.wday==2 || the.wday==6){
+      the.day.type <- "MO/FR"
+    }else{
+      the.day.type <- "TU/WE/TH"
+    }
+    if(the.month <=2 || the.month==12){
+      the.season <- 'dec-feb'
+    }else if(the.month>=3 && the.month <=5){
+      the.season <- 'mar-may'
+    }else if(the.month>=6 && the.month <=8){
+      the.season <- 'jun-aug'
+    }else if(the.month>=9 && the.month <=11){
+      the.season <- 'sep-nov'
+    }
+    the.dem <- copy(dem[day.type==the.day.type & use.transit == include.transit.demand & season == the.season])
+    the.dem[,t:=pp('t',1 + t + 24*(i-1))]
+    all.dem[[length(all.dem)+1]] <- the.dem[,.(r,t,d,trips)]
   }
-  inputs$demand <- dem[,.(t=t,d,r,trips)] 
+  all.dem <- rbindlist(all.dem)
+  inputs$demand <- all.dem
 
+  ##### DISTANCE BINS #####
+  inputs$d <- pp('d',sort(u(dem$d)))
+  inputs$travelDistance <- dem[,.(d=pp('d',d),travelDistance=weighted.mean(dist,weighted.trips)),by=c('d','r')]
+  inputs$travelDistance[,d:=NULL]
 
   #### SPEED ####
-  velocity.shape <- c(1,0.9,0.8,0.6,1) # not currently used
-  velocity.by.dist <- data.table(d=c(-1,5,seq(10,100,by=10),9999),v=c(18,18,32,38,40,42,44,45,45,45,45,48,48))
-  velocity.per <- velocity.shape[round(((1:length(common.inputs$t))*(length(velocity.shape)-1))/length(common.inputs$t))+1]
-  velocities <- data.table(expand.grid(list(regions,common.inputs$t,dist.bins)))
-  names(velocities) <- c('r','t','d')
-  setkey(velocities,r,d)
-  velocities[,velocity:=velocity.by.dist$v[findInterval(d, velocity.by.dist$d)]]
-  velocities[,d:=pp('d',roundC(d,1))]
-  inputs$velocity <- velocities[,.(t=t,d,r,velocity)]
+  speed.by.dist <- data.table(d=c("d0-2","d2-5","d5-10","d10-20","d20-30","d30-50","d50-100","d100-300"),speed=c(18,22,32,38,40,45,48,48))
+  speeds <- data.table(expand.grid(list(common.inputs$r,common.inputs$t,inputs$d)))
+  names(speeds) <- c('r','t','d')
+  speeds <- join.on(speeds,speed.by.dist,'d','d')
+  setkey(speeds,r,d,t)
+  inputs$speed <- speeds[,.(t=t,d,r,speed)]
 
   ##### CHARGING INFRASTRUCTURE #####
   charger.levels.str <- pp('L',str_pad(charger.levels,3,'left','0'))
