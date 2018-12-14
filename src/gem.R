@@ -14,8 +14,10 @@
 # Argument: experiment-definition-file
 #####################################################################################
 
+#AJ Comment: Should we try to migrate away from your personal library sooner rather than later if we decide to eventually make this project public?
+
 suppressPackageStartupMessages(library(colinmisc,quietly=T))
-load.libraries(c('stringr','data.table','ggplot2','optparse','yaml'))
+load.libraries(c('stringr','data.table','ggplot2','optparse','yaml','reshape','grid'))
 
 if(!exists('gem.project.directory')){
   my.cat('Error, you need to define the variable gem.project.directory in your user-level Rprofile (i.e. ~/.Rprofile). Make the varaible be the file path of the gem project directory.')
