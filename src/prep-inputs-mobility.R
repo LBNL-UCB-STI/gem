@@ -66,7 +66,7 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
   #for a truly weighted average distance by bin, weight the day.type
   dem[,weighted.trips:=trips*ifelse(day.type=="TU/WE/TH",3,2)]
 
-  # Day of the week for the days in the simulated year (1 == Sunday, 7 == Saturday)
+  # Day of the week for the days in the simulated year 
   wdays <- weekdays(to.posix(pp(year,'-01-01 00:00:00+00'))+24*3600*(days-1))
   months <- month(to.posix(pp(year,'-01-01 00:00:00+00'))+24*3600*(days-1))
   all.dem <- list()
