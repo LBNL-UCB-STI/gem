@@ -13,7 +13,8 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
   inputs <- list()
 
   ##### GENERIC PROCESSING OF SIMPLE PARAMS #####
-  generic.params <- c('battery.cost','dist.bin.labels','discount.rate')
+  #generic.params <- c('battery.cost','dist.bin.labels','discount.rate')
+  generic.params <- c('battery.cost')
 
   for(generic.param in generic.params){
     if(generic.param %in% param.names){

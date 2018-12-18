@@ -60,6 +60,8 @@ for(i in 1:nrow(exper$runs)){
   print(inputs)
 }
 
+#write.gdx('inputs.gdx',params=inputs$parameters,sets=inputs$sets)
+
 #####################################################################################
 # Load GAMS and Run
 #####################################################################################
