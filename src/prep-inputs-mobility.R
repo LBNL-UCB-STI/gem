@@ -13,8 +13,8 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
   inputs <- list()
 
   ##### GENERIC PROCESSING OF SIMPLE PARAMS #####
-  #generic.params <- c('battery.cost','dist.bin.labels','discount.rate')
-  generic.params <- c('battery.cost')
+
+  generic.params <- c('battery.cost','discount.rate')
 
   for(generic.param in generic.params){
     if(generic.param %in% param.names){
@@ -67,17 +67,17 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
   #for a truly weighted average distance by bin, weight the day.type
   dem[,weighted.trips:=trips*ifelse(day.type=="TU/WE/TH",3,2)]
 
-  # Day of the week for the days in the simulated year (1 == Sunday, 7 == Saturday)
-  wdays <- wday(to.posix(pp(year,'-01-01 00:00:00+00'))+24*3600*(days-1))
+  # Day of the week for the days in the simulated year 
+  wdays <- weekdays(to.posix(pp(year,'-01-01 00:00:00+00'))+24*3600*(days-1))
   months <- month(to.posix(pp(year,'-01-01 00:00:00+00'))+24*3600*(days-1))
   all.dem <- list()
   for(i in 1:length(days)){
     the.day <- days[i]
     the.month <- months[i]
     the.wday <- wdays[i]
-    if(the.wday==1 || the.wday==7){
+    if(the.wday=='Sunday' || the.wday=='Saturday'){
       the.day.type <- "SA/SU"
-    }else if(the.wday==2 || the.wday==6){
+    }else if(the.wday=='Monday' || the.wday=='Friday'){
       the.day.type <- "MO/FR"
     }else{
       the.day.type <- "TU/WE/TH"
