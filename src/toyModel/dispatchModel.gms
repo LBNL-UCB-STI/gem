@@ -11,10 +11,11 @@ parameters
 	genCost(g)
 	maxGen(g)
 	demandLoad(r,t)
+	test
 	;
 
 $gdxin test
-$load g gtor genCost demandLoad maxGen
+$load g gtor genCost demandLoad maxGen test
 $gdxin
 
 display gtor;
@@ -41,7 +42,7 @@ equations
 	;
 
 obj..
-	systemCost =e= sum((g,t,r),generation(g,t,r)*genCost(g));
+	systemCost =e= sum((g,t,r),generation(g,t,r)*genCost(g))+test;
 
 constraint1(t,r)..
 	sum(g,generation(g,t,r))-demandLoad(r,t) =g= 0;

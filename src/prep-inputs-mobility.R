@@ -11,32 +11,34 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
   param.names <- names(exper.row)
 
   inputs <- list()
+  inputs$sets <- list()
+  inputs$parameters <- list()
 
   ##### GENERIC PROCESSING OF SIMPLE PARAMS #####
 
-  generic.params <- c('battery.cost','discount.rate')
+  generic.params <- c('batteryCost','discountRate')
 
   for(generic.param in generic.params){
     if(generic.param %in% param.names){
-      streval(pp('inputs$',generic.param,' <- exper.row$',generic.param))
+      streval(pp('inputs$parameters$',generic.param,' <- data.table(value=exper.row$',generic.param,')'))
     }else{
-      streval(pp('inputs$',generic.param,' <- ',generic.param))
+      streval(pp('inputs$parameters$',generic.param,' <- data.table(value=',generic.param,')'))
     }
   }
 
 
   ##### SHARING #####
-  if('sharing.factor'%in%param.names){
-    inputs$sharing.factor <- data.table(d=common.inputs$d,sharingFactor=exper.row$sharing)
+  if('sharingFactor'%in%param.names){
+    inputs$parameters$sharingFactor <- data.table(d=common.inputs$sets$d,value=exper.row$sharing)
   }else{
-    inputs$sharing.factor <- sharing.factor
+    inputs$parameters$sharingFactor <- data.table(value=sharingFactor)
   }
 
   ##### URBAN FORM - STRAIGHT SCALING ALL REGIONS #####
   if('scale.urban.form.factor' %in% param.names){
-    inputs$urban.form.factor <- data.table(r=common.inputs$r,urban.form.factor=exper.row$scale.urban.form.factor * 1.3)
+    inputs$parameters$urbanFormFactor <- data.table(r=common.inputs$sets$r,value=exper.row$scale.urban.form.factor * 1.3)
   }else{
-    inputs$urban.form.factor <- data.table(r=common.inputs$r,urban.form.factor=1.3)
+    inputs$parameters$urbanFormFactor <- data.table(r=common.inputs$sets$r,value=1.3)
   }
 
   #### DEMAND ####
@@ -96,24 +98,29 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
     all.dem[[length(all.dem)+1]] <- the.dem[,.(r,t,d,trips)]
   }
   all.dem <- rbindlist(all.dem)
-  inputs$demand <- all.dem
+  names(all.dem)[names(all.dem)=='trips'] <- 'value'
+  names(all.dem)[names(all.dem)=='r'] <- 'rmob'
+  all.dem <- all.dem[,list(t,d,rmob,value)]
+  inputs$parameters$demand <- all.dem
 
   ##### DISTANCE BINS #####
-  inputs$d <- pp('d',sort(u(dem$d)))
-  inputs$travelDistance <- dem[,.(d=pp('d',d),travelDistance=weighted.mean(dist,weighted.trips)),by=c('d','r')]
-  inputs$travelDistance[,d:=NULL]
+  inputs$sets$d <- pp('d',sort(u(dem$d)))
+  inputs$parameters$travelDistance <- dem[,.(d=pp('d',d),value=weighted.mean(dist,weighted.trips)),by=c('d','r')]
+  inputs$parameters$travelDistance[,d:=NULL]
+  names(inputs$parameters$travelDistance)[names(inputs$parameters$travelDistance)=='r'] <- 'rmob'
 
   #### SPEED ####
   speed.by.dist <- data.table(d=c("d0-2","d2-5","d5-10","d10-20","d20-30","d30-50","d50-100","d100-300"),speed=c(18,22,32,38,40,45,48,48))
-  speeds <- data.table(expand.grid(list(common.inputs$r,common.inputs$t,inputs$d)))
+  speeds <- data.table(expand.grid(list(common.inputs$sets$r,common.inputs$sets$t,inputs$sets$d)))
   names(speeds) <- c('r','t','d')
   speeds <- join.on(speeds,speed.by.dist,'d','d')
   setkey(speeds,r,d,t)
-  inputs$speed <- speeds[,.(t=t,d,r,speed)]
+  names(speeds)[names(speeds)=='speed'] <- 'value'
+  inputs$parameters$velocity <- speeds[,.(t=t,d,r,value)]
 
   ##### CHARGING INFRASTRUCTURE #####
   charger.levels.str <- pp('L',str_pad(charger.levels,3,'left','0'))
-  inputs$l <- charger.levels.str
+  inputs$sets$l <- charger.levels.str
   #### CHARGER CAPITAL ####
   if('l10.charger.cost'%in%param.names){
     l10.charger.cost <- exp.pars$l10.charger.cost[exp.i]
@@ -125,13 +132,19 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
   }else{
     charger.cap.superlinear <- 5
   }
-  charger.cap.costs <- l10.charger.cost + c(charger.levels-min(charger.levels))*charger.cap.superlinear
-  inputs$charger.cap.costs <- data.table(l=charger.levels.str,cap.costs=charger.cap.costs)
+  chargerCapitalCosts <- l10.charger.cost + c(charger.levels-min(charger.levels))*charger.cap.superlinear
+  inputs$parameters$chargerCapitalCosts <- data.table(l=charger.levels.str,value=chargerCapitalCosts)
   #### CHARGER POWER ####
-  inputs$charger.power <- data.table(l=charger.levels.str,charger.power=charger.levels)
+  inputs$parameters$chargerPower <- data.table(l=charger.levels.str,value=charger.levels)
   #### CHARGER DISTRBITUION FACTOR ####
-  inputs$charger.distrib.factor <- data.table(l=charger.levels.str,charger.distrib.factor=1)
+  inputs$parameters$chargerDistributionFactor <- data.table(l=charger.levels.str,value=1)
   
+  ### Missing parameters: ###
+    #demandCharge(rmob)
+  ### Discrepancies: ###
+    #urbanFormFactor is rmob in gams but is r here
+    #speed is velocity? (I assumed this is the case), velocity is rmob in gams but is r here
+
   inputs
 }
 

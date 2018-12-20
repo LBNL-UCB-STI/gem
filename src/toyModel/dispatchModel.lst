@@ -1,4 +1,4 @@
-GAMS 25.1.2  r67455 Released Aug  1, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   12/07/18 12:08:34 Page 1
+GAMS 25.1.2  r67455 Released Aug  1, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   12/19/18 17:57:09 Page 1
 toyModel
 C o m p i l a t i o n
 
@@ -15,76 +15,78 @@ C o m p i l a t i o n
   11          genCost(g)
   12          maxGen(g)
   13          demandLoad(r,t)
-  14          ;
-  15   
+  14          test
+  15          ;
+  16   
 GDXIN   /Users/alanjenn/Dropbox/Davis/Research/Project25_LBNLMobility/Analysis_Writeup/gem/src/toyModel/test.gdx
 --- LOAD  g = 1:g
 --- LOAD  gtor = 2:gtor
 --- LOAD  genCost = 3:genCost
 --- LOAD  demandLoad = 4:demandLoad
 --- LOAD  maxGen = 5:maxGen
-  19   
-  20  display gtor;
-  21   
-  22  variable
-  23          systemCost
-  24          ;
-  25   
-  26  positive variable
-  27          generation(g,t,r)
-  28          ;
-  29   
-  30  display
-  31          genCost
-  32          demandLoad
-  33          maxGen
-  34          ;
-  35   
-  36  equations
-  37          obj                             Objective function minimizing total cost
-  38          constraint1             Generation must equal load
-  39          constraint2             Max generation for each generator
-  40          constraint3             Renewable generation cannot exceed wind or sun supply
-  41          ;
-  42   
-  43  obj..
-  44          systemCost =e= sum((g,t,r),generation(g,t,r)*genCost(g));
-  45   
-  46  constraint1(t,r)..
-  47          sum(g,generation(g,t,r))-demandLoad(r,t) =g= 0;
-  48   
-  49  constraint2(g,t,r)..
-  50          maxGen(g)-generation(g,t,r) =g= 0;
-  51   
-GAMS 25.1.2  r67455 Released Aug  1, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   12/07/18 12:08:34 Page 2
+--- LOAD  test = 6:test
+  20   
+  21  display gtor;
+  22   
+  23  variable
+  24          systemCost
+  25          ;
+  26   
+  27  positive variable
+  28          generation(g,t,r)
+  29          ;
+  30   
+  31  display
+  32          genCost
+  33          demandLoad
+  34          maxGen
+  35          ;
+  36   
+  37  equations
+  38          obj                             Objective function minimizing total cost
+  39          constraint1             Generation must equal load
+  40          constraint2             Max generation for each generator
+  41          constraint3             Renewable generation cannot exceed wind or sun supply
+  42          ;
+  43   
+  44  obj..
+  45          systemCost =e= sum((g,t,r),generation(g,t,r)*genCost(g))+test;
+  46   
+  47  constraint1(t,r)..
+  48          sum(g,generation(g,t,r))-demandLoad(r,t) =g= 0;
+  49   
+  50  constraint2(g,t,r)..
+GAMS 25.1.2  r67455 Released Aug  1, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   12/19/18 17:57:09 Page 2
 toyModel
 C o m p i l a t i o n
 
 
-  52  model
-  53          toyModel /obj,constraint1,constraint2/
-  54          ;
-  55   
-  56  options
-  57          lp = cplex
-  58          solvelink = 2
-  59          ;
-  60   
-  63  toyModel.optFile = 1;
-  64  toyModel.holdfixed = 1;
-  65   
-  66  solve
-  67          toyModel
-  68          using lp
-  69          minimizing systemCost
-  70          ;
-  71   
-  72  display
-  73          generation.l
-  74          ;
-  75   
-  76  Execute_Unload "results.gdx";
-GAMS 25.1.2  r67455 Released Aug  1, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   12/07/18 12:08:34 Page 3
+  51          maxGen(g)-generation(g,t,r) =g= 0;
+  52   
+  53  model
+  54          toyModel /obj,constraint1,constraint2/
+  55          ;
+  56   
+  57  options
+  58          lp = cplex
+  59          solvelink = 2
+  60          ;
+  61   
+  64  toyModel.optFile = 1;
+  65  toyModel.holdfixed = 1;
+  66   
+  67  solve
+  68          toyModel
+  69          using lp
+  70          minimizing systemCost
+  71          ;
+  72   
+  73  display
+  74          generation.l
+  75          ;
+  76   
+  77  Execute_Unload "results.gdx";
+GAMS 25.1.2  r67455 Released Aug  1, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   12/19/18 17:57:09 Page 3
 toyModel
 Include File Summary
 
@@ -92,16 +94,16 @@ Include File Summary
    SEQ   GLOBAL TYPE      PARENT   LOCAL  FILENAME
 
      1        1 INPUT          0       0  /Users/alanjenn/Dropbox/Davis/Research/Project25_LBNLMobility/Analysis_Writeup/gem/src/toyModel/dispatchModel.gms
-     2       16 GDXIN          1      16  /Users/alanjenn/Dropbox/Davis/Research/Project25_LBNLMobility/Analysis_Writeup/gem/src/toyModel/test.gdx
+     2       17 GDXIN          1      17  /Users/alanjenn/Dropbox/Davis/Research/Project25_LBNLMobility/Analysis_Writeup/gem/src/toyModel/test.gdx
 
 
-COMPILATION TIME     =        0.004 SECONDS      3 MB  25.1.2 r67455 DEX-DEG
-GAMS 25.1.2  r67455 Released Aug  1, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   12/07/18 12:08:34 Page 4
+COMPILATION TIME     =        0.006 SECONDS      3 MB  25.1.2 r67455 DEX-DEG
+GAMS 25.1.2  r67455 Released Aug  1, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   12/19/18 17:57:09 Page 4
 toyModel
 E x e c u t i o n
 
 
-----     20 SET gtor  
+----     21 SET gtor  
 
             r1          r2
 
@@ -110,23 +112,23 @@ g2         YES
 g3                     YES
 
 
-----     31 PARAMETER genCost  
+----     32 PARAMETER genCost  
 
 g1 10.000,    g2 20.000,    g3 30.000
 
 
-----     31 PARAMETER demandLoad  
+----     32 PARAMETER demandLoad  
 
                       ( ALL       0.000 )
 
 
-----     31 PARAMETER maxGen  
+----     32 PARAMETER maxGen  
 
 g1 100.000,    g2 100.000,    g3 100.000
 
-GAMS 25.1.2  r67455 Released Aug  1, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   12/07/18 12:08:34 Page 5
+GAMS 25.1.2  r67455 Released Aug  1, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   12/19/18 17:57:09 Page 5
 toyModel
-Equation Listing    SOLVE toyModel Using LP From line 70
+Equation Listing    SOLVE toyModel Using LP From line 71
 
 
 ---- obj  =E=  Objective function minimizing total cost
@@ -135,9 +137,9 @@ obj..  systemCost - 10*generation(g1,t1,r1) - 10*generation(g1,t1,r2) - 10*gener
      
       - 20*generation(g2,t1,r1) - 20*generation(g2,t1,r2) - 20*generation(g2,t1,r3) - 20*generation(g2,t2,r1) - 20*generation(g2,t2,r2) - 20*generation(g2,t2,r3) - 20*generation(g2,t3,r1) - 20*generation(g2,t3,r2) - 20*generation(g2,t3,r3)
      
-      - 30*generation(g3,t1,r1) - 30*generation(g3,t1,r2) - 30*generation(g3,t1,r3) - 30*generation(g3,t2,r1) - 30*generation(g3,t2,r2) - 30*generation(g3,t2,r3) - 30*generation(g3,t3,r1) - 30*generation(g3,t3,r2) - 30*generation(g3,t3,r3) =E= 0 ;
+      - 30*generation(g3,t1,r1) - 30*generation(g3,t1,r2) - 30*generation(g3,t1,r3) - 30*generation(g3,t2,r1) - 30*generation(g3,t2,r2) - 30*generation(g3,t2,r3) - 30*generation(g3,t3,r1) - 30*generation(g3,t3,r2) - 30*generation(g3,t3,r3) =E= 1 ;
      
-      (LHS = 0)
+      (LHS = 0, INFES = 1 ****)
      
 
 ---- constraint1  =G=  Generation must equal load
@@ -161,9 +163,9 @@ constraint2(g1,t1,r3)..  - generation(g1,t1,r3) =G= -100 ; (LHS = 0)
      
 REMAINING 24 ENTRIES SKIPPED
 
-GAMS 25.1.2  r67455 Released Aug  1, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   12/07/18 12:08:34 Page 6
+GAMS 25.1.2  r67455 Released Aug  1, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   12/19/18 17:57:09 Page 6
 toyModel
-Column Listing      SOLVE toyModel Using LP From line 70
+Column Listing      SOLVE toyModel Using LP From line 71
 
 
 ---- systemCost  
@@ -194,9 +196,9 @@ generation(g1,t1,r3)
        -1       constraint2(g1,t1,r3)
 
 REMAINING 24 ENTRIES SKIPPED
-GAMS 25.1.2  r67455 Released Aug  1, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   12/07/18 12:08:34 Page 7
+GAMS 25.1.2  r67455 Released Aug  1, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   12/19/18 17:57:09 Page 7
 toyModel
-Model Statistics    SOLVE toyModel Using LP From line 70
+Model Statistics    SOLVE toyModel Using LP From line 71
 
 
 MODEL STATISTICS
@@ -206,23 +208,23 @@ BLOCKS OF VARIABLES           2     SINGLE VARIABLES           28
 NON ZERO ELEMENTS            82
 
 
-GENERATION TIME      =        0.013 SECONDS      4 MB  25.1.2 r67455 DEX-DEG
-GAMS 25.1.2  r67455 Released Aug  1, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   12/07/18 12:08:34 Page 8
+GENERATION TIME      =        0.018 SECONDS      4 MB  25.1.2 r67455 DEX-DEG
+GAMS 25.1.2  r67455 Released Aug  1, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   12/19/18 17:57:09 Page 8
 toyModel
-Solution Report     SOLVE toyModel Using LP From line 70
+Solution Report     SOLVE toyModel Using LP From line 71
 
 
                S O L V E      S U M M A R Y
 
      MODEL   toyModel            OBJECTIVE  systemCost
      TYPE    LP                  DIRECTION  MINIMIZE
-     SOLVER  CPLEX               FROM LINE  70
+     SOLVER  CPLEX               FROM LINE  71
 
 **** SOLVER STATUS     1 Normal Completion         
 **** MODEL STATUS      1 Optimal                   
-**** OBJECTIVE VALUE                0.0000
+**** OBJECTIVE VALUE                1.0000
 
- RESOURCE USAGE, LIMIT          0.034      1000.000
+ RESOURCE USAGE, LIMIT          0.033      1000.000
  ITERATION COUNT, LIMIT         0    2000000000
 
 IBM ILOG CPLEX   25.1.2 r67455 Released Aug  1, 2018 DEG x86 64bit/Mac OS X   
@@ -236,12 +238,12 @@ Use option 'names no' to turn use of names off
 LP status(1): optimal
 Cplex Time: 0.01sec (det. 0.02 ticks)
 Optimal solution found.
-Objective :           0.000000
+Objective :           1.000000
 
 
                            LOWER          LEVEL          UPPER         MARGINAL
 
----- EQU obj                 .              .              .             1.0000      
+---- EQU obj                1.0000         1.0000         1.0000         1.0000      
 
   obj  Objective function minimizing total cost
 
@@ -258,9 +260,9 @@ t2.r3          .              .            +INF             .
 t3.r1          .              .            +INF             .          
 t3.r2          .              .            +INF             .          
 t3.r3          .              .            +INF             .          
-GAMS 25.1.2  r67455 Released Aug  1, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   12/07/18 12:08:34 Page 9
+GAMS 25.1.2  r67455 Released Aug  1, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                   12/19/18 17:57:09 Page 9
 toyModel
-Solution Report     SOLVE toyModel Using LP From line 70
+Solution Report     SOLVE toyModel Using LP From line 71
 
 
 ---- EQU constraint2  Max generation for each generator
@@ -297,7 +299,7 @@ g3.t3.r3      -100.0000          .            +INF             .
 
                            LOWER          LEVEL          UPPER         MARGINAL
 
----- VAR systemCost        -INF             .            +INF             .          
+---- VAR systemCost        -INF            1.0000        +INF             .          
 
 ---- VAR generation  
 
@@ -316,9 +318,9 @@ g2.t1.r1          .              .            +INF           20.0000
 g2.t1.r2          .              .            +INF           20.0000      
 g2.t1.r3          .              .            +INF           20.0000      
 g2.t2.r1          .              .            +INF           20.0000      
-GAMS 25.1.2  r67455 Released Aug  1, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                  12/07/18 12:08:34 Page 10
+GAMS 25.1.2  r67455 Released Aug  1, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                  12/19/18 17:57:09 Page 10
 toyModel
-Solution Report     SOLVE toyModel Using LP From line 70
+Solution Report     SOLVE toyModel Using LP From line 71
 
 
      VAR generation  
@@ -344,18 +346,18 @@ g3.t3.r3          .              .            +INF           30.0000
 **** REPORT SUMMARY :        0     NONOPT
                              0 INFEASIBLE
                              0  UNBOUNDED
-GAMS 25.1.2  r67455 Released Aug  1, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                  12/07/18 12:08:34 Page 11
+GAMS 25.1.2  r67455 Released Aug  1, 2018 DEX-DEG x86 64bit/Mac OS X                                                                                                                                                                  12/19/18 17:57:09 Page 11
 toyModel
 E x e c u t i o n
 
 
-----     73 VARIABLE generation.L  
+----     74 VARIABLE generation.L  
 
                       ( ALL       0.000 )
 
 
 
-EXECUTION TIME       =        0.084 SECONDS      4 MB  25.1.2 r67455 DEX-DEG
+EXECUTION TIME       =        0.093 SECONDS      4 MB  25.1.2 r67455 DEX-DEG
 
 
 USER: GAMS Development Corporation, USA              G871201/0000CA-ANY

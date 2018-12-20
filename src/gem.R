@@ -17,7 +17,8 @@
 #AJ Comment: Should we try to migrate away from your personal library sooner rather than later if we decide to eventually make this project public?
 
 suppressPackageStartupMessages(library(colinmisc,quietly=T))
-load.libraries(c('stringr','data.table','ggplot2','optparse','yaml','reshape','grid'))
+load.libraries(c('stringr','data.table','ggplot2','optparse','yaml','reshape','grid','gdxtools'))
+igdx(gams.executable.location)
 
 if(!exists('gem.project.directory')){
   my.cat('Error, you need to define the variable gem.project.directory in your user-level Rprofile (i.e. ~/.Rprofile). Make the varaible be the file path of the gem project directory.')
@@ -54,13 +55,20 @@ static.inputs <- prep.inputs.static()
 i <- 1
 for(i in 1:nrow(exper$runs)){
   my.cat(pp('Prepping inputs for run ',i))
+  inputs <- list()
+
   common.inputs <- c(static.inputs,prep.inputs.common(exper$run[i]))
   exper.row <- exper$run[i]
-  inputs <- c(common.inputs,prep.inputs.mobility(exper$run[i],common.inputs),prep.inputs.grid(exper$run[i],common.inputs))
-  print(inputs)
-}
+  inputs.mobility <- prep.inputs.mobility(exper$run[i],common.inputs)
+  inputs.grid <- prep.inputs.grid(exper$run[i],common.inputs) 
 
-#write.gdx('inputs.gdx',params=inputs$parameters,sets=inputs$sets)
+  inputs$sets <- c(common.inputs$sets,inputs.mobility$sets,inputs.grid$sets)
+  inputs$parameters <- c(common.inputs$parameters,inputs.mobility$parameters,inputs.grid$parameters)
+
+  print(inputs)
+
+  write.gdx(pp('inputs',i,'.gdx'),params=lapply(inputs$parameters,as.data.frame),sets=lapply(inputs$sets,as.data.frame))
+}
 
 #####################################################################################
 # Load GAMS and Run
