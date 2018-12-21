@@ -67,12 +67,20 @@ for(i in 1:nrow(exper$runs)){
 
   print(inputs)
 
-  write.gdx(pp('inputs',i,'.gdx'),params=lapply(inputs$parameters,as.data.frame),sets=lapply(inputs$sets,as.data.frame))
+  write.gdx(pp('src/gamsScenarioFiles/inputs',i,'.gdx'),params=lapply(inputs$parameters,as.data.frame),sets=lapply(inputs$sets,as.data.frame))
 }
 
 #####################################################################################
 # Load GAMS and Run
 #####################################################################################
+
+for(i in 1:nrow(exper$runs)) {
+  gem.gms <- readLines('src/gem.gms')
+  gem.gms <- gsub(pattern='<<gdxName>>',replace=pp('inputs',i,'.gdx'),x=gem.gms)
+  writeLines(gem.gms,con=pp('src/gamsScenarioFiles/gem_',i,'.gms'))
+  
+  #gams(pp('src/gamsScenarioFiles/gem_',i,'.gms')
+}
 
 #####################################################################################
 # Post-Process Results

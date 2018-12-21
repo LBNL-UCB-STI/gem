@@ -144,6 +144,7 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
   ### Discrepancies: ###
     #urbanFormFactor is rmob in gams but is r here
     #speed is velocity? (I assumed this is the case), velocity is rmob in gams but is r here
+    #travelDistance is just d in gams but d and rmob here
 
   inputs
 }

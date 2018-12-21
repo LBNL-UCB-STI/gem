@@ -14,15 +14,15 @@ prep.inputs.static <- function(){
   ##### STATIC SETS #####
 
   regions <- c('ENC','ESC','MAT-NL','MAT-NY','MTN','NENG','PAC-CA','PAC-NL','SAT-FL','SAT-NL','WNC','WSC-TX','WSC-NL')
+  rmob <- as.vector(sapply(regions,function(x){ pp(x,c('-RUR','-URB'))}))
+  rmobtor <- data.table('r'=rep(regions,each=2),'rmob'=rmob)
   g <- generators$g
   gtor <- generators[,list(g,r)]
   hydro <- generators$g[generators$FuelType=='Hydro']
   solar <- generators$g[generators$FuelType=='Solar']
   wind <- generators$g[generators$FuelType=='Wind']
 
-  inputs.sets <- list(t=pp('t',seq(1,length(days)*24)),
-                 rmob=as.vector(sapply(regions,function(x){ pp(x,c('-RUR','-URB'))})),
-                 r=regions,g=g,gtor=gtor)
+  inputs.sets <- list(t=pp('t',seq(1,length(days)*24)),rmob=rmob,r=regions,rmobtor=rmobtor,g=g,gtor=gtor)
 
   ##### STATIC PARAMETERS #####
 
