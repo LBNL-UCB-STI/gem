@@ -9,7 +9,7 @@
 #############################################################################################
 
 prep.inputs.static <- function(){
-  my.cat(pp('Creating static inputs'))
+  cat(pp('Creating static inputs\n'))
 
   ##### STATIC SETS #####
 

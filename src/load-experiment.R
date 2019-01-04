@@ -12,8 +12,6 @@
 # ----------runs: the data.table of experimental runs, each row represents one model run
 ##############################################################################################################################################
 
-load.libraries(c('yaml'))
-
 load.experiment <- function(experiment.file){
   if(file.exists(experiment.file)){
     exper <- list()

@@ -14,16 +14,12 @@
 # Argument: experiment-definition-file
 #####################################################################################
 
-#AJ Comment: Should we try to migrate away from your personal library sooner rather than later if we decide to eventually make this project public?
-
-suppressPackageStartupMessages(library(colinmisc,quietly=T))
-load.libraries(c('stringr','data.table','ggplot2','optparse','yaml','reshape','grid','gdxtools'))
-igdx(gams.executable.location)
-
 if(!exists('gem.project.directory')){
   my.cat('Error, you need to define the variable gem.project.directory in your user-level Rprofile (i.e. ~/.Rprofile). Make the varaible be the file path of the gem project directory.')
 }
 setwd(gem.project.directory)
+source('src/includes.R')
+igdx(gams.executable.location)
 source('src/load-experiment.R')
 source('src/prep-inputs-static.R')
 source('src/prep-inputs-common.R')
@@ -54,7 +50,7 @@ static.inputs <- prep.inputs.static()
 
 i <- 1
 for(i in 1:nrow(exper$runs)){
-  my.cat(pp('Prepping inputs for run ',i))
+  cat(pp('Prepping inputs for run ',i,'\n'))
   inputs <- list()
 
   common.inputs <- c(static.inputs,prep.inputs.common(exper$run[i]))
