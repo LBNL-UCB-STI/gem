@@ -61,7 +61,7 @@ for(i in 1:nrow(exper$runs)){
   inputs$sets <- c(common.inputs$sets,inputs.mobility$sets,inputs.grid$sets)
   inputs$parameters <- c(common.inputs$parameters,inputs.mobility$parameters,inputs.grid$parameters)
 
-  print(inputs)
+  #print(inputs)
 
   write.gdx(pp('src/gamsScenarioFiles/inputs',i,'.gdx'),params=lapply(inputs$parameters,as.data.frame),sets=lapply(inputs$sets,as.data.frame))
 }
