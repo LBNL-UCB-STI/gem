@@ -37,8 +37,8 @@ parameters
 												   b225 0.286
 												   b300 0.298
 												   b400 0.310 /									   
-	travelDistance(d)				avg miles per passenger 
-	velocity(t,d,r)
+	travelDistance(d,rmob)				avg miles per passenger 
+	speed(t,d,r)
 	demandCharge(rmob) 				USD per kW month
 	chargerCapitalCost(l) 			cost per kW 	
 	batteryCapacity(b) 				avg per veh in kWh /b075 19.65
@@ -101,7 +101,7 @@ positive variable
 
 
 $gdxin inputs1.gdx
-$load d r rmob l t gtor rmobtor demand velocity sharingFactor urbanFormFactor travelDistance demandCharge chargerPower chargerCapitalCost chargerDistributionFactor g solar wind hydro genCost demandLoad maxGen maxSolar maxWind transCap transCost
+$load d r rmob l t gtor rmobtor demand speed sharingFactor urbanFormFactor travelDistance demandCharge chargerPower chargerCapitalCost chargerDistributionFactor g solar wind hydro genCost demandLoad maxGen maxSolar maxWind transCap transCost
 $gdxin
 
 *Variable limits
@@ -169,7 +169,7 @@ cMaxCharging(t,l,rmob)..
 	numChargers(l,rmob) - sum(b,vehiclesCharging(t,b,l,rmob)) =g= 0;
 
 cNumMoving(t,b,d,rmob)..
-	demandAllocated(t,b,d,rmob) * travelDistance(d) - vehiclesMoving(t,b,d,rmob) * sharingFactor(d) * deltaT * velocity(t,d,rmob) =e= 0;
+	demandAllocated(t,b,d,rmob) * travelDistance(d) - vehiclesMoving(t,b,d,rmob) * sharingFactor(d) * deltaT * speed(t,d,rmob) =e= 0;
 
 cFleetDispatch(t,b,rmob)..
 	fleetSize(b,rmob) - sum(l, vehiclesCharging(t,b,l,rmob)) - sum(d,vehiclesMoving(t,b,d,rmob)) - vehiclesIdle(t,b,rmob)  =e= 0;

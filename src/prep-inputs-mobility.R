@@ -36,9 +36,9 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
 
   ##### URBAN FORM - STRAIGHT SCALING ALL REGIONS #####
   if('scale.urban.form.factor' %in% param.names){
-    inputs$parameters$urbanFormFactor <- data.table(r=common.inputs$sets$r,value=exper.row$scale.urban.form.factor * 1.3)
+    inputs$parameters$urbanFormFactor <- data.table(r=common.inputs$sets$rmob,value=exper.row$scale.urban.form.factor * 1.3)
   }else{
-    inputs$parameters$urbanFormFactor <- data.table(r=common.inputs$sets$r,value=1.3)
+    inputs$parameters$urbanFormFactor <- data.table(r=common.inputs$sets$rmob,value=1.3)
   }
 
   #### DEMAND ####
@@ -98,8 +98,7 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
     all.dem[[length(all.dem)+1]] <- the.dem[,.(r,t,d,trips)]
   }
   all.dem <- rbindlist(all.dem)
-  names(all.dem)[names(all.dem)=='trips'] <- 'value'
-  names(all.dem)[names(all.dem)=='r'] <- 'rmob'
+  all.dem[,':='(value=trips,trips=NULL,rmob=r,r=NULL)]
   all.dem <- all.dem[,list(t,d,rmob,value)]
   inputs$parameters$demand <- all.dem
 
@@ -107,16 +106,15 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
   inputs$sets$d <- pp('d',sort(u(dem$d)))
   inputs$parameters$travelDistance <- dem[,.(d=pp('d',d),value=weighted.mean(dist,weighted.trips)),by=c('d','r')]
   inputs$parameters$travelDistance[,d:=NULL]
-  names(inputs$parameters$travelDistance)[names(inputs$parameters$travelDistance)=='r'] <- 'rmob'
+  inputs$parameters$travelDistance[,':='(rmob=r,r=NULL)]
 
   #### SPEED ####
-  speed.by.dist <- data.table(d=c("d0-2","d2-5","d5-10","d10-20","d20-30","d30-50","d50-100","d100-300"),speed=c(18,22,32,38,40,45,48,48))
-  speeds <- data.table(expand.grid(list(common.inputs$sets$r,common.inputs$sets$t,inputs$sets$d)))
-  names(speeds) <- c('r','t','d')
+  speed.by.dist <- data.table(d=c("d0-2","d2-5","d5-10","d10-20","d20-30","d30-50","d50-100","d100-300"),value=c(18,22,32,38,40,45,48,48))
+  speeds <- data.table(expand.grid(list(common.inputs$sets$rmob,common.inputs$sets$t,inputs$sets$d)))
+  names(speeds) <- c('rmob','t','d')
   speeds <- join.on(speeds,speed.by.dist,'d','d')
-  setkey(speeds,r,d,t)
-  names(speeds)[names(speeds)=='speed'] <- 'value'
-  inputs$parameters$velocity <- speeds[,.(t=t,d,r,value)]
+  setkey(speeds,rmob,d,t)
+  inputs$parameters$speed <- speeds[,.(t=t,d,rmob,value)]
 
   ##### CHARGING INFRASTRUCTURE #####
   charger.levels.str <- pp('L',str_pad(charger.levels,3,'left','0'))
@@ -138,14 +136,14 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
   inputs$parameters$chargerPower <- data.table(l=charger.levels.str,value=charger.levels)
   #### CHARGER DISTRBITUION FACTOR ####
   inputs$parameters$chargerDistributionFactor <- data.table(l=charger.levels.str,value=1)
-  
-  ### Missing parameters: ###
-    #demandCharge(rmob)
-  ### Discrepancies: ###
-    #urbanFormFactor is rmob in gams but is r here
-    #speed is velocity? (I assumed this is the case), velocity is rmob in gams but is r here
-    #travelDistance is just d in gams but d and rmob here
 
+  #### DEMAND CHARGES ####
+  if('demandCharge'%in%param.names){
+    inputs$parameters$demandCharge <- data.table(rmob=common.inputs$sets$rmob,value=exper.row$demandCharge)
+  }else{
+    inputs$parameters$demandCharge <- data.table(rmob=common.inputs$sets$rmob,value=7.7)
+  }
+  
   inputs
 }
 
