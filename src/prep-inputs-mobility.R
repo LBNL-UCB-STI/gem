@@ -26,6 +26,9 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
     }
   }
 
+  if('fractionSAEVs' %in% names(exper.row)){
+    fraction.mobility.served.by.saevs <- exper.row$fractionSAEVs
+  }
 
   ##### SHARING #####
   if('sharingFactor'%in%param.names){
@@ -99,7 +102,7 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
   }
   all.dem <- rbindlist(all.dem)
   all.dem[,':='(value=trips,trips=NULL,rmob=r,r=NULL)]
-  all.dem <- all.dem[,list(t,d,rmob,value)]
+  all.dem <- all.dem[,list(t,d,rmob,value=value*fraction.mobility.served.by.saevs)]
   inputs$parameters$demand <- all.dem
 
   ##### DISTANCE BINS #####

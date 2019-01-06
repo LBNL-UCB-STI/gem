@@ -56,7 +56,7 @@
       evi_delayed[,end_time_chg:=end_time_prk]
       evi_delayed_load_profiles <- calcBaseEVILoad(evi_delayed,time_step) #This takes about 3.5 hours
       evi_load_profiles <- evi_load_profiles[,list(unique_vid,session_id,time_of_day,schedule_vmt,avg_kw,kwh,level=dest_chg_level)]
-      evi_delayed_load_profiles <- evi_delayed_load_profiles[,list(unique_vid,session_id,schedule_vmt,avg_kw,kwh,level=dest_chg_level)]
+      evi_delayed_load_profiles <- evi_delayed_load_profiles[,list(unique_vid,session_id,time_of_day,schedule_vmt,avg_kw,kwh,level=dest_chg_level)]
       save(evi_load_profiles,evi_delayed_load_profiles,file=load_file_name)
       print(Sys.time())
       
@@ -71,7 +71,8 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
   }
 
   # Desired size of fleet. The 3.37 is the average number of trips per driver based on https://nhts.ornl.gov/assets/2017_nhts_summary_travel_trends.pdf
-  fleet.sizes <- inputs.mobility$parameters$demand[,list(n.vehs=round(sum(value)/length(days)/3.37*(1-fraction.mobility.served.by.saevs),0)),by='rmob']
+  scaling.frac <- ifelse(fraction.mobility.served.by.saevs==0,1,(1-fraction.mobility.served.by.saevs)/fraction.mobility.served.by.saevs)
+  fleet.sizes <- inputs.mobility$parameters$demand[,list(n.vehs=round(sum(value)/length(days)/3.37*scaling.frac,0)),by='rmob']
   
   all.all.energy.constraints <- list()
   for(the.region in common.inputs$sets$rmob){
