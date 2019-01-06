@@ -24,6 +24,7 @@ source('src/load-experiment.R')
 source('src/prep-inputs-static.R')
 source('src/prep-inputs-common.R')
 source('src/prep-inputs-mobility.R')
+source('src/prep-inputs-personal-charging.R')
 source('src/prep-inputs-grid.R')
 source('input/defaults.R')
 
@@ -56,10 +57,11 @@ for(i in 1:nrow(exper$runs)){
   common.inputs <- c(static.inputs,prep.inputs.common(exper$run[i]))
   exper.row <- exper$run[i]
   inputs.mobility <- prep.inputs.mobility(exper$run[i],common.inputs)
+  inputs.personal.charging <- prep.inputs.personal.charging(exper$run[i],common.inputs)
   inputs.grid <- prep.inputs.grid(exper$run[i],common.inputs) 
 
-  inputs$sets <- c(common.inputs$sets,inputs.mobility$sets,inputs.grid$sets)
-  inputs$parameters <- c(common.inputs$parameters,inputs.mobility$parameters,inputs.grid$parameters)
+  inputs$sets <- c(common.inputs$sets,inputs.mobility$sets,inputs.grid$sets,inputs.personal.charging$sets)
+  inputs$parameters <- c(common.inputs$parameters,inputs.mobility$parameters,inputs.grid$parameters,inputs.personal.charging$parameters)
 
   #print(inputs)
 
