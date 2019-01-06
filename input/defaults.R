@@ -10,6 +10,7 @@ charger.levels <- c(10,20,50,100,250) # kW
 sharingFactor <- 1.5
 scale.urban.form.factor <- 1.0
 include.transit.demand <- F
+fraction.mobility.served.by.saevs <- 0.5
 
 #### Grid ####
 generators <- data.table(read.csv(pp(gem.raw.inputs,'gem_gridInputs_generators.csv')))

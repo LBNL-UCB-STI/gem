@@ -40,6 +40,10 @@ parameters
 	travelDistance(d,rmob)				avg miles per passenger 
 	speed(t,d,r)
 	demandCharge(rmob) 				USD per kW month
+	personalEVChargeEnergyLB(t,rmob)	  Lower boundary for cumulative energy delivered to personal evs
+	personalEVChargeEnergyUB(t,rmob)          Upper boundary for cumulative energy delivered to personal evs
+	personalEVChargePowerLB(t,rmob)           Lower boundary for power delivered to personal evs
+	personalEVChargePowerUB(t,rmob)           Upper boundary for power delivered to personal evs
 	chargerCapitalCost(l) 			cost per kW 	
 	batteryCapacity(b) 				avg per veh in kWh /b075 19.65
 													b150 41.10
@@ -97,6 +101,7 @@ positive variable
 	demandAllocated(t,b,d,rmob) 	Demand as allocated by battery type
 	generation(g,t)					Power generation by each generator
 	trans(r,t,o)					Power transmission between regions
+  privateVehiclePower(t,rmob)          Power profile of private vehicles
 ;
 
 
@@ -133,6 +138,10 @@ equations
 	cMaxSolar				Solar generation cannot exceed sun supply
 	cMaxWind				Wind generation cannot exceed wind supply
 	#constraint4				Hydro generation cannot exceed capacity factor
+  cPersonalEVChargeEnergyLB energy boundaries and power boundaries
+	cPersonalEVChargeEnergyUB
+	cPersonalEVChargePowerLB
+	cPersonalEVChargePowerUB
 ;
 
 obj..
@@ -195,9 +204,22 @@ cMaxWind(t,r)..
 #cMaxHydro(t,r)..
 #	maxHydro(r,t)-sum(hydro$gtor(hydro,r),generation(hydro,t)) =g= 0;
 
+cPersonalEVChargePowerLB(t,rmob)..
+	privateVehiclePower(t,rmob) - personalEVChargePowerLB(t,rmob) =g= 0;
+
+cPersonalEVChargePowerUB(t,rmob)..
+	privateVehiclePower(t,rmob) - personalEVChargePowerUB(t,rmob) =l= 0;
+
+cPersonalEVChargeEnergyLB(t,rmob)..
+	sum(tp$(ord(tp) le ord(t)), privateVehiclePower(tp,rmob))  =g= personalEVChargeEnergyLB(t,rmob);
+
+cPersonalEVChargeEnergyUB(t,rmob)..
+	sum(tp$(ord(tp) le ord(t)), privateVehiclePower(t,rmob))  =l= personalEVChargeEnergyUB(t,rmob);
+
+
 
 model
-	combinedModel /obj,cDemandAllocation,cDemandChargeCost,cVehicleMaintCost,cEnergyToMeetDemand,cChargingUpperBound,cChargingLowerBound,cNoChargeAtStart,cTerminalSOC,cNumCharging,cMaxCharging,cNumMoving,cFleetDispatch,cInfrastructureCost,cFleetCost,cDemandCharges,cGeneration,cMaxSolar,cMaxWind/
+	combinedModel /obj,cDemandAllocation,cDemandChargeCost,cVehicleMaintCost,cEnergyToMeetDemand,cChargingUpperBound,cChargingLowerBound,cNoChargeAtStart,cTerminalSOC,cNumCharging,cMaxCharging,cNumMoving,cFleetDispatch,cInfrastructureCost,cFleetCost,cDemandCharges,cGeneration,cMaxSolar,cMaxWind,cPersonalEVChargeEnergyLB,cPersonalEVChargeEnergyUB,cPersonalEVChargePowerLB,cPersonalEVChargePowerUB/
 
 options
 	qcp = cplex

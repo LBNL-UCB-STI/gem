@@ -57,7 +57,7 @@ for(i in 1:nrow(exper$runs)){
   common.inputs <- c(static.inputs,prep.inputs.common(exper$run[i]))
   exper.row <- exper$run[i]
   inputs.mobility <- prep.inputs.mobility(exper$run[i],common.inputs)
-  inputs.personal.charging <- prep.inputs.personal.charging(exper$run[i],common.inputs)
+  inputs.personal.charging <- prep.inputs.personal.charging(exper$run[i],common.inputs,inputs.mobility)
   inputs.grid <- prep.inputs.grid(exper$run[i],common.inputs) 
 
   inputs$sets <- c(common.inputs$sets,inputs.mobility$sets,inputs.grid$sets,inputs.personal.charging$sets)
