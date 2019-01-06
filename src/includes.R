@@ -8,6 +8,7 @@ library('reshape')
 library('grid')
 library('yaml')
 library('gdxtools')
+library('lubridate')
 
 pp <- function(...,sep='',collapse=NULL){
   paste(...,sep=sep,collapse=collapse)
