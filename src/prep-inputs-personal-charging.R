@@ -45,18 +45,18 @@
   }
 
   #Load power profile for all unique_vids
-  load_file_name <- paste0(workingDir,"/data/evi_load_profile_data_2019-01-05-sm.RData") #Source of data, or file name to save to if re-calc
+  load_file_name <- paste0(workingDir,"/data/evi_load_profile_data_2019-01-06.RData") #Source of data, or file name to save to if re-calc
   if(!exists("evi_load_profiles")) {
     if(run_load_calc_func) {
       print(Sys.time())
-      evi_load_profiles <- calcBaseEVILoad(evi_raw,time_step) #This takes about 3.5 hours
+      evi_load_profiles <- calcBaseEVILoad(evi_raw,time_step) 
       # Adjust the start and tend time of the charing session as much as possible
       evi_delayed <- copy(evi_raw)
       evi_delayed[,start_time:=start_time+(end_time_prk-end_time_chg)]
       evi_delayed[,end_time_chg:=end_time_prk]
-      evi_delayed_load_profiles <- calcBaseEVILoad(evi_delayed,time_step) #This takes about 3.5 hours
-      evi_load_profiles <- evi_load_profiles[,list(unique_vid,session_id,time_of_day,schedule_vmt,avg_kw,kwh,level=dest_chg_level)]
-      evi_delayed_load_profiles <- evi_delayed_load_profiles[,list(unique_vid,session_id,time_of_day,schedule_vmt,avg_kw,kwh,level=dest_chg_level)]
+      evi_delayed_load_profiles <- calcBaseEVILoad(evi_delayed,time_step) 
+      evi_load_profiles <- evi_load_profiles[,list(unique_vid,session_id,time_of_day,schedule_vmt,avg_kw,kwh,level=dest_chg_level,plugged_kw)]
+      evi_delayed_load_profiles <- evi_delayed_load_profiles[,list(unique_vid,session_id,time_of_day,schedule_vmt,avg_kw,kwh,level=dest_chg_level,plugged_kw)]
       save(evi_load_profiles,evi_delayed_load_profiles,file=load_file_name)
       print(Sys.time())
       
@@ -163,7 +163,7 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
       #   vehicles. For example, if the desired fleet size is 100,000, then there is a fleet of 50,000 and the kW associated with each charge
       #   event is increased by 100,000 / 50,000 = 2.
       # The variables schedule_vmt and kwh are also scaled.
-      fleet_load_profiles[,schedule_vmt := schedule_vmt * fleet_size_scale][,avg_kw := avg_kw * fleet_size_scale][,kwh := kwh * fleet_size_scale]
+      fleet_load_profiles[,schedule_vmt := schedule_vmt * fleet_size_scale][,avg_kw := avg_kw * fleet_size_scale][,kwh := kwh * fleet_size_scale][,plugged_kw:=plugged_kw*fleet_size_scale]
 
       #### REPEAT FOR DELAYED LOAD SHAPE 
 
@@ -181,21 +181,24 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
 
       fleet_load_profiles[,t:=time_of_day]
       delayed_fleet_load_profiles[,t:=time_of_day]
-      energy.constraints.unnormalized <- join.on(join.on(data.table(expand.grid(list(t=u(c(fleet_load_profiles$t,delayed_fleet_load_profiles$t)),day_of_week=c('weekday','weekend')))),fleet_load_profiles[,list(max.c=sum(avg_kw)),by=c('t','day_of_week')],c('t','day_of_week'),c('t','day_of_week')), delayed_fleet_load_profiles[,list(min.c=sum(avg_kw)),by=c('t','day_of_week')],c('t','day_of_week'),c('t','day_of_week'))
+      energy.constraints.unnormalized <- join.on(join.on(data.table(expand.grid(list(t=u(c(fleet_load_profiles$t,delayed_fleet_load_profiles$t)),day_of_week=c('weekday','weekend')))),fleet_load_profiles[,list(max.energy=sum(avg_kw)),by=c('t','day_of_week')],c('t','day_of_week'),c('t','day_of_week')), delayed_fleet_load_profiles[,list(min.energy=sum(avg_kw)),by=c('t','day_of_week')],c('t','day_of_week'),c('t','day_of_week'))
       setkey(energy.constraints.unnormalized,day_of_week,t)
-      energy.constraints.unnormalized[is.na(min.c) & t<5,min.c:=0]
-      energy.constraints.unnormalized[,':='(min.c=cumsum(min.c),max.c=cumsum(max.c)),by='day_of_week']
-      max.diff <- energy.constraints.unnormalized[,list(diff=max(max.c-min.c,na.rm=T)),by='day_of_week']
+      energy.constraints.unnormalized[is.na(min.energy) & t<5,min.energy:=0]
+      energy.constraints.unnormalized[,':='(min.energy=cumsum(min.energy),max.energy=cumsum(max.energy)),by='day_of_week']
+      max.diff <- energy.constraints.unnormalized[,list(diff=max(max.energy-min.energy,na.rm=T)),by='day_of_week']
 
       fleet_load_profiles[,t:=time_of_day%%24]
       delayed_fleet_load_profiles[,t:=time_of_day%%24]
-      energy.constraints <- join.on(join.on(data.table(expand.grid(list(t=0:23,day_of_week=c('weekday','weekend')))),fleet_load_profiles[,list(max.c=sum(avg_kw)),by=c('t','day_of_week')],c('t','day_of_week'),c('t','day_of_week')), delayed_fleet_load_profiles[,list(min.c=sum(avg_kw)),by=c('t','day_of_week')],c('t','day_of_week'),c('t','day_of_week'))
+      energy.constraints <- join.on(join.on(data.table(expand.grid(list(t=0:23,day_of_week=c('weekday','weekend')))),fleet_load_profiles[,list(max.energy=sum(avg_kw)),by=c('t','day_of_week')],c('t','day_of_week'),c('t','day_of_week')), delayed_fleet_load_profiles[,list(min.energy=sum(avg_kw)),by=c('t','day_of_week')],c('t','day_of_week'),c('t','day_of_week'))
       setkey(energy.constraints,day_of_week,t)
-      energy.constraints[,':='(min.c=cumsum(min.c),max.c=cumsum(max.c)),by='day_of_week']
+      energy.constraints[,':='(min.energy=cumsum(min.energy),max.energy=cumsum(max.energy)),by='day_of_week']
       energy.constraints <- join.on(energy.constraints,max.diff,'day_of_week','day_of_week')
-      energy.constraints[,delta:= diff - max(max.c-min.c),by='day_of_week']
-      energy.constraints[,min.c:=min.c - delta]
+      energy.constraints[,delta:= diff - max(max.energy-min.energy),by='day_of_week']
+      energy.constraints[,min.energy:=min.energy - delta]
       energy.constraints[,':='(delta=NULL,diff=NULL)]
+
+      power.constraints <- fleet_load_profiles[,.(max.power=sum(plugged_kw),min.power=0),by='t']
+      setkey(power.constraints)
 
       wdays <- weekdays(to.posix(pp(year,'-01-01 00:00:00+00'))+24*3600*(days-1))
       setkey(energy.constraints,t)
@@ -211,17 +214,19 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
         df <- copy(energy.constraints)[day_of_week==the.day.type]
         df[,t:=t+(i-1)*24]
         if(i>1){
-          maxes <- all.energy.constraints[[length(all.energy.constraints)]][,list(max.max=max(max.c),max.min=max(min.c))]
-          mins <- df[,list(the.min=min(min.c))]
-          df[,max.c:=max.c+maxes$max.max]
-          df[,min.c:=min.c+maxes$max.min-mins$the.min]
+          maxes <- all.energy.constraints[[length(all.energy.constraints)]][,list(max.max=max(max.energy),max.min=max(min.energy))]
+          mins <- df[,list(the.min=min(min.energy))]
+          df[,max.energy:=max.energy+maxes$max.max]
+          df[,min.energy:=min.energy+maxes$max.min-mins$the.min]
         }
-        #ggplot(df,aes(x=t,y=min.c,colour=day_of_week))+geom_line()+geom_line(aes(y=max.c))
+        df[,max.power:=power.constraints$max.power]
+        df[,min.power:=power.constraints$min.power]
+        #ggplot(df,aes(x=t,y=min.energy,colour=day_of_week))+geom_line()+geom_line(aes(y=max.energy))
         all.energy.constraints[[length(all.energy.constraints)+1]] <- df
       }
       all.energy.constraints <- rbindlist(all.energy.constraints)
 
-      ggplot(all.energy.constraints,aes(x=t,y=min.c,colour=day_of_week))+geom_line()+geom_line(aes(y=max.c))
+      ggplot(all.energy.constraints,aes(x=t,y=min.energy,colour=day_of_week))+geom_line()+geom_line(aes(y=max.energy))
 
       all.energy.constraints[,t:=pp('t',t+1)]
       all.energy.constraints[,rmob:=the.region]
@@ -234,8 +239,10 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
   inputs <- list()
   inputs$sets <- list()
   inputs$parameters <- list()
-  inputs$parameters$personalEVChargeEnergyUB <- all.all.energy.constraints[,list(t,rmob,value=max.c)]
-  inputs$parameters$personalEVChargeEnergyLB <- all.all.energy.constraints[,list(t,rmob,value=min.c)]
+  inputs$parameters$personalEVChargeEnergyUB <- all.all.energy.constraints[,list(t,rmob,value=max.energy)]
+  inputs$parameters$personalEVChargeEnergyLB <- all.all.energy.constraints[,list(t,rmob,value=min.energy)]
+  inputs$parameters$personalEVChargePowerUB <- all.all.energy.constraints[,list(t,rmob,value=max.power)]
+  inputs$parameters$personalEVChargePowerLB <- all.all.energy.constraints[,list(t,rmob,value=min.power)]
 
     #print(Sys.time())
 
