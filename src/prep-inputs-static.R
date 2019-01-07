@@ -22,7 +22,7 @@ prep.inputs.static <- function(){
   solar <- generators$g[generators$FuelType=='Solar']
   wind <- generators$g[generators$FuelType=='Wind']
 
-  inputs.sets <- list(t=pp('t',seq(1,length(days)*24)),rmob=rmob,r=regions,rmobtor=rmobtor,g=g,gtor=gtor)
+  inputs.sets <- list(t=pp('t',seq(1,length(days)*24)),rmob=rmob,r=regions,rmobtor=rmobtor,g=g,gtor=gtor,hydro=hydro,solar=solar,wind=wind)
 
   ##### STATIC PARAMETERS #####
 
