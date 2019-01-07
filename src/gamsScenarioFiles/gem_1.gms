@@ -21,6 +21,7 @@ set
 	wind(g)			Wind generators
 	hydro(g)		Hydro generators
 	gtor(g,r) 		Generator to region mapping
+	rmobtor(r,rmob) 		Region mobility to region mapping
 ;
 
 alias (t,tp);
@@ -30,7 +31,7 @@ parameters
 	demand(t,d,rmob)				Demand by distance type, time, and region
 	chargerPower(l)					kW per charger 
 	sharingFactor	 				Avg person per vehicle trip 
-	urbanFormFactor(r)	 			one + dead head ratio
+	urbanFormFactor(rmob)	 			one + dead head ratio
 	chargerDistributionFactor(l) 	increased chargers needed to serve vehs 
 	conversionEfficiency(b) 		kwh per mile / b075 0.262
 												   b150 0.274
@@ -38,7 +39,7 @@ parameters
 												   b300 0.298
 												   b400 0.310 /									   
 	travelDistance(d,rmob)				avg miles per passenger 
-	speed(t,d,r)
+	speed(t,d,rmob)
 	demandCharge(rmob) 				USD per kW month
 	personalEVChargeEnergyLB(t,rmob)	  Lower boundary for cumulative energy delivered to personal evs
 	personalEVChargeEnergyUB(t,rmob)          Upper boundary for cumulative energy delivered to personal evs
@@ -55,7 +56,7 @@ parameters
 	maxGen(g)						Maximum generating capacity by generator
 	maxSolar(r,t)					Regional solar limits
 	maxWind(r,t)					Regional wind limits
-	#maxHydro(r,t)					Regional hydro limits
+*	#maxHydro(r,t)					Regional hydro limits
 	transCap(r,o)					Maximum transmission capacity between two regions
 	transCost(r,o)					Wheeling costs for transmitting power
 ;
@@ -105,8 +106,8 @@ positive variable
 ;
 
 
-$gdxin inputs1.gdx
-$load d r rmob l t gtor rmobtor demand speed sharingFactor urbanFormFactor travelDistance demandCharge chargerPower chargerCapitalCost chargerDistributionFactor g solar wind hydro genCost demandLoad maxGen maxSolar maxWind transCap transCost
+$gdxin src/gamsScenarioFiles/inputs1.gdx
+$load d r rmob l t gtor rmobtor demand speed sharingFactor urbanFormFactor travelDistance demandCharge chargerPower chargerCapitalCost chargerDistributionFactor g solar wind hydro genCost demandLoad maxGen maxSolar maxWind transCap transCost personalEVChargeEnergyLB personalEVChargeEnergyUB personalEVChargePowerLB personalEVChargePowerUB
 $gdxin
 
 *Variable limits
@@ -137,7 +138,7 @@ equations
 	cGeneration				Generation must equal load
 	cMaxSolar				Solar generation cannot exceed sun supply
 	cMaxWind				Wind generation cannot exceed wind supply
-	#constraint4				Hydro generation cannot exceed capacity factor
+*	#constraint4				Hydro generation cannot exceed capacity factor
   cPersonalEVChargeEnergyLB energy boundaries and power boundaries
 	cPersonalEVChargeEnergyUB
 	cPersonalEVChargePowerLB
@@ -151,13 +152,13 @@ cDemandChargeCost(t,rmob)..
 	demandChargeCost(t,rmob) - maxDemand(rmob)*demandCharge(rmob)/30.4/card(t) =e= 0;
 
 cVehicleMaintCost(t,rmob)..
-	vehicleMaintCost(t,rmob) - vehiclePerMileCosts*sum((b,d),vehiclesMoving(t,b,d,rmob)*travelDistance(d)) =e= 0;
+	vehicleMaintCost(t,rmob) - vehiclePerMileCosts*sum((b,d),vehiclesMoving(t,b,d,rmob)*travelDistance(d,rmob)) =e= 0;
 
 cDemandAllocation(t,d,rmob)..
 	demand(t,d,rmob) - sum(b,demandAllocated(t,b,d,rmob)) =e= 0;
 
 cEnergyToMeetDemand(t,b,d,rmob)..
-	energyConsumed(t,b,d,rmob) * sharingFactor(d) / (urbanFormFactor(rmob) * conversionEfficiency(b) * travelDistance(d)) - demandAllocated(t,b,d,rmob) =e= 0;
+	energyConsumed(t,b,d,rmob) * sharingFactor / (urbanFormFactor(rmob) * conversionEfficiency(b) * travelDistance(d,rmob)) - demandAllocated(t,b,d,rmob) =e= 0;
 
 cChargingUpperBound(t,b,rmob)..
 	sum(tp$(ord(tp) lt ord(t)),sum(d,energyConsumed(tp,b,d,rmob)))-sum(tp$(ord(tp) le ord(t)),sum(l,energyCharged(tp,b,l,rmob))) =g= 0;
@@ -178,7 +179,7 @@ cMaxCharging(t,l,rmob)..
 	numChargers(l,rmob) - sum(b,vehiclesCharging(t,b,l,rmob)) =g= 0;
 
 cNumMoving(t,b,d,rmob)..
-	demandAllocated(t,b,d,rmob) * travelDistance(d) - vehiclesMoving(t,b,d,rmob) * sharingFactor(d) * deltaT * speed(t,d,rmob) =e= 0;
+	demandAllocated(t,b,d,rmob) * travelDistance(d,rmob) - vehiclesMoving(t,b,d,rmob) * sharingFactor * deltaT * speed(t,d,rmob) =e= 0;
 
 cFleetDispatch(t,b,rmob)..
 	fleetSize(b,rmob) - sum(l, vehiclesCharging(t,b,l,rmob)) - sum(d,vehiclesMoving(t,b,d,rmob)) - vehiclesIdle(t,b,rmob)  =e= 0;
@@ -192,8 +193,8 @@ cFleetCost(rmob)..
 cDemandCharges(t,rmob)..
 	maxDemand(rmob) - sum((b,l),energyCharged(t,b,l,rmob)) / deltaT =g= 0;
 
-cGeneration..
-	sum(g$gtor(g,r),generation(g,t))+(sum(o,trans(o,t,r))*transLoss-sum(p,trans(r,t,p)))-demandLoad(r,t)-sum((b,l),sum(rmob$rmobtor(rmob,r),energyCharged(t,b,l,rmob)/1000)) =g= 0;
+cGeneration(t,r)..
+	sum(g$gtor(g,r),generation(g,t))+(sum(o,trans(o,t,r))*transLoss-sum(p,trans(r,t,p)))-demandLoad(r,t)-sum((b,l),sum(rmob$rmobtor(r,rmob),energyCharged(t,b,l,rmob)/1000)) =g= 0;
 
 cMaxSolar(t,r)..
 	maxSolar(r,t)-sum(solar$gtor(solar,r),generation(solar,t)) =g= 0;
@@ -201,8 +202,8 @@ cMaxSolar(t,r)..
 cMaxWind(t,r)..
 	maxWind(r,t)-sum(wind$gtor(wind,r),generation(wind,t)) =g= 0;
 
-#cMaxHydro(t,r)..
-#	maxHydro(r,t)-sum(hydro$gtor(hydro,r),generation(hydro,t)) =g= 0;
+*cMaxHydro(t,r)..
+*	maxHydro(r,t)-sum(hydro$gtor(hydro,r),generation(hydro,t)) =g= 0;
 
 cPersonalEVChargePowerLB(t,rmob)..
 	privateVehiclePower(t,rmob) - personalEVChargePowerLB(t,rmob) =g= 0;

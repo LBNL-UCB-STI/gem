@@ -74,10 +74,10 @@ for(i in 1:nrow(exper$runs)){
 
 for(i in 1:nrow(exper$runs)) {
   gem.gms <- readLines('src/gem.gms')
-  gem.gms <- gsub(pattern='<<gdxName>>',replace=pp('inputs',i,'.gdx'),x=gem.gms)
+  gem.gms <- gsub(pattern='<<gdxName>>',replace=pp('src/gamsScenarioFiles/inputs',i,'.gdx'),x=gem.gms)
   writeLines(gem.gms,con=pp('src/gamsScenarioFiles/gem_',i,'.gms'))
   
-  #gams(pp('src/gamsScenarioFiles/gem_',i,'.gms')
+  gams(pp('src/gamsScenarioFiles/gem_',i,'.gms'))
 }
 
 #####################################################################################

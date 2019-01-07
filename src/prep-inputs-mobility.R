@@ -133,8 +133,8 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
   }else{
     charger.cap.superlinear <- 5
   }
-  chargerCapitalCosts <- l10.charger.cost + c(charger.levels-min(charger.levels))*charger.cap.superlinear
-  inputs$parameters$chargerCapitalCosts <- data.table(l=charger.levels.str,value=chargerCapitalCosts)
+  chargerCapitalCost <- l10.charger.cost + c(charger.levels-min(charger.levels))*charger.cap.superlinear
+  inputs$parameters$chargerCapitalCost <- data.table(l=charger.levels.str,value=chargerCapitalCost)
   #### CHARGER POWER ####
   inputs$parameters$chargerPower <- data.table(l=charger.levels.str,value=charger.levels)
   #### CHARGER DISTRBITUION FACTOR ####
