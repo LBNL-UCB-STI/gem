@@ -108,8 +108,8 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
   ##### DISTANCE BINS #####
   inputs$sets$d <- pp('d',sort(u(dem$d)))
   inputs$parameters$travelDistance <- dem[,.(d=pp('d',d),value=weighted.mean(dist,weighted.trips)),by=c('d','r')]
-  inputs$parameters$travelDistance[,d:=NULL]
-  inputs$parameters$travelDistance[,':='(rmob=r,r=NULL)]
+  inputs$parameters$travelDistance[,':='(d=NULL,rmob=r,r=NULL)]
+  inputs$parameters$travelDistance <- inputs$parameters$travelDistance[,list(d,rmob,value)]
 
   #### SPEED ####
   speed.by.dist <- data.table(d=c("d0-2","d2-5","d5-10","d10-20","d20-30","d30-50","d50-100","d100-300"),value=c(18,22,32,38,40,45,48,48))

@@ -102,7 +102,7 @@ positive variable
 	demandAllocated(t,b,d,rmob) 	Demand as allocated by battery type
 	generation(g,t)					Power generation by each generator
 	trans(r,t,o)					Power transmission between regions
-  privateVehiclePower(t,rmob)          Power profile of private vehicles
+  personalEVPower(t,rmob)          Power profile of private vehicles
 ;
 
 
@@ -194,7 +194,7 @@ cDemandCharges(t,rmob)..
 	maxDemand(rmob) - sum((b,l),energyCharged(t,b,l,rmob)) / deltaT =g= 0;
 
 cGeneration(t,r)..
-	sum(g$gtor(g,r),generation(g,t))+(sum(o,trans(o,t,r))*transLoss-sum(p,trans(r,t,p)))-demandLoad(r,t)-sum((b,l),sum(rmob$rmobtor(r,rmob),energyCharged(t,b,l,rmob)/1000)) =g= 0;
+	sum(g$gtor(g,r),generation(g,t))+(sum(o,trans(o,t,r))*transLoss-sum(p,trans(r,t,p)))-demandLoad(r,t)-sum(rmob$rmobtor(r,rmob),personalEVPower(t,rmob))-sum((b,l),sum(rmob$rmobtor(r,rmob),energyCharged(t,b,l,rmob)/1000)) =g= 0;
 
 cMaxSolar(t,r)..
 	maxSolar(r,t)-sum(solar$gtor(solar,r),generation(solar,t)) =g= 0;
@@ -206,16 +206,16 @@ cMaxWind(t,r)..
 *	maxHydro(r,t)-sum(hydro$gtor(hydro,r),generation(hydro,t)) =g= 0;
 
 cPersonalEVChargePowerLB(t,rmob)..
-	privateVehiclePower(t,rmob) - personalEVChargePowerLB(t,rmob) =g= 0;
+	personalEVPower(t,rmob) - personalEVChargePowerLB(t,rmob) =g= 0;
 
 cPersonalEVChargePowerUB(t,rmob)..
-	privateVehiclePower(t,rmob) - personalEVChargePowerUB(t,rmob) =l= 0;
+	personalEVPower(t,rmob) - personalEVChargePowerUB(t,rmob) =l= 0;
 
 cPersonalEVChargeEnergyLB(t,rmob)..
-	sum(tp$(ord(tp) le ord(t)), privateVehiclePower(tp,rmob))  =g= personalEVChargeEnergyLB(t,rmob);
+	sum(tp$(ord(tp) le ord(t)), personalEVPower(tp,rmob))  =g= personalEVChargeEnergyLB(t,rmob);
 
 cPersonalEVChargeEnergyUB(t,rmob)..
-	sum(tp$(ord(tp) le ord(t)), privateVehiclePower(t,rmob))  =l= personalEVChargeEnergyUB(t,rmob);
+	sum(tp$(ord(tp) le ord(t)), personalEVPower(t,rmob))  =l= personalEVChargeEnergyUB(t,rmob);
 
 
 
