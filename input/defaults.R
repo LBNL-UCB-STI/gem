@@ -1,6 +1,6 @@
 
 #### Common ####
-days <- c(1:9,91:100)
+days <- c(1:3)
 year <- 2040
 discountRate <- 0.05
 
@@ -10,7 +10,7 @@ charger.levels <- c(10,20,50,100,250) # kW
 sharingFactor <- 1.5
 scale.urban.form.factor <- 1.0
 include.transit.demand <- F
-fraction.mobility.served.by.saevs <- 0.5
+fraction.mobility.served.by.saevs <- .99
 
 #### Grid ####
 generators <- data.table(read.csv(pp(gem.raw.inputs,'gem_gridInputs_generators.csv')))
