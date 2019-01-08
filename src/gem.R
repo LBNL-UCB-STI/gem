@@ -33,7 +33,7 @@ source('input/defaults.R')
 #####################################################################################
 option_list <- list()
 if(interactive()){
-  args<-'input/experiments/test.yaml'
+  args<-'input/experiments/base.yaml'
   args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=T,args=args)
 }else{
   args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=T)
@@ -73,11 +73,14 @@ for(i in 1:nrow(exper$runs)){
 #####################################################################################
 
 for(i in 1:nrow(exper$runs)) {
+  cat(pp('Running [',i,'] ',exper$runs[i],'\n'))
   gem.gms <- readLines('src/gem.gms')
   gem.gms <- gsub(pattern='<<gdxName>>',replace=pp('src/gamsScenarioFiles/inputs',i,'.gdx'),x=gem.gms)
   writeLines(gem.gms,con=pp('src/gamsScenarioFiles/gem_',i,'.gms'))
   
+  cat(pp(Sys.time(),'\n'))
   gams(pp('src/gamsScenarioFiles/gem_',i,'.gms'))
+  cat(pp(Sys.time(),'\n'))
 }
 
 #####################################################################################
