@@ -155,7 +155,7 @@ cVehicleMaintCost(t,rmob)..
 	vehicleMaintCost(t,rmob) - vehiclePerMileCosts*sum((b,d),vehiclesMoving(t,b,d,rmob)*travelDistance(d,rmob)) =e= 0;
 
 cDemandAllocation(t,d,rmob)..
-	demand(t,d,rmob) - sum(b,demandAllocated(t,b,d,rmob)) =e= 0;
+	demand(t,d,rmob) - sum(b,demandAllocated(t,b,d,rmob)) =l= 0;
 
 cEnergyToMeetDemand(t,b,d,rmob)..
 	energyConsumed(t,b,d,rmob) * sharingFactor / (urbanFormFactor(rmob) * conversionEfficiency(b) * travelDistance(d,rmob)) - demandAllocated(t,b,d,rmob) =g= 0;
@@ -220,7 +220,7 @@ cPersonalEVChargeEnergyUB(t,rmob)..
 
 
 model
-	combinedModel /obj,cDemandAllocation,cDemandChargeCost,cVehicleMaintCost,cChargingUpperBound,cChargingLowerBound,cNoChargeAtStart,cTerminalSOC,cNumCharging,cMaxCharging,cNumMoving,cFleetDispatch,cInfrastructureCost,cFleetCost,cDemandCharges,cGeneration,cMaxSolar,cMaxWind/
+	combinedModel /obj,cDemandAllocation,cDemandChargeCost,cVehicleMaintCost,cEnergyToMeetDemand,cChargingUpperBound,cChargingLowerBound,cNoChargeAtStart,cTerminalSOC,cNumCharging,cMaxCharging,cNumMoving,cFleetDispatch,cInfrastructureCost,cFleetCost,cDemandCharges,cGeneration,cMaxSolar,cMaxWind/
 
 *model
 *	combinedModel /obj,cDemandAllocation,cDemandChargeCost,cVehicleMaintCost,cEnergyToMeetDemand,cChargingUpperBound,cChargingLowerBound,cNoChargeAtStart,cTerminalSOC,cNumCharging,cMaxCharging,cNumMoving,cFleetDispatch,cInfrastructureCost,cFleetCost,cDemandCharges,cGeneration,cMaxSolar,cMaxWind,cPersonalEVChargeEnergyLB,cPersonalEVChargeEnergyUB,cPersonalEVChargePowerLB,cPersonalEVChargePowerUB/
