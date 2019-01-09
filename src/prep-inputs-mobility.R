@@ -39,9 +39,9 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
 
   ##### URBAN FORM - STRAIGHT SCALING ALL REGIONS #####
   if('scale.urban.form.factor' %in% param.names){
-    inputs$parameters$urbanFormFactor <- data.table(r=common.inputs$sets$rmob,value=exper.row$scale.urban.form.factor * 1.3)
+    inputs$parameters$urbanFormFactor <- data.table(rmob=common.inputs$sets$rmob,value=exper.row$scale.urban.form.factor * 1.3)
   }else{
-    inputs$parameters$urbanFormFactor <- data.table(r=common.inputs$sets$rmob,value=1.3)
+    inputs$parameters$urbanFormFactor <- data.table(rmob=common.inputs$sets$rmob,value=1.3)
   }
 
   #### DEMAND ####
