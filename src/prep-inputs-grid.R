@@ -30,9 +30,12 @@ prep.inputs.grid <- function(exper.row,common.inputs){
   maxSolar <- merge(x=renewableCF,y=total.Renewables[total.Renewables$FuelType=='Solar',],by='r')
   maxSolar$value <- maxSolar$generationCapacities*maxSolar$solarCF
   maxSolar <- maxSolar[,list(r,t,value)]
+  maxSolar <- maxSolar[maxSolar$t%in%common.inputs$sets$t,]
+
   maxWind <- merge(x=renewableCF,y=total.Renewables[total.Renewables$FuelType=='Wind',],by='r')
   maxWind$value <- maxWind$generationCapacities*maxWind$windCF
   maxWind <- maxWind[,list(r,t,value)]
+  maxWind <- maxWind[maxWind$t%in%common.inputs$sets$t,]
 
   inputs$parameters$maxSolar <- maxSolar
   inputs$parameters$maxWind <- maxWind
