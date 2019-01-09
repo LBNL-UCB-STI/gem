@@ -65,7 +65,7 @@ for(i in 1:nrow(exper$runs)){
 
   #print(inputs)
 
-  write.gdx(pp('src/gamsScenarioFiles/inputs',i,'.gdx'),params=lapply(inputs$parameters,as.data.frame),sets=lapply(inputs$sets,as.data.frame))
+  write.gdx(pp('src/gamsScenarioFiles/inputs',i,'.gdx'),params=lapply(inputs$parameters,as.data.frame,stringsAsFactors=F),sets=lapply(inputs$sets,as.data.frame,stringsAsFactors=F))
 }
 
 #####################################################################################
