@@ -161,7 +161,7 @@ cEnergyToMeetDemand(t,b,d,rmob)..
 	energyConsumed(t,b,d,rmob) * sharingFactor / (urbanFormFactor(rmob) * conversionEfficiency(b) * travelDistance(d,rmob)) - demandAllocated(t,b,d,rmob) =e= 0;
 
 cChargingUpperBound(t,b,rmob)..
-	sum(tp$(ord(tp) lt ord(t)),sum(d,energyConsumed(tp,b,d,rmob)))-sum(tp$(ord(tp) le ord(t)),sum(l,energyCharged(tp,b,l,rmob))) =g= 0;
+	sum(tp$(ord(tp) le ord(t)),sum(d,energyConsumed(tp,b,d,rmob)))-sum(tp$(ord(tp) le ord(t)),sum(l,energyCharged(tp,b,l,rmob))) =g= 0;
 
 cChargingLowerBound(t,b,rmob)..
 	fleetSize(b,rmob) * batteryCapacity(b) - sum(tp$(ord(tp) le ord(t)),sum(d,energyConsumed(tp,b,d,rmob)))+sum(tp$(ord(tp) lt ord(t)),sum(l,energyCharged(tp,b,l,rmob))) =g= 0;
