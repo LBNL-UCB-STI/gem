@@ -36,6 +36,11 @@ date.info <- function(days,year){
   list(wdays=wdays,months=months,day.types=day.types,seasons=seasons)
 }
 
+make.dir <-
+  function(dir){
+    if(!file.exists(dir))dir.create(dir)
+  }
+
 pp <- function(...,sep='',collapse=NULL){
   paste(...,sep=sep,collapse=collapse)
 }

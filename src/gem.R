@@ -64,9 +64,11 @@ for(i in 1:nrow(exper$runs)){
   inputs$parameters <- c(common.inputs$parameters,inputs.mobility$parameters,inputs.grid$parameters,inputs.personal.charging$parameters)
 
   #print(inputs)
-
-  write.gdx(pp('src/gamsScenarioFiles/inputs',i,'.gdx'),params=lapply(inputs$parameters,as.data.frame,stringsAsFactors=F),sets=lapply(inputs$sets,as.data.frame,stringsAsFactors=F))
+  make.dir(pp(exper$input.dir,'/runs'))
+  make.dir(pp(exper$input.dir,'/runs/run-',i))
+  write.gdx(pp(exper$input.dir,'/runs/run-',i,'/inputs.gdx'),params=lapply(inputs$parameters,as.data.frame,stringsAsFactors=F),sets=lapply(inputs$sets,as.data.frame,stringsAsFactors=F))
 }
+save(inputs,file=pp(exper$input.dir,'/inputs.Rdata'))
 
 #####################################################################################
 # Load GAMS and Run
@@ -76,11 +78,13 @@ Sys.sleep(0.1) # Allow console statements to print to screen before continuing
 for(i in 1:nrow(exper$runs)) {
   cat(pp('Running [',i,'] ',exper$runs[i],'\n'))
   gem.gms <- readLines('src/gem.gms')
-  gem.gms <- gsub(pattern='<<gdxName>>',replace=pp('src/gamsScenarioFiles/inputs',i,'.gdx'),x=gem.gms)
-  writeLines(gem.gms,con=pp('src/gamsScenarioFiles/gem_',i,'.gms'))
+  gem.gms <- gsub(pattern='<<gdxName>>',replace='inputs.gdx',x=gem.gms)
+  writeLines(gem.gms,con=pp(exper$input.dir,'/runs/run-',i,'/gem.gms'))
   
   cat(pp(Sys.time(),'\n'))
-  gams(pp('src/gamsScenarioFiles/gem_',i,'.gms'))
+  setwd(pp(exper$input.dir,'/runs/run-',i))
+  gams('gem.gms')
+  setwd(gem.project.directory)
   cat(pp(Sys.time(),'\n'))
 }
 

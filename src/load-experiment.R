@@ -24,6 +24,10 @@ load.experiment <- function(experiment.file){
     }else{
       stop('only combinatorial experiments enabled for now, please set "Mode: combinatorial" in your yaml file')
     }
+    # Setup the input directory
+    exper$input.dir <- pp('experiments/',exper$yaml$Name,'_',format(Sys.time(), "%Y-%m-%d_%M-%S"))
+    make.dir('experiments')
+    make.dir(exper$input.dir)
     exper
   }else{
     stop(pp("Experiment file not found: ",experiment.file))
