@@ -72,6 +72,7 @@ for(i in 1:nrow(exper$runs)){
 # Load GAMS and Run
 #####################################################################################
 
+Sys.sleep(0.1) # Allow console statements to print to screen before continuing
 for(i in 1:nrow(exper$runs)) {
   cat(pp('Running [',i,'] ',exper$runs[i],'\n'))
   gem.gms <- readLines('src/gem.gms')

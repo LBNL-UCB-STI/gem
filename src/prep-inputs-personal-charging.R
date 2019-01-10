@@ -7,6 +7,7 @@
 # Returns: list containing all data tables needed to run the model (as named data.tables)
 ###############################################################################################
 
+prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobility){
   ###########################################################
   # Setup variables and environment
   ###########################################################
@@ -25,54 +26,67 @@
   source("src/eviPro/func_CreateFleetWeights.R")    #Creates fleet weights from values hard coded in this function. Use this instead of loading fleet weights from a file if desired.
 
   ###########################################################
-  # Load EVI charging and load profile data
+  # Optionally load EVI charging and load profile data
   ###########################################################
+  # Desired size of fleet. The 3.37 is the average number of trips per driver based on https://nhts.ornl.gov/assets/2017_nhts_summary_travel_trends.pdf
+  scaling.frac <- ifelse(fraction.mobility.served.by.saevs==0,1,(1-fraction.mobility.served.by.saevs)/fraction.mobility.served.by.saevs)
+  fleet.sizes <- inputs.mobility$parameters$demand[,list(n.vehs=round(sum(value)/length(days)/3.37*scaling.frac,0)),by='rmob']
+  load.data.needed <- F
+  for(the.region in common.inputs$sets$rmob){
+    fleet_size <- fleet.sizes[rmob==the.region]$n.vehs
+    # Look for the results in the gem cache, otherwise process and load
+    cache.file <- pp(workingDir,'/data/gem-cache/region-',the.region,'-fleet-',fleet_size,'.Rdata')
+    if(!file.exists(cache.file))load.data.needed<-T
+  }
 
-  run_evi_load_func <- FALSE #Set to true to re-create evi_raw data table. Set to false to load .RData file
-  run_load_calc_func <- FALSE #Set to true if you want to re-calc. This takes about 3.5 hours. Set to false to load .RData file
+  if(load.data.needed){
+    cat(pp('Personal EV charging profiles need to be created. This will take a while to load the data and process but results will be cached and future runs for this fleet size will be very fast.\n'))
+    Sys.sleep(0.2)
+    run_evi_load_func <- FALSE #Set to true to re-create evi_raw data table. Set to false to load .RData file
+    run_load_calc_func <- FALSE #Set to true if you want to re-calc. This takes about 3.5 hours. Set to false to load .RData file
 
-  #Load raw EVI data
-  raw_data_file_name <- paste0(workingDir,"/data/evi_raw_data_2018-11-26.RData") #Source of data, or file name to save to if re-calc
-  if(!exists("evi_raw")) {
-    if(run_evi_load_func) {
-      evi_raw <- load_EVIPro(evi_data_dir,dvmt_data_file,vmt_bin_size)
-      #Make sure no NAs exist in the data set
-      print(evi_raw[, lapply(.SD, function(x) sum(is.na(x))), .SDcols=1:ncol(evi_raw)])
-      save(evi_raw, file=raw_data_file_name)
-    } else {
-      load(raw_data_file_name)
+    #Load raw EVI data
+    raw_data_file_name <- paste0(workingDir,"/data/evi_raw_data_2018-11-26.RData") #Source of data, or file name to save to if re-calc
+    if(!exists("evi_raw")) {
+      if(run_evi_load_func) {
+        evi_raw <- load_EVIPro(evi_data_dir,dvmt_data_file,vmt_bin_size)
+        #Make sure no NAs exist in the data set
+        print(evi_raw[, lapply(.SD, function(x) sum(is.na(x))), .SDcols=1:ncol(evi_raw)])
+        save(evi_raw, file=raw_data_file_name)
+      } else {
+        load(raw_data_file_name,envir=globalenv())
+      }
+    }
+
+    #Load power profile for all unique_vids
+    load_file_name <- paste0(workingDir,"/data/evi_load_profile_data_2019-01-06.RData") #Source of data, or file name to save to if re-calc
+    if(!exists("evi_load_profiles")) {
+      if(run_load_calc_func) {
+        print(Sys.time())
+        evi_load_profiles <- calcBaseEVILoad(evi_raw,time_step) 
+        # Adjust the start and tend time of the charing session as much as possible
+        evi_delayed <- copy(evi_raw)
+        evi_delayed[,start_time:=start_time+(end_time_prk-end_time_chg)]
+        evi_delayed[,end_time_chg:=end_time_prk]
+        evi_delayed_load_profiles <- calcBaseEVILoad(evi_delayed,time_step) 
+        evi_load_profiles <- evi_load_profiles[,list(unique_vid,session_id,time_of_day,schedule_vmt,avg_kw,kwh,level=dest_chg_level,plugged_kw)]
+        evi_delayed_load_profiles <- evi_delayed_load_profiles[,list(unique_vid,session_id,time_of_day,schedule_vmt,avg_kw,kwh,level=dest_chg_level,plugged_kw)]
+        save(evi_load_profiles,evi_delayed_load_profiles,file=load_file_name)
+        print(Sys.time())
+        
+      } else {
+        load(load_file_name,envir=globalenv())
+      }
     }
   }
 
-  #Load power profile for all unique_vids
-  load_file_name <- paste0(workingDir,"/data/evi_load_profile_data_2019-01-06.RData") #Source of data, or file name to save to if re-calc
-  if(!exists("evi_load_profiles")) {
-    if(run_load_calc_func) {
-      print(Sys.time())
-      evi_load_profiles <- calcBaseEVILoad(evi_raw,time_step) 
-      # Adjust the start and tend time of the charing session as much as possible
-      evi_delayed <- copy(evi_raw)
-      evi_delayed[,start_time:=start_time+(end_time_prk-end_time_chg)]
-      evi_delayed[,end_time_chg:=end_time_prk]
-      evi_delayed_load_profiles <- calcBaseEVILoad(evi_delayed,time_step) 
-      evi_load_profiles <- evi_load_profiles[,list(unique_vid,session_id,time_of_day,schedule_vmt,avg_kw,kwh,level=dest_chg_level,plugged_kw)]
-      evi_delayed_load_profiles <- evi_delayed_load_profiles[,list(unique_vid,session_id,time_of_day,schedule_vmt,avg_kw,kwh,level=dest_chg_level,plugged_kw)]
-      save(evi_load_profiles,evi_delayed_load_profiles,file=load_file_name)
-      print(Sys.time())
-      
-    } else {
-      load(load_file_name)
-    }
-  }
-
-prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobility){
+  ###########################################################
+  # Configure variables and process profiles for every region
+  ###########################################################
   if('fractionSAEVs' %in% names(exper.row)){
     fraction.mobility.served.by.saevs <- exper.row$fractionSAEVs
   }
 
-  # Desired size of fleet. The 3.37 is the average number of trips per driver based on https://nhts.ornl.gov/assets/2017_nhts_summary_travel_trends.pdf
-  scaling.frac <- ifelse(fraction.mobility.served.by.saevs==0,1,(1-fraction.mobility.served.by.saevs)/fraction.mobility.served.by.saevs)
-  fleet.sizes <- inputs.mobility$parameters$demand[,list(n.vehs=round(sum(value)/length(days)/3.37*scaling.frac,0)),by='rmob']
   
   all.all.energy.constraints <- list()
   for(the.region in common.inputs$sets$rmob){
