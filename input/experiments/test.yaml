@@ -3,4 +3,8 @@ Mode: combinatorial
 Factors:
   - Name: batteryCost
     Levels:
+      - 50
+      - 75
       - 100
+      - 125
+      - 150

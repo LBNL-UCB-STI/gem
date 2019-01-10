@@ -33,7 +33,7 @@ source('input/defaults.R')
 #####################################################################################
 option_list <- list()
 if(interactive()){
-  args<-'input/experiments/base.yaml'
+  args<-'input/experiments/test.yaml'
   args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=T,args=args)
 }else{
   args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=T)
@@ -91,4 +91,15 @@ for(i in 1:nrow(exper$runs)) {
 #####################################################################################
 # Post-Process Results
 #####################################################################################
+results <- list()
+for(i in 1:nrow(exper$runs)) {
+  result <- gdx.to.data.tables(gdx(pp(exper$input.dir,'/runs/run-',i,'/results.gdx')))
+  for(key in names(result)){
+    result[[key]][,run:=i]
+    if(i==1)results[[key]] <- list()
+    results[[key]][[length(results[[key]])+1]] <- result[[key]]
+  }
+}
+results <- lapply(results,function(ll){ rbindlist(ll) })
+
 

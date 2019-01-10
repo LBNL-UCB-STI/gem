@@ -10,6 +10,45 @@ library('yaml')
 library('gdxtools')
 library('lubridate')
 
+gdx.to.data.tables <- function(mygdx){
+  keys <- all_items(mygdx)$sets
+  keydims <- c()
+  for(key in keys){
+    keydims <- c(keydims,length(mygdx[key]$V1))
+  }
+  
+  res <- list()
+  for(var in c( all_items(mygdx)$parameters,all_items(mygdx)$variables)){
+    if(all(dim(mygdx[var])==1)){
+      if(!'scalar' %in% names(res)){
+        res[['scalar']] <- data.table(mygdx[var])
+      }else{
+        res[['scalar']] <- cbind(res[['scalar']],data.table(mygdx[var]))
+      }
+      streval(pp("res[['scalar']][,':='(",var,"=value,value=NULL)]"))
+    }else{
+      the.keys <- head(names(mygdx[var]),-1)
+      the.keys.key <- pp(sort(the.keys),collapse='-')
+      if(!the.keys.key %in% names(res)){
+        res[[the.keys.key]] <- data.table(mygdx[var])
+      }else{
+        if(nrow(res[[the.keys.key]])>0){
+          res[[the.keys.key]] <- join.on(res[[the.keys.key]],data.table(mygdx[var]),the.keys,the.keys,'value')
+        }else{
+          res[[the.keys.key]] <- data.table(mygdx[var])
+        }
+      }
+      streval(pp("res[[the.keys.key]][,':='(",var,"=value,value=NULL)]"))
+    }
+  }
+  for(key in names(res)){
+    if('t'%in%names(res[[key]])){
+      res[[key]][,t:=as.numeric(substr(t,2,nchar(as.character(t))))]
+    }
+  }
+  res
+}
+
 date.info <- function(days,year){
   wdays <- weekdays(to.posix(pp(year,'-01-01 00:00:00+00'))+24*3600*(days-1))
   months <- month(to.posix(pp(year,'-01-01 00:00:00+00'))+24*3600*(days-1))
