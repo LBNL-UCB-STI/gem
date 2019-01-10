@@ -73,30 +73,10 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
   dem[,weighted.trips:=trips*ifelse(day.type=="TU/WE/TH",3,2)]
 
   # Day of the week for the days in the simulated year 
-  wdays <- weekdays(to.posix(pp(year,'-01-01 00:00:00+00'))+24*3600*(days-1))
-  months <- month(to.posix(pp(year,'-01-01 00:00:00+00'))+24*3600*(days-1))
+  dates <- date.info(days,year)
   all.dem <- list()
   for(i in 1:length(days)){
-    the.day <- days[i]
-    the.month <- months[i]
-    the.wday <- wdays[i]
-    if(the.wday=='Sunday' || the.wday=='Saturday'){
-      the.day.type <- "SA/SU"
-    }else if(the.wday=='Monday' || the.wday=='Friday'){
-      the.day.type <- "MO/FR"
-    }else{
-      the.day.type <- "TU/WE/TH"
-    }
-    if(the.month <=2 || the.month==12){
-      the.season <- 'dec-feb'
-    }else if(the.month>=3 && the.month <=5){
-      the.season <- 'mar-may'
-    }else if(the.month>=6 && the.month <=8){
-      the.season <- 'jun-aug'
-    }else if(the.month>=9 && the.month <=11){
-      the.season <- 'sep-nov'
-    }
-    the.dem <- copy(dem[day.type==the.day.type & use.transit == include.transit.demand & season == the.season])
+    the.dem <- copy(dem[day.type==dates$day.types[i] & use.transit == include.transit.demand & season == dates$seasons[i]])
     the.dem[,t:=pp('t',1 + t + 24*(i-1))]
     all.dem[[length(all.dem)+1]] <- the.dem[,.(r,t,d,trips)]
   }

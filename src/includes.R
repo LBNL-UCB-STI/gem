@@ -10,6 +10,32 @@ library('yaml')
 library('gdxtools')
 library('lubridate')
 
+date.info <- function(days,year){
+  wdays <- weekdays(to.posix(pp(year,'-01-01 00:00:00+00'))+24*3600*(days-1))
+  months <- month(to.posix(pp(year,'-01-01 00:00:00+00'))+24*3600*(days-1))
+  day.types <- as.vector(sapply(wdays,function(the.wday){
+    if(the.wday=='Sunday' || the.wday=='Saturday'){
+      "SA/SU"
+    }else if(the.wday=='Monday' || the.wday=='Friday'){
+      "MO/FR"
+    }else{
+      "TU/WE/TH"
+    }
+  }))
+  seasons <- sapply(months,function(the.month){
+    if(the.month <=2 || the.month==12){
+      'dec-feb'
+    }else if(the.month>=3 && the.month <=5){
+      'mar-may'
+    }else if(the.month>=6 && the.month <=8){
+      'jun-aug'
+    }else if(the.month>=9 && the.month <=11){
+      'sep-nov'
+    }
+  })
+  list(wdays=wdays,months=months,day.types=day.types,seasons=seasons)
+}
+
 pp <- function(...,sep='',collapse=NULL){
   paste(...,sep=sep,collapse=collapse)
 }

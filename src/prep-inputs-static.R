@@ -25,11 +25,14 @@ prep.inputs.static <- function(){
   inputs.sets <- list(t=pp('t',seq(1,length(days)*24)),rmob=rmob,r=regions,rmobtor=rmobtor,g=g,gtor=gtor,hydro=hydro,solar=solar,wind=wind)
 
   ##### STATIC PARAMETERS #####
+  dates <- date.info(days,year)
+  hours.to.simulate <- pp('t',(days-1)*24+1:24)
 
-  demandLoad <- load[,list(r,t,demandLoad)]
-  names(demandLoad) <- c('r','t','value')
-  demandLoad <- demandLoad[demandLoad$t%in%inputs.sets$t]
-
+  load[,tt:=as.numeric(substr(t,2,nchar(as.character(t))))]
+  setkey(load,r,tt)
+  demandLoad <- load[load$t%in%hours.to.simulate,list(r,t,value=demandLoad)]
+  demandLoad[,t:=NULL]
+  demandLoad[,t:=inputs.sets$t,by='r']
 
   transCap <- transmission[,list(r1,r2,transCap)]
   names(transCap) <- c('r','o','value')
