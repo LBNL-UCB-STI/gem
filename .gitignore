@@ -4,3 +4,4 @@
 _gams*
 *.Rapp.history 
 experiments
+.Rhistory
