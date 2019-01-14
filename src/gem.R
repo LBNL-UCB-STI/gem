@@ -91,6 +91,8 @@ for(i in 1:nrow(exper$runs)) {
 #####################################################################################
 # Post-Process Results
 #####################################################################################
+plots.dir <- pp(exper$input.dir,'/plots/')
+make.dir(plots.dir)
 results <- list()
 for(i in 1:nrow(exper$runs)) {
   result <- gdx.to.data.tables(gdx(pp(exper$input.dir,'/runs/run-',i,'/results.gdx')))
@@ -99,7 +101,9 @@ for(i in 1:nrow(exper$runs)) {
     if(i==1)results[[key]] <- list()
     results[[key]][[length(results[[key]])+1]] <- result[[key]]
   }
+  make.dir(pp(plots.dir,'/run-',i,''))
 }
-results <- lapply(results,function(ll){ rbindlist(ll) })
+res <- lapply(results,function(ll){ rbindlist(ll) })
 
+plots.mobility(exper,inputs,res,plots.dir)
 

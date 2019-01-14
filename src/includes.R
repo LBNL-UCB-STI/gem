@@ -9,6 +9,8 @@ library('grid')
 library('yaml')
 library('gdxtools')
 library('lubridate')
+library('RColorBrewer')
+library('forcats')
 
 gdx.to.data.tables <- function(mygdx){
   keys <- all_items(mygdx)$sets
