@@ -124,3 +124,5 @@ join.on <- function(dt1,dt2,keys1,keys2=NULL,include.from.dt2=NULL,included.pref
   res.dt <- streval(pp('dt2[,list(',pp(cols.to.include,collapse=','),')][dt1,allow.cartesian=',allow.cartesian,']'))
   return(res.dt)
 }
+
+roundC <- function(x,dg=1){ formatC(x,format='f',digits=dg) }
