@@ -30,12 +30,12 @@ alias (r,o,p);
 parameters
 	demand(t,d,rmob)			Demand by distance type, time, and region
 	chargerPower(l)				kW per charger 
-	chargeReloc(r)				increase in energy consumption due to charging relocation
-        chargeEff(b,l,r)			decrease in charger power due to relocation
-	fleetRatio(r)				ratio of optimal to actual fleet size
-	batRatio(r)				ratio of optimal to actual battery range
-        distCorrection(r)			one + distance dead head ratio
-	timeCorrection(r)			one + time dead head ratio
+	chargeReloc(rmob)			increase in energy consumption due to charging relocation
+        chargeEff(b,l,rmob)			decrease in charger power due to relocation
+	fleetRatio(rmob)			ratio of optimal to actual fleet size
+	batteryRatio(rmob)			ratio of optimal to actual battery range
+        distCorrection(rmob)			one + distance dead head ratio
+	timeCorrection(rmob)			one + time dead head ratio
 	sharingFactor				Avg person per vehicle trip 
 	urbanFormFactor(rmob)			one + dead head ratio
 	chargerDistributionFactor(l)		increased chargers needed to serve vehs 
@@ -76,7 +76,6 @@ scalar
 	chargerLifetime 		year /10/
 	chargerVariableCost		O&M cost per kW per day /0.04/
 	vehicleCapitalCost 		USD /30000/
-	vehicleLifetime  		years /3.4/
 	vehiclePerYearCosts		USD for insurance /600/
 	vehiclePerMileCosts		USD for insurance & maint /0.09/
 	dailyVehicleCost 		amortized cap /0/
@@ -112,7 +111,7 @@ positive variable
 
 
 $gdxin <<gdxName>>
-$load d r rmob l t g gtor rmobtor demand speed sharingFactor urbanFormFactor travelDistance demandCharge chargerPower chargerCapitalCost chargerDistributionFactor solar wind hydro genCost demandLoad maxGen maxSolar maxWind transCap transCost personalEVChargeEnergyLB personalEVChargeEnergyUB personalEVChargePowerLB personalEVChargePowerUB
+$load d r rmob l t g gtor rmobtor demand speed sharingFactor urbanFormFactor travelDistance demandCharge chargerPower chargerCapitalCost chargerDistributionFactor solar wind hydro genCost demandLoad maxGen maxSolar maxWind transCap transCost personalEVChargeEnergyLB personalEVChargeEnergyUB personalEVChargePowerLB personalEVChargePowerUB distCorrection timeCorrection chargeReloc chargeEff fleetRatio batteryRatio vehicleLifetime batteryLifetime
 $gdxin
 
 *Variable limits
@@ -163,7 +162,7 @@ cDemandAllocation(t,d,rmob)..
 	demand(t,d,rmob) - sum(b,demandAllocated(t,b,d,rmob)) =e= 0;
 
 cEnergyToMeetDemand(t,b,d,rmob)..
-	energyConsumed(t,b,d,rmob) * sharingFactor / (chargerPower(l) * chargeEff(b,l,rmob) * chargeReloc(rmob)) - demandAllocated(t,b,d,rmob) =e= 0;
+	energyConsumed(t,b,d,rmob) * sharingFactor / (distCorrection(rmob) * conversionEfficiency(b) * travelDistance(d,rmob)) - demandAllocated(t,b,d,rmob) =e= 0;
 
 cChargingUpperBound(t,b,rmob)..
 	sum(tp$(ord(tp) le ord(t)),sum(d,energyConsumed(tp,b,d,rmob)))-sum(tp$(ord(tp) le ord(t)),sum(l,energyCharged(tp,b,l,rmob))) =g= 0;
@@ -178,7 +177,7 @@ cTerminalSOC(b,rmob)..
 	sum(t,sum(d,energyConsumed(t,b,d,rmob)))-sum(t,sum(l,energyCharged(t,b,l,rmob))) =e= 0;
 
 cNumCharging(t,b,l,rmob)..
-	energyCharged(t,b,l,rmob) / chargerPower(l) - vehiclesCharging(t,b,l,rmob) =e= 0;
+	energyCharged(t,b,l,rmob) / (chargerPower(l) * chargeEff(b,l,rmob)) - vehiclesCharging(t,b,l,rmob) =e= 0;
 
 cMaxCharging(t,l,rmob)..
 	numChargers(l,rmob) - sum(b,vehiclesCharging(t,b,l,rmob)) =g= 0;
@@ -193,7 +192,6 @@ cInfrastructureCost(rmob)..
 	infrastructureCost(rmob) - sum(l,numChargers(l,rmob)*(chargerCapitalCost(l) * dailyDiscountRate * (1 + dailyDiscountRate)**(chargerLifetime*365) / ((1 +  dailyDiscountRate)**(chargerLifetime*365) - 1))*chargerDistributionFactor(l)*chargerPower(l)) =e= 0;
 
 cFleetCost(rmob)..
-	fleetCost(rmob) - sum(b,fleetSize(b,rmob) * (dailyVehicleCost + batteryCapacity(b) * dailyBatteryCost)) =e= 0;
         fleetCost(rmob) - sum(b,fleetSize(b,rmob) * fleetRatio(rmob) * (vehiclePerYearCosts / 365 + vehicleCapitalCost * dailyDiscountRate * (1 + dailyDiscountRate)**(vehicleLifetime(b,rmob)*365) / ((1 +  dailyDiscountRate)**(vehicleLifetime(b,rmob)*365) - 1) + batteryRatio(rmob) * batteryCapacity(b) * batteryCapitalCost * dailyDiscountRate * (1 + dailyDiscountRate)**(batteryLifetime(b,rmob)*365) / ((1 +  dailyDiscountRate)**(batteryLifetime(b,rmob)*365) - 1))) =e= 0;
 
 cDemandCharges(t,rmob)..
