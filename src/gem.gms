@@ -31,7 +31,7 @@ parameters
 	demand(t,d,rmob)			Demand by distance type, time, and region
 	chargerPower(l)				kW per charger 
 	chargeReloc(r)				increase in energy consumption due to charging relocation
-        chargeEff(r)				decrease in charger power due to relocation
+        chargeEff(b,l,r)			decrease in charger power due to relocation
 	fleetRatio(r)				ratio of optimal to actual fleet size
 	batRatio(r)				ratio of optimal to actual battery range
         distCorrection(r)			one + distance dead head ratio
@@ -86,8 +86,6 @@ scalar
 ;
 
 dailyDiscountRate = ((1 + discountRate)**(1/365)) - 1;
-dailyVehicleCost = vehiclePerYearCosts / 365 + vehicleCapitalCost * dailyDiscountRate * (1 + dailyDiscountRate)**(vehicleLifetime*365) / ((1 +  dailyDiscountRate)**(vehicleLifetime*365) - 1);
-dailyBatteryCost = batteryCapitalCost * dailyDiscountRate * (1 + dailyDiscountRate)**(batteryLifetime*365) / ((1 +  dailyDiscountRate)**(batteryLifetime*365) - 1);
 
 variable
 	systemCost 			System Cost
@@ -159,13 +157,13 @@ cDemandChargeCost(t,rmob)..
 	demandChargeCost(t,rmob) - maxDemand(rmob)*demandCharge(rmob)/30.4/card(t) =e= 0;
 
 cVehicleMaintCost(t,rmob)..
-	vehicleMaintCost(t,rmob) - vehiclePerMileCosts*sum((b,d),vehiclesMoving(t,b,d,rmob)*travelDistance(d,rmob)) =e= 0;
+	vehicleMaintCost(t,rmob) - vehiclePerMileCosts*sum((b,d),vehiclesMoving(t,b,d,rmob)*speed(t,d,rmob)) =e= 0;
 
 cDemandAllocation(t,d,rmob)..
 	demand(t,d,rmob) - sum(b,demandAllocated(t,b,d,rmob)) =e= 0;
 
 cEnergyToMeetDemand(t,b,d,rmob)..
-	energyConsumed(t,b,d,rmob) * sharingFactor / (urbanFormFactor(rmob) * conversionEfficiency(b) * travelDistance(d,rmob)) - demandAllocated(t,b,d,rmob) =e= 0;
+	energyConsumed(t,b,d,rmob) * sharingFactor / (chargerPower(l) * chargeEff(b,l,rmob) * chargeReloc(rmob)) - demandAllocated(t,b,d,rmob) =e= 0;
 
 cChargingUpperBound(t,b,rmob)..
 	sum(tp$(ord(tp) le ord(t)),sum(d,energyConsumed(tp,b,d,rmob)))-sum(tp$(ord(tp) le ord(t)),sum(l,energyCharged(tp,b,l,rmob))) =g= 0;
@@ -186,7 +184,7 @@ cMaxCharging(t,l,rmob)..
 	numChargers(l,rmob) - sum(b,vehiclesCharging(t,b,l,rmob)) =g= 0;
 
 cNumMoving(t,b,d,rmob)..
-	demandAllocated(t,b,d,rmob) * travelDistance(d,rmob) - vehiclesMoving(t,b,d,rmob) * sharingFactor * deltaT * speed(t,d,rmob) =e= 0;
+	demandAllocated(t,b,d,rmob) * travelDistance(d,rmob) * timeCorrection(rmob) - vehiclesMoving(t,b,d,rmob) * sharingFactor * deltaT * speed(t,d,rmob) =e= 0;
 
 cFleetDispatch(t,b,rmob)..
 	fleetSize(b,rmob) - sum(l, vehiclesCharging(t,b,l,rmob)) - sum(d,vehiclesMoving(t,b,d,rmob)) - vehiclesIdle(t,b,rmob)  =e= 0;
@@ -195,10 +193,11 @@ cInfrastructureCost(rmob)..
 	infrastructureCost(rmob) - sum(l,numChargers(l,rmob)*(chargerCapitalCost(l) * dailyDiscountRate * (1 + dailyDiscountRate)**(chargerLifetime*365) / ((1 +  dailyDiscountRate)**(chargerLifetime*365) - 1))*chargerDistributionFactor(l)*chargerPower(l)) =e= 0;
 
 cFleetCost(rmob)..
-		fleetCost(rmob) - sum(b,fleetSize(b,rmob) * (dailyVehicleCost + batteryCapacity(b) * dailyBatteryCost)) =e= 0;
+	fleetCost(rmob) - sum(b,fleetSize(b,rmob) * (dailyVehicleCost + batteryCapacity(b) * dailyBatteryCost)) =e= 0;
+        fleetCost(rmob) - sum(b,fleetSize(b,rmob) * fleetRatio(rmob) * (vehiclePerYearCosts / 365 + vehicleCapitalCost * dailyDiscountRate * (1 + dailyDiscountRate)**(vehicleLifetime(b,rmob)*365) / ((1 +  dailyDiscountRate)**(vehicleLifetime(b,rmob)*365) - 1) + batteryRatio(rmob) * batteryCapacity(b) * batteryCapitalCost * dailyDiscountRate * (1 + dailyDiscountRate)**(batteryLifetime(b,rmob)*365) / ((1 +  dailyDiscountRate)**(batteryLifetime(b,rmob)*365) - 1))) =e= 0;
 
 cDemandCharges(t,rmob)..
-	maxDemand(rmob) - sum((b,l),energyCharged(t,b,l,rmob)) / deltaT =g= 0;
+	maxDemand(rmob) - sum((b,l),energyCharged(t,b,l,rmob)/chargeEff(b,l,rmob)) / deltaT =g= 0;
 
 cGeneration(t,r)..
 	sum(g$gtor(g,r),generation(g,t))+(sum(o,trans(o,t,r))*transLoss-sum(p,trans(r,t,p)))-demandLoad(r,t)-sum(rmob$rmobtor(r,rmob),personalEVPower(t,rmob)/1000)-sum((b,l),sum(rmob$rmobtor(r,rmob),energyCharged(t,b,l,rmob)/1000)) =g= 0;
