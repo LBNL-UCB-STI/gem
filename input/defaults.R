@@ -1,6 +1,6 @@
 
 #### Common ####
-days <- c(10)
+days <- c(1:3)
 year <- 2040
 discountRate <- 0.05
 
