@@ -28,11 +28,17 @@ alias (t,tp);
 alias (r,o,p);
 
 parameters
-	demand(t,d,rmob)				Demand by distance type, time, and region
-	chargerPower(l)					kW per charger 
-	sharingFactor	 				Avg person per vehicle trip 
-	urbanFormFactor(rmob)	 			one + dead head ratio
-	chargerDistributionFactor(l) 	increased chargers needed to serve vehs 
+	demand(t,d,rmob)			Demand by distance type, time, and region
+	chargerPower(l)				kW per charger 
+	chargeReloc(r)				increase in energy consumption due to charging relocation
+        chargeEff(r)				decrease in charger power due to relocation
+	fleetRatio(r)				ratio of optimal to actual fleet size
+	batRatio(r)				ratio of optimal to actual battery range
+        distCorrection(r)			one + distance dead head ratio
+	timeCorrection(r)			one + time dead head ratio
+	sharingFactor				Avg person per vehicle trip 
+	urbanFormFactor(rmob)			one + dead head ratio
+	chargerDistributionFactor(l)		increased chargers needed to serve vehs 
 	conversionEfficiency(b) 		kwh per mile / b075 0.262
 												   b150 0.274
 												   b225 0.286
@@ -45,8 +51,10 @@ parameters
 	personalEVChargeEnergyUB(t,rmob)          Upper boundary for cumulative energy delivered to personal evs
 	personalEVChargePowerLB(t,rmob)           Lower boundary for power delivered to personal evs
 	personalEVChargePowerUB(t,rmob)           Upper boundary for power delivered to personal evs
-	chargerCapitalCost(l) 			cost per kW 	
-	batteryCapacity(b) 				avg per veh in kWh /b075 19.65
+	chargerCapitalCost(l)			  cost per kW 	
+	vehicleLifetime(b,rmob)			  years
+	batteryLifetime(b,rmob)			  years
+	batteryCapacity(b)			  avg per veh in kWh /b075 19.65
 													b150 41.10
 													b225 64.35
 													b300 89.40
@@ -66,16 +74,15 @@ scalar
 	discountRate 			rate /.05/
 	dailyDiscountRate 		rate /0/
 	chargerLifetime 		year /10/
-	chargerVariableCost 	O&M cost per kW per day /0.04/
+	chargerVariableCost		O&M cost per kW per day /0.04/
 	vehicleCapitalCost 		USD /30000/
 	vehicleLifetime  		years /3.4/
-	vehiclePerYearCosts 	USD for insurance /600/
-	vehiclePerMileCosts 	USD for insurance & maint /0.09/
+	vehiclePerYearCosts		USD for insurance /600/
+	vehiclePerMileCosts		USD for insurance & maint /0.09/
 	dailyVehicleCost 		amortized cap /0/
 	batteryCapitalCost 		USD per kWh /150/
-	batteryLifetime 		years /3.4/
 	dailyBatteryCost 		amortized cap per kWh /0/
-	transLoss 				Transmission efficiency /.972/
+	transLoss			Transmission efficiency /.972/
 ;
 
 dailyDiscountRate = ((1 + discountRate)**(1/365)) - 1;
