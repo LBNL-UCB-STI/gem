@@ -26,6 +26,7 @@ source('src/prep-inputs-common.R')
 source('src/prep-inputs-mobility.R')
 source('src/prep-inputs-personal-charging.R')
 source('src/prep-inputs-grid.R')
+source('src/plots-mobility.R')
 source('input/defaults.R')
 
 #####################################################################################
@@ -33,7 +34,7 @@ source('input/defaults.R')
 #####################################################################################
 option_list <- list()
 if(interactive()){
-  args<-'input/experiments/test.yaml'
+  args<-'input/experiments/base.yaml'
   args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=T,args=args)
 }else{
   args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=T)
