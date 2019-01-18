@@ -69,7 +69,7 @@ plots.mobility <- function(exper,inputs,res,plots.dir){
     ggsave(pp(plots.dir,'/run-',run.i,'/_soc-bar.pdf'),p,width=10*pdf.scale,height=8*pdf.scale,units='in')
     
     # Fleet size & type
-    by.r <- rbindlist(list(res[['l-rmob']][,':='(run=run,variable=l,value=numChargers,group='Chargers')],res[['b-rmob']][,':='(run=run,variable=b,value=fleetSize,group='Fleet')]))
+    by.r <- rbindlist(list(res[['l-rmob']][,':='(run=run,variable=l,value=numChargers,group='Chargers')],res[['b-rmob']][,':='(run=run,variable=b,value=fleetSize,group='Fleet')]),fill=T)
     setkey(by.r,run,variable)
     p <- ggplot(by.r[run==run.i],aes(x=rmob,y=value,fill=fct_rev(variable)))+geom_bar(stat='identity')+facet_wrap(~group,scales='free_y')+ theme(axis.text.x = element_text(angle = 50, hjust = 1))+scale_fill_manual(values = rev(getPalette(by.r$variable)),guide=guide_legend(reverse=F))
     ggsave(pp(plots.dir,'/run-',run.i,'/_fleet-size-and-type.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
@@ -106,15 +106,15 @@ plots.mobility <- function(exper,inputs,res,plots.dir){
   vmt <- join.on(res[['b-d-rmob-t']],res[['d-rmob']],c('d','rmob','run'),c('d','rmob','run'),'travelDistance')
   vmt <- join.on(vmt,res[['d-rmob-t']],c('d','t','rmob','run'),c('d','t','rmob','run'),'speed')
   vmt[,vmt:=vehiclesMoving*travelDistance]
-  vmt[,pmt:=demanocated*travelDistance]
+  vmt[,pmt:=demandAllocated*travelDistance]
   fleet <- res[['b-rmob']]
   
-  data.to.save <- c('vehs','en','tr','by.r','costs','veh.ch','vmt','fleet')
+  data.to.save <- c('vehs','en','by.r','costs','veh.ch','vmt','fleet')
   run.params <- copy(exper$runs)[,run:=1:.N]
   for(dat.to.save in data.to.save){
     streval(pp(dat.to.save,' <- join.on(',dat.to.save,',run.params,\'run\',\'run\')'))
   }
-  save(vehs,en,tr,by.r,costs,veh.ch,vmt,fleet,file=pp(plots.dir,'/resuls-for-plotting.Rdata'))
+  save(vehs,en,by.r,costs,veh.ch,vmt,fleet,file=pp(plots.dir,'/resuls-for-plotting.Rdata'))
   load(file=pp(plots.dir,'/resuls-for-plotting.Rdata'))
   
   ###################################
@@ -170,9 +170,10 @@ plots.mobility <- function(exper,inputs,res,plots.dir){
     p <- streval(pp('ggplot(to.plot,aes(x=factor(',param.names,'),y=value,fill=fct_rev(variable)))'))+geom_bar(stat='identity')+ theme(axis.text.x = element_text(angle = 50, hjust = 1))+scale_fill_manual(values = rev(getPalette(to.plot$variable)))
     ggsave(pp(plots.dir,'_costs.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')  
     
-    vmt2 <- join.on(vmt,inputs$parameters$speed[,t:=as.numeric(substr(t,2,nchar(as.character(t))))],c('t','d','rmob'),c('t','d','rmob'),'value')
+    speed <- copy(inputs$parameters$speed)[,t:=as.numeric(substr(t,2,nchar(as.character(t))))]
+    vmt2 <- join.on(vmt,speed,c('t','d','rmob'),c('t','d','rmob'),'value')
     vmt2[,tt:=travelDistance*value]
-    to.plot <- join.on(to.plot,vmt2[,.(vmt=sum(vmt),t=sum(tt)),by=param.names],param.names,param.names,c('vmt','tt'))
+    to.plot <- join.on(to.plot,vmt2[,.(vmt=sum(vmt),t=sum(tt)),by=param.names],param.names,param.names,c('vmt','t'))
     to.plot <- join.on(to.plot,fleet[,.(fleetSize=sum(fleetSize)),by=param.names],param.names,param.names,'fleetSize')
     to.plot[,cost.per.mile:=value/vmt]
     costs.per.mile <- to.plot  
