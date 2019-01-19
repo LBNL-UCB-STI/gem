@@ -242,7 +242,7 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
 
       ggplot(all.energy.constraints,aes(x=t,y=min.energy,colour=day_of_week))+geom_line()+geom_line(aes(y=max.energy))
 
-      all.energy.constraints[,t:=pp('t',t+1)]
+      all.energy.constraints[,t:=pp('t',sprintf('%04d',t+1))]
       all.energy.constraints[,rmob:=the.region]
 
       save(all.energy.constraints,file=cache.file)

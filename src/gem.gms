@@ -51,9 +51,12 @@ parameters
 	personalEVChargeEnergyUB(t,rmob)          Upper boundary for cumulative energy delivered to personal evs
 	personalEVChargePowerLB(t,rmob)           Lower boundary for power delivered to personal evs
 	personalEVChargePowerUB(t,rmob)           Upper boundary for power delivered to personal evs
+	discountRate				  rate
 	chargerCapitalCost(l)			  cost per kW 	
+	chargerLifetime				  years
 	vehicleLifetime(b,rmob)			  years
 	batteryLifetime(b,rmob)			  years
+	batteryCapitalCost			  USD per kWh 
 	batteryCapacity(b)			  avg per veh in kWh /b075 19.65
 													b150 41.10
 													b225 64.35
@@ -70,28 +73,24 @@ parameters
 ;
 
 scalar
-	deltaT					time step size in hours /1/
-	discountRate 			rate /.05/
+	deltaT				time step size in hours /1/
 	dailyDiscountRate 		rate /0/
-	chargerLifetime 		year /10/
 	chargerVariableCost		O&M cost per kW per day /0.04/
 	vehicleCapitalCost 		USD /30000/
 	vehiclePerYearCosts		USD for insurance /600/
 	vehiclePerMileCosts		USD for insurance & maint /0.09/
 	dailyVehicleCost 		amortized cap /0/
-	batteryCapitalCost 		USD per kWh /150/
 	dailyBatteryCost 		amortized cap per kWh /0/
 	transLoss			Transmission efficiency /.972/
 ;
 
-dailyDiscountRate = ((1 + discountRate)**(1/365)) - 1;
 
 variable
 	systemCost 			System Cost
 ;
 
 positive variable
-	energyCharged(t,b,l,rmob) 		Energy charged kWh
+	energyCharged(t,b,l,rmob) 		Nominal energy charged kWh (before adjustment by chargeEff)
 	energyConsumed(t,b,d,rmob) 		Energy consumed kWh
 	demandChargeCost(t,rmob) 		Cost USD
 	vehicleMaintCost(t,rmob) 		Cost USD
@@ -111,8 +110,10 @@ positive variable
 
 
 $gdxin <<gdxName>>
-$load d r rmob l t g gtor rmobtor demand speed sharingFactor urbanFormFactor travelDistance demandCharge chargerPower chargerCapitalCost chargerDistributionFactor solar wind hydro genCost demandLoad maxGen maxSolar maxWind transCap transCost personalEVChargeEnergyLB personalEVChargeEnergyUB personalEVChargePowerLB personalEVChargePowerUB distCorrection timeCorrection chargeReloc chargeEff fleetRatio batteryRatio vehicleLifetime batteryLifetime
+$load d r rmob l t g gtor rmobtor demand speed sharingFactor urbanFormFactor travelDistance demandCharge chargerPower chargerCapitalCost chargerDistributionFactor solar wind hydro genCost demandLoad maxGen maxSolar maxWind transCap transCost personalEVChargeEnergyLB personalEVChargeEnergyUB personalEVChargePowerLB personalEVChargePowerUB distCorrection timeCorrection chargeReloc chargeEff fleetRatio batteryRatio vehicleLifetime batteryLifetime batteryCapitalCost discountRate chargerLifetime
 $gdxin
+
+dailyDiscountRate = ((1 + discountRate)**(1/365)) - 1;
 
 *Variable limits
 	generation.up(g,t) = maxGen(g);
@@ -165,19 +166,19 @@ cEnergyToMeetDemand(t,b,d,rmob)..
 	energyConsumed(t,b,d,rmob) * sharingFactor / (distCorrection(rmob) * conversionEfficiency(b) * travelDistance(d,rmob)) - demandAllocated(t,b,d,rmob) =e= 0;
 
 cChargingUpperBound(t,b,rmob)..
-	sum(tp$(ord(tp) le ord(t)),sum(d,energyConsumed(tp,b,d,rmob)))-sum(tp$(ord(tp) le ord(t)),sum(l,energyCharged(tp,b,l,rmob)*chargeEff(b,l,rmob))) =g= 0;
+	sum(tp$(ord(tp) le ord(t)),sum(d,energyConsumed(tp,b,d,rmob)))-sum(tp$(ord(tp) le ord(t)),sum(l,energyCharged(tp,b,l,rmob)/chargeEff(b,l,rmob))) =g= 0;
 
 cChargingLowerBound(t,b,rmob)..
-	fleetSize(b,rmob) * batteryCapacity(b) - sum(tp$(ord(tp) le ord(t)),sum(d,energyConsumed(tp,b,d,rmob)))+sum(tp$(ord(tp) lt ord(t)),sum(l,energyCharged(tp,b,l,rmob))) =g= 0;
+	fleetSize(b,rmob) * batteryCapacity(b) - sum(tp$(ord(tp) le ord(t)),sum(d,energyConsumed(tp,b,d,rmob)))+sum(tp$(ord(tp) lt ord(t)),sum(l,energyCharged(tp,b,l,rmob)/chargeEff(b,l,rmob))) =g= 0;
 
 cNoChargeAtStart(b,l,rmob)..
 	sum(t$(ord(t) eq 1),energyCharged(t,b,l,rmob)) =e= 0;
 
 cTerminalSOC(b,rmob)..
-	sum(t,sum(d,energyConsumed(t,b,d,rmob)))-sum(t,sum(l,energyCharged(t,b,l,rmob))) =e= 0;
+	sum(t,sum(d,energyConsumed(t,b,d,rmob)))-sum(t,sum(l,energyCharged(t,b,l,rmob)/chargeEff(b,l,rmob))) =e= 0;
 
 cNumCharging(t,b,l,rmob)..
-	energyCharged(t,b,l,rmob) / (chargerPower(l) * chargeEff(b,l,rmob)) - vehiclesCharging(t,b,l,rmob) =e= 0;
+	energyCharged(t,b,l,rmob) / (chargerPower(l)*chargeEff(b,l,rmob)) - vehiclesCharging(t,b,l,rmob) =e= 0;
 
 cMaxCharging(t,l,rmob)..
 	numChargers(l,rmob) - sum(b,vehiclesCharging(t,b,l,rmob)) =g= 0;
@@ -198,7 +199,7 @@ cDemandCharges(t,rmob)..
 	maxDemand(rmob) - sum((b,l),energyCharged(t,b,l,rmob)/chargeEff(b,l,rmob)) / deltaT =g= 0;
 
 cGeneration(t,r)..
-	sum(g$gtor(g,r),generation(g,t))+(sum(o,trans(o,t,r))*transLoss-sum(p,trans(r,t,p)))-demandLoad(r,t)-sum(rmob$rmobtor(r,rmob),personalEVPower(t,rmob)/1000)-sum((b,l),sum(rmob$rmobtor(r,rmob),energyCharged(t,b,l,rmob)/1000)) =g= 0;
+	sum(g$gtor(g,r),generation(g,t))+(sum(o,trans(o,t,r))*transLoss-sum(p,trans(r,t,p)))-demandLoad(r,t)-sum(rmob$rmobtor(r,rmob),personalEVPower(t,rmob)/1000)-sum((b,l),sum(rmob$rmobtor(r,rmob),energyCharged(t,b,l,rmob)/chargeEff(b,l,rmob)/1000)) =g= 0;
 
 cMaxSolar(t,r)..
 	maxSolar(r,t)-sum(solar$gtor(solar,r),generation(solar,t)) =g= 0;
@@ -225,6 +226,7 @@ cPersonalEVChargeEnergyUB(t,rmob)..
 
 model
 	combinedModel /obj,cDemandAllocation,cDemandChargeCost,cVehicleMaintCost,cEnergyToMeetDemand,cChargingUpperBound,cChargingLowerBound,cNoChargeAtStart,cTerminalSOC,cNumCharging,cMaxCharging,cNumMoving,cFleetDispatch,cInfrastructureCost,cFleetCost,cDemandCharges,cGeneration,cMaxSolar,cMaxWind,cPersonalEVChargeEnergyLB,cPersonalEVChargeEnergyUB,cPersonalEVChargePowerLB,cPersonalEVChargePowerUB/
+*	combinedModel /obj,cDemandAllocation,cDemandChargeCost,cVehicleMaintCost,cEnergyToMeetDemand,cChargingUpperBound,cChargingLowerBound,cNoChargeAtStart,cTerminalSOC,cNumCharging,cMaxCharging,cNumMoving,cFleetDispatch,cInfrastructureCost,cFleetCost,cDemandCharges,cGeneration,cMaxSolar,cMaxWind,cPersonalEVChargeEnergyLB,cPersonalEVChargeEnergyUB,cPersonalEVChargePowerLB,cPersonalEVChargePowerUB/
 
 options
 	qcp = cplex

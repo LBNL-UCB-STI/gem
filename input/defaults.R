@@ -1,14 +1,15 @@
 
 #### Common ####
-days <- c(1:2)
+days <- c(1)
 year <- 2040
 discountRate <- 0.05
 
 #### Mobility ####
 battery.capital.cost <- 150 # $/kWh
 charger.levels <- c(10,20,50,100,250) # kW
+chargerLifetime <- 10
 sharingFactor <- 1.5
-batteryCost <- 150
+batteryCapitalCost <- 150
 scale.urban.form.factor <- 1.0
 include.transit.demand <- F
 fraction.mobility.served.by.saevs <- .99

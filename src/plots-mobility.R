@@ -34,7 +34,7 @@ plots.mobility <- function(exper,inputs,res,plots.dir){
   setkey(veh.ch,run,l,rmob,t)
   
   # Energy balance
-  en <- join.on(res[['b-l-rmob-t']][,.(en.ch=sum(energyCharged)),by=c('t','rmob','b','run')],res[['b-d-rmob-t']][,.(en.mob=sum(energyConsumed)),by=c('t','rmob','b','run')],c('b','rmob','t','run'),c('b','rmob','t','run'))
+  en <- join.on(join.on(res[['b-l-rmob-t']],res[['b-l-rmob']],c('l','rmob','b','run'),c('l','rmob','b','run'))[,.(en.ch=sum(energyCharged/chargeEff)),by=c('t','rmob','b','run')],res[['b-d-rmob-t']][,.(en.mob=sum(energyConsumed)),by=c('t','rmob','b','run')],c('b','rmob','t','run'),c('b','rmob','t','run'))
   batt <- join.on(res[['b-rmob']],res[['b']],c('b','run'),c('b','run'))
   batt[,soc:=fleetSize*batteryCapacity]
   en <- join.on(en,batt,c('b','rmob','run'),c('b','rmob','run'),'soc')

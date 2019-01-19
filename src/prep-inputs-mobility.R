@@ -16,7 +16,7 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
 
   ##### GENERIC PROCESSING OF SIMPLE PARAMS #####
 
-  generic.params <- c('batteryCost','discountRate')
+  generic.params <- c('batteryCapitalCost','discountRate','chargerLifetime')
 
   for(generic.param in generic.params){
     if(generic.param %in% param.names){
@@ -77,7 +77,7 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
   all.dem <- list()
   for(i in 1:length(days)){
     the.dem <- copy(dem[day.type==dates$day.types[i] & use.transit == include.transit.demand & season == dates$seasons[i]])
-    the.dem[,t:=pp('t',1 + t + 24*(i-1))]
+    the.dem[,t:=pp('t',sprintf('%04d',1 + t + 24*(i-1)))]
     all.dem[[length(all.dem)+1]] <- the.dem[,.(r,t,d,trips)]
   }
   all.dem <- rbindlist(all.dem)
