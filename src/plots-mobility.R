@@ -40,7 +40,7 @@ plots.mobility <- function(exper,inputs,res,plots.dir){
   en <- join.on(en,batt,c('b','rmob','run'),c('b','rmob','run'),'soc')
   #en[t>0,soc:=0]
   setkey(en,b,rmob,t)
-  en[,soc:=soc+cumsum(en.ch-en.mob),by=c('b','rmob')]
+  en[,soc:=soc+cumsum(en.ch-en.mob),by=c('b','rmob','run')]
   
   # Run by Run Plots
   for(run.i in u(vehs$run)){

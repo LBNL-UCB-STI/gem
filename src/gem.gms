@@ -122,28 +122,28 @@ $gdxin
 
 
 equations
-	obj 					Objective Function
+	obj 				Objective Function
 	cEnergyCost 			Cost equality
 	cDemandChargeCost 		Cost equality
 	cVehicleMaintCost 		Cost equality
 	cDemandAllocation 		Our allocated demand must meet the exogenous value
-	cEnergyToMeetDemand 	Mobility demand function
-	cChargingUpperBound 	Cannot charge more than has been consumed
+	cEnergyToMeetDemand		Mobility demand function
+	cChargingUpperBound		Cannot charge more than has been consumed
 	cChargingLowerBound		Cannot consume more than bat cap of fleet must charge to keep up
 	cNoChargeAtStart 		First hour no charging
 	cTerminalSOC			End the day with same energy in batteries as beginning
 	cNumCharging 			Num veh charging proportional to energy delivered
 	cMaxCharging 			Charging infrastructure limit
-	cNumMoving 				Vehicles to serve demand
+	cNumMoving 			Vehicles to serve demand
 	cFleetDispatch 			Fleet dispatch
-	cInfrastructureCost 	Infrastructure cost
-	cFleetCost				Fleet cost
+	cInfrastructureCost		Infrastructure cost
+	cFleetCost			Fleet cost
 	cDemandCharges 			Inequality to capture max demand for a day
-	cGeneration				Generation must equal load
-	cMaxSolar				Solar generation cannot exceed sun supply
-	cMaxWind				Wind generation cannot exceed wind supply
-*	#constraint4				Hydro generation cannot exceed capacity factor
-	cPersonalEVChargeEnergyLB energy boundaries and power boundaries
+	cGeneration			Generation must equal load
+	cMaxSolar			Solar generation cannot exceed sun supply
+	cMaxWind			Wind generation cannot exceed wind supply
+*	#constraint4			Hydro generation cannot exceed capacity factor
+	cPersonalEVChargeEnergyLB	Energy boundaries and power boundaries
 	cPersonalEVChargeEnergyUB
 	cPersonalEVChargePowerLB
 	cPersonalEVChargePowerUB
@@ -165,7 +165,7 @@ cEnergyToMeetDemand(t,b,d,rmob)..
 	energyConsumed(t,b,d,rmob) * sharingFactor / (distCorrection(rmob) * conversionEfficiency(b) * travelDistance(d,rmob)) - demandAllocated(t,b,d,rmob) =e= 0;
 
 cChargingUpperBound(t,b,rmob)..
-	sum(tp$(ord(tp) le ord(t)),sum(d,energyConsumed(tp,b,d,rmob)))-sum(tp$(ord(tp) le ord(t)),sum(l,energyCharged(tp,b,l,rmob))) =g= 0;
+	sum(tp$(ord(tp) le ord(t)),sum(d,energyConsumed(tp,b,d,rmob)))-sum(tp$(ord(tp) le ord(t)),sum(l,energyCharged(tp,b,l,rmob)*chargeEff(b,l,rmob))) =g= 0;
 
 cChargingLowerBound(t,b,rmob)..
 	fleetSize(b,rmob) * batteryCapacity(b) - sum(tp$(ord(tp) le ord(t)),sum(d,energyConsumed(tp,b,d,rmob)))+sum(tp$(ord(tp) lt ord(t)),sum(l,energyCharged(tp,b,l,rmob))) =g= 0;
