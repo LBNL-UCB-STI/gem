@@ -34,7 +34,7 @@ source('input/defaults.R')
 #####################################################################################
 option_list <- list()
 if(interactive()){
-  args<-'input/experiments/test.yaml'
+  args<-'input/experiments/frac-saevs.yaml'
   args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=T,args=args)
 }else{
   args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=T)
@@ -50,6 +50,7 @@ exper <- load.experiment(args$args[1])
 #####################################################################################
 static.inputs <- prep.inputs.static()
 
+all.inputs <- list()
 i <- 1
 for(i in 1:nrow(exper$runs)){
   cat(pp('Prepping inputs for run ',i,'\n'))
@@ -68,8 +69,9 @@ for(i in 1:nrow(exper$runs)){
   make.dir(pp(exper$input.dir,'/runs'))
   make.dir(pp(exper$input.dir,'/runs/run-',i))
   write.gdx(pp(exper$input.dir,'/runs/run-',i,'/inputs.gdx'),params=lapply(inputs$parameters,as.data.frame,stringsAsFactors=F),sets=lapply(inputs$sets,as.data.frame,stringsAsFactors=F))
+  all.inputs[[length(all.inputs)+1]] <- inputs
 }
-save(inputs,file=pp(exper$input.dir,'/inputs.Rdata'))
+save(all.inputs,file=pp(exper$input.dir,'/inputs.Rdata'))
 
 #####################################################################################
 # Load GAMS and Run

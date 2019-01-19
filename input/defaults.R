@@ -12,7 +12,7 @@ sharingFactor <- 1.5
 batteryCapitalCost <- 150
 scale.urban.form.factor <- 1.0
 include.transit.demand <- F
-fraction.mobility.served.by.saevs <- .99
+fractionSAEVs <- .99
 
 #### Grid ####
 generators <- data.table(read.csv(pp(gem.raw.inputs,'gem_gridInputs_generators.csv')))
