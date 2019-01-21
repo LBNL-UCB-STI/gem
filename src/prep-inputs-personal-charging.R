@@ -25,12 +25,16 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
   source("src/eviPro/func_GenVmtWeights.R")         #Generates vmt distribution for fleet generation
   source("src/eviPro/func_CreateFleetWeights.R")    #Creates fleet weights from values hard coded in this function. Use this instead of loading fleet weights from a file if desired.
 
+  if('fractionSAEVs' %in% names(exper.row)){
+    fractionSAEVs <- exper.row$fractionSAEVs
+  }
+  
   ###########################################################
   # Optionally load EVI charging and load profile data
   ###########################################################
   # Desired size of fleet. The 3.37 is the average number of trips per driver based on https://nhts.ornl.gov/assets/2017_nhts_summary_travel_trends.pdf
-  scaling.frac <- ifelse(fraction.mobility.served.by.saevs==0,1,(1-fraction.mobility.served.by.saevs)/fraction.mobility.served.by.saevs)
-  fleet.sizes <- inputs.mobility$parameters$demand[,list(n.vehs=round(sum(value)/length(days)/3.37*scaling.frac,0)),by='rmob']
+  scaling.frac <- ifelse(fractionSAEVs==0,1,(1-fractionSAEVs)/fractionSAEVs)
+  fleet.sizes <- inputs.mobility$parameters$demandUnscaled[,list(n.vehs=round(sum(value)/length(days)/3.37*scaling.frac,0)),by='rmob']
   load.data.needed <- F
   for(the.region in common.inputs$sets$rmob){
     fleet_size <- fleet.sizes[rmob==the.region]$n.vehs
@@ -73,7 +77,6 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
         evi_delayed_load_profiles <- evi_delayed_load_profiles[,list(unique_vid,session_id,time_of_day,schedule_vmt,avg_kw,kwh,level=dest_chg_level,plugged_kw)]
         save(evi_load_profiles,evi_delayed_load_profiles,file=load_file_name)
         print(Sys.time())
-        
       } else {
         load(load_file_name,envir=globalenv())
       }
@@ -83,11 +86,6 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
   ###########################################################
   # Configure variables and process profiles for every region
   ###########################################################
-  if('fractionSAEVs' %in% names(exper.row)){
-    fraction.mobility.served.by.saevs <- exper.row$fractionSAEVs
-  }
-
-  
   all.all.energy.constraints <- list()
   for(the.region in common.inputs$sets$rmob){
 
@@ -106,7 +104,7 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
       avg_dvmt <- 28.5 #miles
 
       #INTERNAL TOOL SETTING: Specifiy the vmt bin size to use for creating the fleet vmt distribution
-      vmt_bin_size <- 10 #miles
+      vmt_bin_size <- 10 #mile
 
       #INTERNAL TOOL SETTING: Set time series resolution over which kWh and average kW will be calculated
       # DO NOT CHANGE THIS UNLESS YOU PLAN TO RE-RUN PRECALCULATED LOAD PROFILES.

@@ -82,9 +82,11 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
   }
   all.dem <- rbindlist(all.dem)
   all.dem[,':='(value=trips,trips=NULL,rmob=r,r=NULL)]
-  all.dem <- all.dem[,list(t,d=pp('d',d),rmob,value=value*fractionSAEVs)]
   all.dem[t==tail(common.inputs$sets$t,1),value:=0]
+  all.dem.unscaled <- all.dem[,list(t,d=pp('d',d),rmob,value=value)]
+  all.dem <- all.dem[,list(t,d=pp('d',d),rmob,value=value*fractionSAEVs)]
   inputs$parameters$demand <- all.dem
+  inputs$parameters$demandUnscaled <- all.dem.unscaled
 
   ##### DISTANCE BINS #####
   inputs$sets$d <- pp('d',sort(u(dem$d)))
