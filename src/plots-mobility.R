@@ -212,9 +212,40 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     ubs <- join.on(ubs,run.params,'run','run')
     toplot <- melt(join.on(lbs,ubs,c('t','rmob','run'),c('t','rmob','run'),'ub'),id.vars=c('t','rmob','run',param.names))[variable!='value']
     toplot[,t:=to.number(t)]
+    toplot[,value:=value/1e6]
     p <- ggplot(toplot[,.(value=sum(value)),by=c('t','variable',param.names)],aes(x=t,y=value,colour=variable))+geom_line()
     streval(pp('p <- p + facet_wrap(~',param.names,')'))
-    ggsave(pp(plots.dir,'_private-ev-enerby-bounds.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')  
+    ggsave(pp(plots.dir,'_private-ev-energy-bounds.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')  
+    setkey(toplot,variable,run,rmob,t)
+    unmanaged.load <- toplot[variable=='ub',.(t=t,load=diff(c(0,value))),by=c(param.names,'rmob')]
+    p <- ggplot(unmanaged.load[,.(load=sum(load)),by=c('t',param.names)],aes(x=t,y=load))+geom_line()
+    streval(pp('p <- p + facet_wrap(~',param.names,')'))
+    ggsave(pp(plots.dir,'_private-ev-load-from-bounds.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')  
+    
+    lbs <- rbindlist(lapply(seq_along(all.inputs),function(i){ all.inputs[[i]]$parameters$personalEVChargePowerLB[,run:=i] }),fill=T)
+    ubs <- rbindlist(lapply(seq_along(all.inputs),function(i){ all.inputs[[i]]$parameters$personalEVChargePowerUB[,run:=i] }),fill=T)
+    lbs[,lb:=value]
+    ubs[,ub:=value]
+    lbs <- join.on(lbs,run.params,'run','run')
+    ubs <- join.on(ubs,run.params,'run','run')
+    toplot <- melt(join.on(lbs,ubs,c('t','rmob','run'),c('t','rmob','run'),'ub'),id.vars=c('t','rmob','run',param.names))[variable!='value']
+    toplot[,t:=to.number(t)]
+    toplot[,value:=value/1e6]
+    p <- ggplot(toplot[,.(value=sum(value)),by=c('t','variable',param.names)],aes(x=t,y=value,colour=variable))+geom_line()
+    streval(pp('p <- p + facet_wrap(~',param.names,')'))
+    ggsave(pp(plots.dir,'_private-ev-power-bounds.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')  
+    
+    p <- ggplot(personal.ev.ch[,.(value=sum(gw.charging)),by=c('t','l',param.names)],aes(x=t,y=value,colour=l))+geom_line()
+    streval(pp('p <- p + facet_wrap(~',param.names,')'))
+    ggsave(pp(plots.dir,'_private-ev-charging.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')  
+    streval(pp('setkey(personal.ev.ch,l,rmob,t,',param.names,')'))
+    
+    to.plot <- veh.ch[,.(gw.charging=sum(gw.charging)),by=c('l','t',param.names)]
+    toplot <- personal.ev.ch[,.(gw.charging=sum(gw.charging)),by=c('l','t',param.names)]
+    toplot <- rbindlist(list(to.plot,toplot),fill=T,use.names=T)
+    p <- ggplot(toplot[,.(value=sum(gw.charging)),by=c('t','l',param.names)],aes(x=t,y=value,colour=l))+geom_line()
+    streval(pp('p <- p + facet_wrap(~',param.names,')'))
+    ggsave(pp(plots.dir,'_private-ev-charging2.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')  
   }
 }
 
