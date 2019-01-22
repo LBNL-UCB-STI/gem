@@ -29,6 +29,9 @@ prep.inputs.grid <- function(exper.row,common.inputs){
   renewableCF[,t:=pp('t',sprintf('%04d',as.numeric(substr(as.character(t),2,nchar(as.character(t))))))]
   setkey(renewableCF,r,t)
   total.Renewables <- generators[generators$FuelType%in%c('Hydro','Wind','Solar'),list(generationCapacities=sum(generationCapacities)),by=list(r,FuelType)]
+  if('renewableScalingFactor'%in%param.names) {
+    renewableCF$generationCapacities*exper.row$renewableScalingFactor
+  }
   maxSolar <- merge(x=renewableCF,y=total.Renewables[total.Renewables$FuelType=='Solar',],by='r')
   maxSolar$value <- maxSolar$generationCapacities*maxSolar$solarCF
   maxSolar <- maxSolar[,list(r,t,value)]
@@ -45,7 +48,7 @@ prep.inputs.grid <- function(exper.row,common.inputs){
   ##### GENERATION COSTS #####
   generators.Cost <- generators
   if('carbonTax'%in%param.names) {
-  	generators.Cost$generationCosts <- generators.Cost$generationCosts+generators.Cost$generationCO2*carbonTax
+  	generators.Cost$generationCosts <- generators.Cost$generationCosts+generators.Cost$generationCO2*exper.row$carbonTax
   	generators.Cost <- generators.Cost[,list(g,generationCosts)]
   }else{
   	generators.Cost <- generators.Cost[,list(g,generationCosts)]
