@@ -3,6 +3,6 @@
 *gdx
 _gams*
 *.Rapp.history 
-experiments
+experiments/*
 .Rhistory
 .Rdata

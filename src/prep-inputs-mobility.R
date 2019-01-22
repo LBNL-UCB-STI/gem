@@ -95,28 +95,42 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
   inputs$parameters$travelDistance <- inputs$parameters$travelDistance[,list(d,rmob,value)]
 
   #### SPEED ####
+  if('congestion'%in%param.names){
+    congestion <- exper.row$congestion
+  }
   speed.by.dist <- data.table(d=c("d0-2","d2-5","d5-10","d10-20","d20-30","d30-50","d50-100","d100-300"),value=c(18,22,32,38,40,45,48,48))
   speeds <- data.table(expand.grid(list(common.inputs$sets$rmob,common.inputs$sets$t,inputs$sets$d)))
   names(speeds) <- c('rmob','t','d')
   speeds <- join.on(speeds,speed.by.dist,'d','d')
   setkey(speeds,rmob,d,t)
+    speed.scale.base <- c(
+      1,1,1,1,1,0.99,
+      0.9,0.8,0.7,0.8,0.85,0.85,
+      0.85,0.85,0.8,0.7,0.6,0.55,
+      0.7,0.75,0.9,0.95,0.99,1)
+  if(congestion=='Freeflow'){
+    speed.scale <- 1
+  }else if(congestion=='Light'){
+    speed.scale <- 1-(1-speed.scale.base)*.5
+  }else if(congestion=='Medium'){
+    speed.scale <- speed.scale.base
+  }else if(congestion=='Heavy'){
+    speed.scale <- 1-(1-speed.scale.base)*1.5
+  }
+  speeds[,value:=value*speed.scale]
   inputs$parameters$speed <- speeds[,.(t=t,d,rmob,value)]
 
   ##### CHARGING INFRASTRUCTURE #####
   charger.levels.str <- pp('L',str_pad(charger.levels,3,'left','0'))
   inputs$sets$l <- charger.levels.str
   #### CHARGER CAPITAL ####
-  if('l10.charger.cost'%in%param.names){
-    l10.charger.cost <- exp.pars$l10.charger.cost[exp.i]
-  }else{
-    l10.charger.cost <- 500
+  if('l10ChargerCost'%in%param.names){
+    l10ChargerCost <- exper.row$l10ChargerCost
   }
-  if('charger.cap.superlinear'%in%param.names){
-    charger.cap.superlinear <- exp.pars$charger.cap.superlinear[exp.i]
-  }else{
-    charger.cap.superlinear <- 5
+  if('chargerCostSuperlinear'%in%param.names){
+    chargerCostSuperlinear <- exper.row$chargerCostSuperlinear
   }
-  chargerCapitalCost <- l10.charger.cost + c(charger.levels-min(charger.levels))*charger.cap.superlinear
+  chargerCapitalCost <- l10ChargerCost + c(charger.levels-min(charger.levels))*chargerCostSuperlinear
   inputs$parameters$chargerCapitalCost <- data.table(l=charger.levels.str,value=chargerCapitalCost)
   #### CHARGER POWER ####
   inputs$parameters$chargerPower <- data.table(l=charger.levels.str,value=charger.levels)

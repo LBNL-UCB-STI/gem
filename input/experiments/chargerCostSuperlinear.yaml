@@ -1,0 +1,9 @@
+Name: chargerCostSuperlinear
+Mode: combinatorial
+Factors:
+  - Name: chargerCostSuperlinear
+    Levels:
+      - 1.0
+      - 2.5
+      - 5.0
+      - 7.5

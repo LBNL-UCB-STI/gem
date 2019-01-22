@@ -1,0 +1,10 @@
+Name: l10ChargerCost
+Mode: combinatorial
+Factors:
+  - Name: l10ChargerCost
+    Levels:
+      - 300
+      - 400
+      - 500
+      - 600
+      - 700

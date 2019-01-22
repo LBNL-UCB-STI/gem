@@ -1,0 +1,9 @@
+Name: congestion
+Mode: combinatorial
+Factors:
+  - Name: congestion
+    Levels:
+      - 'Freeflow'
+      - 'Light'
+      - 'Medium'
+      - 'Heavy'

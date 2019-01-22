@@ -12,7 +12,10 @@ sharingFactor <- 1.5
 batteryCapitalCost <- 150
 scale.urban.form.factor <- 1.0
 include.transit.demand <- F
-fractionSAEVs <- .99
+fractionSAEVs <- 1
+congestion <- 'Freeflow'
+l10ChargerCost <- 500 # $/kW
+chargerCostSuperlinear <- 5 # rate of increase beyond linear from low to high power chargers
 
 #### Grid ####
 generators <- data.table(read.csv(pp(gem.raw.inputs,'gem_gridInputs_generators.csv')))
