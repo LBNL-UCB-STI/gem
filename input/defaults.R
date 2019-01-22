@@ -13,7 +13,7 @@ batteryCapitalCost <- 150
 scale.urban.form.factor <- 1.0
 include.transit.demand <- F
 fractionSAEVs <- 0.5
-fractionSmartCharging <- 0.5
+fractionSmartCharging <- 0.25
 congestion <- 'Freeflow'
 l10ChargerCost <- 500 # $/kW
 chargerCostSuperlinear <- 5 # rate of increase beyond linear from low to high power chargers
