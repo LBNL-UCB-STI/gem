@@ -30,7 +30,7 @@ prep.inputs.grid <- function(exper.row,common.inputs){
   setkey(renewableCF,r,t)
   total.Renewables <- generators[generators$FuelType%in%c('Hydro','Wind','Solar'),list(generationCapacities=sum(generationCapacities)),by=list(r,FuelType)]
   if('renewableScalingFactor'%in%param.names) {
-    renewableCF$generationCapacities*exper.row$renewableScalingFactor
+    renewableCF$generationCapacities*as.numeric(exper.row$renewableScalingFactor)
   }
   maxSolar <- merge(x=renewableCF,y=total.Renewables[total.Renewables$FuelType=='Solar',],by='r')
   maxSolar$value <- maxSolar$generationCapacities*maxSolar$solarCF
