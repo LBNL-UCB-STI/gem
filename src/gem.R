@@ -34,6 +34,8 @@ source('input/defaults.R')
 #####################################################################################
 option_list <- list()
 if(interactive()){
+  args<-'input/experiments/carbonTax.yaml'
+  args<-'input/experiments/renewableScalingFactor.yaml'
   args<-'input/experiments/congestion.yaml'
   args<-'input/experiments/l10ChargerCost.yaml'
   args<-'input/experiments/chargerCostSuperlinear.yaml'
