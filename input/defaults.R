@@ -22,3 +22,6 @@ generators <- data.table(read.csv(pp(gem.raw.inputs,'gem_gridInputs_generators.c
 load <- data.table(read.csv(pp(gem.raw.inputs,'gem_gridInputs_load.csv')))
 transmission <- data.table(read.csv(pp(gem.raw.inputs,'gem_gridInputs_transmission.csv')))
 renewableCF <- data.table(read.csv(pp(gem.raw.inputs,'gem_gridInputs_renewableCF.csv')))
+
+fuels <- data.frame('FuelType'=c('Wind','Waste Coal','Tire','Solar','Pumps','Pet. Coke','Oil','Nuclear','None','Non-Fossil','NaturalGas','MSW','LF Gas','Hydro','Geothermal','Fwaste','Coal','Biomass'),'Simplified'=c('Wind','Coal','Other','Solar','Pumps','Other','Other','Nuclear','Other','Other','NaturalGas','Biomass','NaturalGas','Hydro','Geothermal','Biomass','Coal','Biomass'))
+meritOrder <- c('Solar','Wind','Geothermal','Other','Hydro','NaturalGas','Pumps','Biomass','Coal','Nuclear')

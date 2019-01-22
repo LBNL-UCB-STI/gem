@@ -79,7 +79,7 @@ date.info <- function(days,year){
 
 make.dir <-
   function(dir){
-    if(!file.exists(dir))dir.create(dir)
+    if(!file.exists(dir))dir.create(dir,showWarnings=FALSE)
   }
 
 pp <- function(...,sep='',collapse=NULL){
@@ -126,3 +126,11 @@ join.on <- function(dt1,dt2,keys1,keys2=NULL,include.from.dt2=NULL,included.pref
 }
 
 roundC <- function(x,dg=1){ formatC(x,format='f',digits=dg) }
+
+merge.baseGen <- function(result,result.baseGen) {
+  result$`g-t` <- merge(x=result$`g-t`,y=result.baseGen$`g-t`,by=c('g','t'))
+  names(result$`g-t`) <- c('g','t','generation','base.generation')
+  result$`o-r-t` <- merge(x=result$`o-r-t`,y=result.baseGen$`o-r-t`,by=c('r','t','o'))
+  names(result$`o-r-t`) <- c('r','t','o','trans','base.trans')
+  return(result)
+}

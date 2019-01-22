@@ -28,11 +28,12 @@ prep.inputs.static <- function(){
   dates <- date.info(days,year)
   hours.to.simulate <- pp('t',sprintf('%04d',(days-1)*24+1:24))
 
-  load[,tt:=as.numeric(substr(t,2,nchar(as.character(t))))]
-  setkey(load,r,tt)
+  load[,t:=pp('t',sprintf('%04d',as.numeric(substr(as.character(t),2,nchar(as.character(t))))))]
+  setkey(load,r,t)
   demandLoad <- load[load$t%in%hours.to.simulate,list(r,t,value=demandLoad)]
   demandLoad[,t:=NULL]
   demandLoad[,t:=inputs.sets$t,by='r']
+  demandLoad <- demandLoad[,list(r,t,value)]
 
   transCap <- transmission[,list(r1,r2,transCap)]
   names(transCap) <- c('r','o','value')

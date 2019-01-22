@@ -44,7 +44,7 @@ plots.mobility <- function(exper,inputs,res,plots.dir){
   #en[t>0,soc:=0]
   setkey(en,b,rmob,t)
   en[,soc:=soc+cumsum(en.ch-en.mob),by=c('b','rmob','run')]
-  
+
   # Run by Run Plots
   for(run.i in u(vehs$run)){
     setkey(vehs,run,b,rmob,t)
@@ -91,7 +91,22 @@ plots.mobility <- function(exper,inputs,res,plots.dir){
     toplot[,Region:=factor(rmob,geo.ordered)]
     p <- ggplot(toplot,aes(x=Region,y=urbanFormFactor))+geom_bar(stat='identity')+facet_wrap(~urb,scales='free_x')+ theme(axis.text.x = element_text(angle = 50, hjust = 1))+coord_cartesian(ylim=c(1,max(toplot$urbanFormFactor)*1.01))
     ggsave(pp(plots.dir,'/run-',run.i,'/_urban-form-factor-by-region.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
-  
+
+    # Generation
+    generators$g <- as.character(generators$g)
+    generators <- merge(x=generators,y=fuels,by='FuelType',all.x=TRUE)
+    generators$Simplified <- factor(generators$Simplified,levels=meritOrder)
+    toplot <- merge(x=res[['g-t']][run==run.i],y=generators,by='g',all.x=TRUE)
+    toplot <- toplot[,list(generation=sum(generation),base.generation=sum(base.generation)),by=list(r,Simplified,t)]
+    toplot[,consq.generation:=generation-base.generation]
+    p <- ggplot(toplot,aes(x=t,y=generation,fill=Simplified))+geom_area()+scale_fill_discrete(name='Fuel Type')+facet_wrap(~r,scale='free_y')
+    ggsave(pp(plots.dir,'/run-',run.i,'/_generation-total-by-region-fuel.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
+
+    p <- ggplot(toplot,aes(x=t,y=consq.generation,fill=Simplified))+geom_area()+scale_fill_discrete(name='Fuel Type')+facet_wrap(~r,scale='free_y')
+    ggsave(pp(plots.dir,'/run-',run.i,'/_generation-cnsq-total-by-region-fuel.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
+
+    toplot <- merge(x=res[['g-t']][run==run.i],y=generators,by='g',all.x=TRUE)
+    
   }
   
   # tr <- rbindlist(list(melt(res[['rmob-t']],id.vars=c('t','rmob','run')),melt(en[,.(en.mob=sum(en.mob),en.ch=sum(en.ch)),by=c('rmob','t','run')],id.vars=c('t','rmob','run'))))

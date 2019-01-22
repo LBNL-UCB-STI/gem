@@ -113,6 +113,9 @@ $gdxin <<gdxName>>
 $load d r rmob l t g gtor rmobtor demand speed sharingFactor urbanFormFactor travelDistance demandCharge chargerPower chargerCapitalCost chargerDistributionFactor solar wind hydro genCost demandLoad maxGen maxSolar maxWind transCap transCost personalEVChargeEnergyLB personalEVChargeEnergyUB personalEVChargePowerLB personalEVChargePowerUB distCorrection timeCorrection chargeReloc chargeEff fleetRatio batteryRatio vehicleLifetime batteryLifetime batteryCapitalCost discountRate chargerLifetime
 $gdxin
 
+display
+	demandLoad;
+
 dailyDiscountRate = ((1 + discountRate)**(1/365)) - 1;
 
 *Variable limits

@@ -86,11 +86,15 @@ for(i in 1:nrow(exper$runs)) {
   cat(pp('Running [',i,'] ',exper$runs[i],'\n'))
   gem.gms <- readLines('src/gem.gms')
   gem.gms <- gsub(pattern='<<gdxName>>',replace='inputs.gdx',x=gem.gms)
+  gem.baseGeneration.gms <- readLines('src/gem-baseGeneration.gms')
+  gem.baseGeneration.gms <- gsub(pattern='<<gdxName>>',replace='inputs.gdx',x=gem.baseGeneration.gms)
   writeLines(gem.gms,con=pp(exper$input.dir,'/runs/run-',i,'/gem.gms'))
+  writeLines(gem.baseGeneration.gms,con=pp(exper$input.dir,'/runs/run-',i,'/gem-baseGeneration.gms'))
   
   cat(pp(Sys.time(),'\n'))
   setwd(pp(exper$input.dir,'/runs/run-',i))
   gams('gem.gms')
+  gams('gem-baseGeneration.gms')
   setwd(gem.project.directory)
   cat(pp(Sys.time(),'\n'))
 }
@@ -103,6 +107,8 @@ make.dir(plots.dir)
 results <- list()
 for(i in 1:nrow(exper$runs)) {
   result <- gdx.to.data.tables(gdx(pp(exper$input.dir,'/runs/run-',i,'/results.gdx')))
+  result.baseGen <- gdx.to.data.tables(gdx(pp(exper$input.dir,'/runs/run-',i,'/results-baseGeneration.gdx')))
+  result <- merge.baseGen(result,result.baseGen)
   for(key in names(result)){
     result[[key]][,run:=i]
     if(i==1)results[[key]] <- list()
