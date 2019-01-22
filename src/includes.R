@@ -126,3 +126,5 @@ join.on <- function(dt1,dt2,keys1,keys2=NULL,include.from.dt2=NULL,included.pref
 }
 
 roundC <- function(x,dg=1){ formatC(x,format='f',digits=dg) }
+
+to.number <- function(x){ as.numeric(substr(as.character(x),2,nchar(as.character(x)))) }

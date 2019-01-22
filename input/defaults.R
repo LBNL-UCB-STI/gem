@@ -1,6 +1,6 @@
 
 #### Common ####
-days <- c(1)
+days <- c(1:2)
 year <- 2040
 discountRate <- 0.05
 
@@ -12,7 +12,8 @@ sharingFactor <- 1.5
 batteryCapitalCost <- 150
 scale.urban.form.factor <- 1.0
 include.transit.demand <- F
-fractionSAEVs <- 1
+fractionSAEVs <- 0.5
+fractionSmartCharging <- 0.5
 congestion <- 'Freeflow'
 l10ChargerCost <- 500 # $/kW
 chargerCostSuperlinear <- 5 # rate of increase beyond linear from low to high power chargers

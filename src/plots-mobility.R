@@ -6,7 +6,8 @@
 # Argument: the results list containing GAMS outputs and the plotting directory
 ###############################################################################################
 
-plots.mobility <- function(exper,inputs,res,plots.dir){
+plots.mobility <- function(exper,all.inputs,res,plots.dir){
+  inputs <- all.inputs[[1]]
   getPalette = function(vals){ 
     ncol <- length(u(vals))
     if(ncol>9){
@@ -14,7 +15,11 @@ plots.mobility <- function(exper,inputs,res,plots.dir){
     }else if(any(u(vals)=='b075')){
       head(colorRampPalette(brewer.pal(9, "Set1"))(10),5)
     }else if(any(u(vals)=='L010')){
-      tail(colorRampPalette(brewer.pal(9, "Set1"))(10),5)
+      if(ncol==5){
+        tail(colorRampPalette(brewer.pal(9, "Set1"))(10),5)
+      }else{
+        c(tail(colorRampPalette(brewer.pal(9, "Set1"))(10),5),'#e41a1c')
+      }
     }else{
       colorRampPalette(brewer.pal(ncol, "Set1"))(ncol)
     }
@@ -34,7 +39,8 @@ plots.mobility <- function(exper,inputs,res,plots.dir){
   setkey(veh.ch,run,l,rmob,t)
   
   # Personal Vehicle Charging
-  personal.ev.ch <- res[['rmob-t']][,.(t,rmob,kw=personalEVPower)]
+  personal.ev.ch <- res[['rmob-t']][,.(t,rmob,gw.charging=personalEVPower/1e6,run)]
+  personal.ev.ch[,l:='Personal EVs']
   
   # Energy balance
   en <- join.on(join.on(res[['b-l-rmob-t']],res[['b-l-rmob']],c('l','rmob','b','run'),c('l','rmob','b','run'))[,.(en.ch=sum(energyCharged/chargeEff)),by=c('t','rmob','b','run')],res[['b-d-rmob-t']][,.(en.mob=sum(energyConsumed)),by=c('t','rmob','b','run')],c('b','rmob','t','run'),c('b','rmob','t','run'))
@@ -63,7 +69,11 @@ plots.mobility <- function(exper,inputs,res,plots.dir){
     # Charging load
     p <- ggplot(veh.ch[run==run.i],aes(x=t,y=gw.charging,fill=fct_rev(l)))+geom_bar(stat='identity',position='stack')+facet_wrap(~rmob)+scale_fill_manual(values = rev(getPalette(veh.ch$l)),guide=guide_legend(reverse=F))+labs(x='Hour',y='Load (GW)',fill='Charger Level')
     pdf.scale <- 1
-    ggsave(pp(plots.dir,'/run-',run.i,'/_charging.pdf'),p,width=10*pdf.scale,height=8*pdf.scale,units='in')
+    ggsave(pp(plots.dir,'/run-',run.i,'/_charging-saevs.pdf'),p,width=10*pdf.scale,height=8*pdf.scale,units='in')
+    toplot <- rbindlist(list(veh.ch,personal.ev.ch),fill=T,use.names=T)[run==run.i]
+    p <- ggplot(toplot,aes(x=t,y=gw.charging,fill=fct_rev(l)))+geom_bar(stat='identity',position='stack')+facet_wrap(~rmob)+scale_fill_manual(values = rev(getPalette(toplot$l)),guide=guide_legend(reverse=F))+labs(x='Hour',y='Load (GW)',fill='Charger Level')
+    pdf.scale <- 1
+    ggsave(pp(plots.dir,'/run-',run.i,'/_charging-all.pdf'),p,width=10*pdf.scale,height=8*pdf.scale,units='in')
     
     # Energy balance
     p <- ggplot(en[run==run.i],aes(x=t,y=soc,colour=fct_rev(b)))+geom_line()+facet_wrap(~rmob,scales='free_y')+scale_colour_manual(values = rev(getPalette(en$b)),guide=guide_legend(reverse=F)) 
@@ -112,7 +122,7 @@ plots.mobility <- function(exper,inputs,res,plots.dir){
   vmt[,pmt:=demandAllocated*travelDistance]
   fleet <- res[['b-rmob']]
   
-  data.to.save <- c('vehs','en','by.r','costs','veh.ch','vmt','fleet')
+  data.to.save <- c('vehs','en','by.r','costs','veh.ch','vmt','fleet','personal.ev.ch')
   run.params <- copy(exper$runs)[,run:=1:.N]
   for(dat.to.save in data.to.save){
     streval(pp(dat.to.save,' <- join.on(',dat.to.save,',run.params,\'run\',\'run\')'))
@@ -152,6 +162,13 @@ plots.mobility <- function(exper,inputs,res,plots.dir){
     streval(pp('p <- p + facet_wrap(~',param.names,')'))
     pdf.scale <- 1
     ggsave(pp(plots.dir,'_charging.pdf'),p,width=10*pdf.scale,height=8*pdf.scale,units='in')
+    streval(pp('setkey(personal.ev.ch,l,rmob,t,',param.names,')'))
+    toplot <- personal.ev.ch[,.(gw.charging=sum(gw.charging)),by=c('l','t',param.names)]
+    toplot <- rbindlist(list(to.plot,toplot),fill=T,use.names=T)
+    p <- ggplot(toplot,aes(x=t,y=gw.charging,fill=fct_rev(l)))+geom_bar(stat='identity',position='stack')+scale_fill_manual(values = rev(getPalette(toplot$l)))+labs(x='Hour',y='Load (GW)',fill='Charger Level')
+    streval(pp('p <- p + facet_wrap(~',param.names,')'))
+    pdf.scale <- 1
+    ggsave(pp(plots.dir,'_charging-all.pdf'),p,width=10*pdf.scale,height=8*pdf.scale,units='in')
     
     # Energy balance
     streval(pp('setkey(en,b,rmob,t,',param.names,')'))
@@ -186,6 +203,18 @@ plots.mobility <- function(exper,inputs,res,plots.dir){
       p <- ggplot(to.plot[,scen:=param.names],aes(x=scen,y=cost.per.mile,fill=fct_rev(variable)))+geom_bar(stat='identity')+ theme(axis.text.x = element_text(angle = 50, hjust = 1))+scale_fill_manual(values = rev(getPalette(to.plot$variable)))+coord_polar('y',start=0)+theme(axis.text.x=element_blank())+ geom_text(aes(y = cost.per.mile/3 + c(0, cumsum(cost.per.mile)[-length(cost.per.mile)]), label = roundC(cost.per.mile,3)), size=5)
       ggsave(pp(plots.dir,'_costs-per-mile-pie.pdf'),p,width=6*pdf.scale,height=6*pdf.scale,units='in')  
     }
+    
+    lbs <- rbindlist(lapply(seq_along(all.inputs),function(i){ all.inputs[[i]]$parameters$personalEVChargeEnergyLB[,run:=i] }),fill=T)
+    ubs <- rbindlist(lapply(seq_along(all.inputs),function(i){ all.inputs[[i]]$parameters$personalEVChargeEnergyUB[,run:=i] }),fill=T)
+    lbs[,lb:=value]
+    ubs[,ub:=value]
+    lbs <- join.on(lbs,run.params,'run','run')
+    ubs <- join.on(ubs,run.params,'run','run')
+    toplot <- melt(join.on(lbs,ubs,c('t','rmob','run'),c('t','rmob','run'),'ub'),id.vars=c('t','rmob','run',param.names))[variable!='value']
+    toplot[,t:=to.number(t)]
+    p <- ggplot(toplot[,.(value=sum(value)),by=c('t','variable',param.names)],aes(x=t,y=value,colour=variable))+geom_line()
+    streval(pp('p <- p + facet_wrap(~',param.names,')'))
+    ggsave(pp(plots.dir,'_private-ev-enerby-bounds.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')  
   }
 }
 

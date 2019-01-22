@@ -34,11 +34,13 @@ source('input/defaults.R')
 #####################################################################################
 option_list <- list()
 if(interactive()){
-  args<-'input/experiments/fractionSAEVs.yaml'
   args<-'input/experiments/congestion.yaml'
   args<-'input/experiments/l10ChargerCost.yaml'
   args<-'input/experiments/chargerCostSuperlinear.yaml'
   args<-'input/experiments/discountRate.yaml'
+  args<-'input/experiments/base.yaml'
+  args<-'input/experiments/fractionSAEVs.yaml'
+  args<-'input/experiments/fractionSmartCharging.yaml'
   args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=T,args=args)
 }else{
   args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=T)
@@ -112,5 +114,5 @@ for(i in 1:nrow(exper$runs)) {
 }
 res <- lapply(results,function(ll){ rbindlist(ll,fill=T) })
 
-plots.mobility(exper,inputs,res,plots.dir)
+plots.mobility(exper,all.inputs,res,plots.dir)
 
