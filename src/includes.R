@@ -134,3 +134,5 @@ merge.baseGen <- function(result,result.baseGen) {
   names(result$`o-r-t`) <- c('r','t','o','trans','base.trans')
   return(result)
 }
+
+to.number <- function(x){ as.numeric(substr(as.character(x),2,nchar(as.character(x)))) }

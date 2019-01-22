@@ -199,7 +199,7 @@ cFleetCost(rmob)..
         fleetCost(rmob) - sum(b,fleetSize(b,rmob) * fleetRatio(rmob) * (vehiclePerYearCosts / 365 + vehicleCapitalCost * dailyDiscountRate * (1 + dailyDiscountRate)**(vehicleLifetime(b,rmob)*365) / ((1 +  dailyDiscountRate)**(vehicleLifetime(b,rmob)*365) - 1) + batteryRatio(rmob) * batteryCapacity(b) * batteryCapitalCost * dailyDiscountRate * (1 + dailyDiscountRate)**(batteryLifetime(b,rmob)*365) / ((1 +  dailyDiscountRate)**(batteryLifetime(b,rmob)*365) - 1))) =e= 0;
 
 cDemandCharges(t,rmob)..
-	maxDemand(rmob) - sum((b,l),energyCharged(t,b,l,rmob)/chargeEff(b,l,rmob)) / deltaT =g= 0;
+	maxDemand(rmob) - sum((b,l),energyCharged(t,b,l,rmob)/chargeEff(b,l,rmob)) / deltaT - personalEVPower(t,rmob)/deltaT =g= 0;
 
 cGeneration(t,r)..
 	sum(g$gtor(g,r),generation(g,t))+(sum(o,trans(o,t,r))*transLoss-sum(p,trans(r,t,p)))-demandLoad(r,t)-sum(rmob$rmobtor(r,rmob),personalEVPower(t,rmob)/1000)-sum((b,l),sum(rmob$rmobtor(r,rmob),energyCharged(t,b,l,rmob)/chargeEff(b,l,rmob)/1000)) =g= 0;
@@ -223,7 +223,7 @@ cPersonalEVChargeEnergyLB(t,rmob)..
 	sum(tp$(ord(tp) le ord(t)), personalEVPower(tp,rmob))  =g= personalEVChargeEnergyLB(t,rmob);
 
 cPersonalEVChargeEnergyUB(t,rmob)..
-	sum(tp$(ord(tp) le ord(t)), personalEVPower(t,rmob))  =l= personalEVChargeEnergyUB(t,rmob);
+	sum(tp$(ord(tp) le ord(t)), personalEVPower(tp,rmob))  =l= personalEVChargeEnergyUB(t,rmob);
 
 
 

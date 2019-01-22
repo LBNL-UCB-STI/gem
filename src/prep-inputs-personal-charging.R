@@ -28,6 +28,9 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
   if('fractionSAEVs' %in% names(exper.row)){
     fractionSAEVs <- exper.row$fractionSAEVs
   }
+  if('fractionSmartCharging' %in% names(exper.row)){
+    fractionSmartCharging <- exper.row$fractionSmartCharging
+  }
   
   if(fractionSAEVs < 1){
     ###########################################################
@@ -39,7 +42,7 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
     for(the.region in common.inputs$sets$rmob){
       fleet_size <- fleet.sizes[rmob==the.region]$n.vehs
       # Look for the results in the gem cache, otherwise process and load
-      cache.file <- pp(workingDir,'/data/gem-cache/region-',the.region,'-fleet-',fleet_size,'.Rdata')
+      cache.file <- pp(workingDir,'/data/gem-cache/region-',the.region,'-fleet-',fleet_size,'-smart-',fractionSmartCharging,'.Rdata')
       if(!file.exists(cache.file))load.data.needed<-T
     }
   
@@ -92,7 +95,7 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
       fleet_size <- fleet.sizes[rmob==the.region]$n.vehs
   
       # Look for the results in the gem cache, otherwise process and load
-      cache.file <- pp(workingDir,'/data/gem-cache/region-',the.region,'-fleet-',fleet_size,'.Rdata')
+      cache.file <- pp(workingDir,'/data/gem-cache/region-',the.region,'-fleet-',fleet_size,'-smart-',fractionSmartCharging,'.Rdata')
       if(file.exists(cache.file)){
         load(cache.file)
       }else{
@@ -186,6 +189,11 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
         delayed_fleet_load_profiles <- merge(weekday_ref,delayed_fleet_load_profiles,by="unique_vid",all.y=TRUE)
         delayed_fleet_load_profiles[,schedule_vmt := schedule_vmt * fleet_size_scale][,avg_kw := avg_kw * fleet_size_scale][,kwh := kwh * fleet_size_scale]
   
+        # Finally dependingon fracSmartCharge, replace some of the delayed with their original load
+        n.veh <- length(u(fleet_load_profiles$unique_vid))
+        unmanaged.ids <- sample(u(fleet_load_profiles$unique_vid),n.veh*(1-fractionSmartCharging))
+        delayed_fleet_load_profiles <- rbindlist(list(delayed_fleet_load_profiles[!unique_vid %in% unmanaged.ids],fleet_load_profiles[unique_vid%in%unmanaged.ids]))
+        
         #remove temp variables
         remove(id_key,weekday_ref)
   
