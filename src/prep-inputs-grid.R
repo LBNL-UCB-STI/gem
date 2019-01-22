@@ -17,7 +17,7 @@ prep.inputs.grid <- function(exper.row,common.inputs){
   ##### GENERATION CAPACITIES #####
   generators.Cap <- generators 
   if('renewableScalingFactor'%in%param.names) {
-  	generators.Cap$generationCapacities[generators.Cap$FuelType%in%c('Solar','Wind')] <- generators.Cap$generationCapacities[generators.Cap$FuelType%in%c('Solar','Wind')]*exper.row$renewableScalingFactor
+  	generators.Cap$generationCapacities[generators.Cap$FuelType%in%c('Solar','Wind')] <- generators.Cap$generationCapacities[generators.Cap$FuelType%in%c('Solar','Wind')]*as.numeric(exper.row$renewableScalingFactor)
   	generators.Cap <- generators.Cap[,list(g,generationCapacities)]
   }else{
   	generators.Cap <- generators.Cap[,list(g,generationCapacities)]
