@@ -45,6 +45,11 @@ plots.mobility <- function(exper,inputs,res,plots.dir){
   setkey(en,b,rmob,t)
   en[,soc:=soc+cumsum(en.ch-en.mob),by=c('b','rmob','run')]
 
+  # Merit order
+  generators$g <- as.character(generators$g)
+  generators <- merge(x=generators,y=fuels,by='FuelType',all.x=TRUE)
+  generators$Simplified <- factor(generators$Simplified,levels=meritOrder)
+
   # Run by Run Plots
   for(run.i in u(vehs$run)){
     setkey(vehs,run,b,rmob,t)
@@ -93,9 +98,6 @@ plots.mobility <- function(exper,inputs,res,plots.dir){
     ggsave(pp(plots.dir,'/run-',run.i,'/_urban-form-factor-by-region.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
 
     # Generation
-    generators$g <- as.character(generators$g)
-    generators <- merge(x=generators,y=fuels,by='FuelType',all.x=TRUE)
-    generators$Simplified <- factor(generators$Simplified,levels=meritOrder)
     toplot <- merge(x=res[['g-t']][run==run.i],y=generators,by='g',all.x=TRUE)
     toplot <- toplot[,list(generation=sum(generation),base.generation=sum(base.generation)),by=list(r,Simplified,t)]
     toplot[,consq.generation:=generation-base.generation]
@@ -106,7 +108,13 @@ plots.mobility <- function(exper,inputs,res,plots.dir){
     ggsave(pp(plots.dir,'/run-',run.i,'/_generation-cnsq-total-by-region-fuel.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
 
     toplot <- merge(x=res[['g-t']][run==run.i],y=generators,by='g',all.x=TRUE)
-    
+    toplot <- toplot[,list(emissions=sum(generationCO2*generation),base.emissions=sum(generationCO2*base.generation)),by=list(r,Simplified,t)]
+    toplot[,consq.emissions:=emissions-base.emissions]
+    p <- ggplot(toplot,aes(x=t,y=emissions,fill=Simplified))+geom_bar(stat='identity')+scale_fill_discrete(name='Fuel Type')+facet_wrap(~r,scale='free_y')
+    ggsave(pp(plots.dir,'/run-',run.i,'/_emissions-total-by-region-fuel.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
+
+    p <- ggplot(toplot,aes(x=t,y=consq.emissions,fill=Simplified))+geom_bar(stat='identity')+scale_fill_discrete(name='Fuel Type')+facet_wrap(~r,scale='free_y')
+    ggsave(pp(plots.dir,'/run-',run.i,'/_emissions-cnsq-total-by-region-fuel.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
   }
   
   # tr <- rbindlist(list(melt(res[['rmob-t']],id.vars=c('t','rmob','run')),melt(en[,.(en.mob=sum(en.mob),en.ch=sum(en.ch)),by=c('rmob','t','run')],id.vars=c('t','rmob','run'))))
@@ -116,9 +124,18 @@ plots.mobility <- function(exper,inputs,res,plots.dir){
   # p <- ggplot(tr,aes(x=t,y=value,colour=variable))+geom_line()+facet_grid(group~rmob,scales='free_y') # geom_bar(stat='identity',position='dodge')
   # ggsave(pp(plots.dir,'_energy-vs-price.pdf'),p,width=12*pdf.scale,height=8*pdf.scale,units='in')
   
-  gen.cost <- join.on(join.on(res[['g-t']],res[['g']],c('g','run'),c('g','run'))[,g:=as.numeric(g)],inputs$sets$gtor,'g','g')
-  gen.cost <- gen.cost[,.(energyCost=sum(genCost*generation)),by=c('run','r')]
+  gen.cost <- merge(x=res[['g-t']],y=generators,by='g',all.x=TRUE)
+  gen.cost <- gen.cost[,list(energyCost=sum(generationCosts*(generation-base.generation))),by=list(r,run)]
+  
+  #gen.cost <- join.on(join.on(res[['g-t']],res[['g']],c('g','run'),c('g','run'))[,g:=as.numeric(g)],inputs$sets$gtor,'g','g')
+  #gen.cost <- gen.cost[,.(energyCost=sum(genCost*generation)),by=c('run','r')]
+  
   costs <- join.on(join.on(res[['rmob']],res[['rmob-t']][,.(demandChargeCost=sum(demandChargeCost),vehicleMaintCost=sum(vehicleMaintCost)),by=c('run','rmob')],c('run','rmob'),c('run','rmob'),c('demandChargeCost','vehicleMaintCost')),inputs$sets$rmobtor,'rmob','rmob')
+  costs <- merge(x=costs,y=gen.cost,by=c('r','run'),all.x=TRUE)
+  
+  # JANKY FIX JUST TO MAKE PLOT (since the merge duplicates the values)
+  costs$energyCost <- costs$energyCost/2
+  
   # TODO join gen cost with costs but make gen cost be divided proportionately by energy consumed including personal vehicles
   
   vmt <- join.on(res[['b-d-rmob-t']],res[['d-rmob']],c('d','rmob','run'),c('d','rmob','run'),'travelDistance')
@@ -184,7 +201,7 @@ plots.mobility <- function(exper,inputs,res,plots.dir){
     ggsave(pp(plots.dir,'_fleet-size-and-type.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')  
     
     # Costs
-    to.plot <- melt(costs,measure.vars=c('demandChargeCost','vehicleMaintCost','infrastructureCost','fleetCost'),id.vars=c('r',param.names))[,.(value=sum(value)),by=c('variable',param.names)]
+    to.plot <- melt(costs,measure.vars=c('demandChargeCost','vehicleMaintCost','infrastructureCost','fleetCost','energyCost'),id.vars=c('r',param.names))[,.(value=sum(value)),by=c('variable',param.names)]
     p <- streval(pp('ggplot(to.plot,aes(x=factor(',param.names,'),y=value,fill=fct_rev(variable)))'))+geom_bar(stat='identity')+ theme(axis.text.x = element_text(angle = 50, hjust = 1))+scale_fill_manual(values = rev(getPalette(to.plot$variable)))
     ggsave(pp(plots.dir,'_costs.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')  
     
