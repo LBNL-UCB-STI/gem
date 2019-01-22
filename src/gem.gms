@@ -238,6 +238,7 @@ options
 ;
 
 $onecho > cplex.opt
+threads = 12
 $offecho
 combinedModel.optFile = 1;
 combinedModel.holdfixed = 1;

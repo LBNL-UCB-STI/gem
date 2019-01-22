@@ -39,8 +39,8 @@ if(interactive()){
   args<-'input/experiments/chargerCostSuperlinear.yaml'
   args<-'input/experiments/discountRate.yaml'
   args<-'input/experiments/fractionSmartCharging.yaml'
-  args<-'input/experiments/fractionSAEVs.yaml'
   args<-'input/experiments/base.yaml'
+  args<-'input/experiments/fractionSAEVs.yaml'
   args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=T,args=args)
 }else{
   args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=T)
