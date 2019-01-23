@@ -38,9 +38,9 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   veh.ch[,gw.charging:=kw*value/1e6]
   setkey(veh.ch,run,l,rmob,t)
   
-  # Personal Vehicle Charging
+  # Private Vehicle Charging
   personal.ev.ch <- res[['rmob-t']][,.(t,rmob,gw.charging=personalEVPower/1e6,run)]
-  personal.ev.ch[,l:='Personal EVs']
+  personal.ev.ch[,l:='Private EVs']
   
   # Energy balance
   en <- join.on(join.on(res[['b-l-rmob-t']],res[['b-l-rmob']],c('l','rmob','b','run'),c('l','rmob','b','run'))[,.(en.ch=sum(energyCharged/chargeEff)),by=c('t','rmob','b','run')],res[['b-d-rmob-t']][,.(en.mob=sum(energyConsumed)),by=c('t','rmob','b','run')],c('b','rmob','t','run'),c('b','rmob','t','run'))
