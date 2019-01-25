@@ -76,7 +76,7 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
   dates <- date.info(days,year)
   all.dem <- list()
   for(i in 1:length(days)){
-    the.dem <- copy(dem[day.type==dates$day.types[i] & use.transit == include.transit.demand & season == dates$seasons[i]])
+    the.dem <- copy(dem[day.type==dates$day.types[i] & use.transit == includeTransitDemand & season == dates$seasons[i]])
     the.dem[,t:=pp('t',sprintf('%04d',1 + t + 24*(i-1)))]
     all.dem[[length(all.dem)+1]] <- the.dem[,.(r,t,d,trips)]
   }
