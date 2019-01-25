@@ -11,7 +11,7 @@ chargerLifetime <- 10
 sharingFactor <- 1.5
 batteryCapitalCost <- 150
 scale.urban.form.factor <- 1.0
-include.transit.demand <- F
+includeTransitDemand <- 0 # 0 or 1
 fractionSAEVs <- 0.5
 fractionSmartCharging <- 0.25
 congestion <- 'Freeflow'
