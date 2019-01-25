@@ -48,16 +48,16 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
   if(F){
     # The following is only needed to reshape the data from Brian Gerke's python script into a single data frame, so only used when that source data is updated
     dfs <- list()
-    for(file in grep('Rdata',grep('dist_hour_hists',list.files(gem.raw.inputs),value=T),invert=T,value=T)){
-      df <- data.table(read.csv(pp(gem.raw.inputs,file),stringsAsFactors=F))
+    for(file in grep('Rdata',grep('dist_hour_hists',list.files(pp(gem.raw.inputs,'nhts/')),value=T),invert=T,value=T)){
+      df <- data.table(read.csv(pp(gem.raw.inputs,'nhts/',file),stringsAsFactors=F))
       df[,season:=str_split(file,"_")[[1]][4]]
       df[,transit:=str_split(file,"_")[[1]][5]]
       dfs[[length(dfs)+1]] <- df
     }
     dem <- rbindlist(dfs)
-    save(dem,file=pp(gem.raw.inputs,'dist_hour_hists.Rdata'))
+    save(dem,file=pp(gem.raw.inputs,'nhts/','dist_hour_hists.Rdata'))
   }
-  load(pp(gem.raw.inputs,'dist_hour_hists.Rdata'))
+  load(pp(gem.raw.inputs,'nhts/dist_hour_hists.Rdata'))
   dem[,dist:=AVGDIST]
   dem[,d:=MILEBIN]
   dem[,r:=pp(CDIVLS,'-',URBRURS)]

@@ -84,6 +84,23 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
           load(load_file_name,envir=globalenv())
         }
       }
+      
+      load_file_name <- pp(gem.raw.inputs,'nhts/daily_vmt_per_person.Rdata')
+      if(!file.exists(load_file_name)){
+        dfs <- list()
+        to.load <- c('avg_daily_vmt_perperson_region_season_day_no_transit.csv','avg_daily_vmt_perperson_region_season_day_with_transit.csv')
+        for(file in to.load){
+          df <- data.table(read.csv(pp(gem.raw.inputs,'nhts/',file),stringsAsFactors=F))
+          df[,transit:=pp(str_split(file,"_")[[1]][8:9],collapse='_')]
+          df[,transit:=substr(transit,1,nchar(transit)-4)]
+          dfs[[length(dfs)+1]] <- df
+        }
+        dvmt <- rbindlist(dfs)
+        dvmt[,rmob:=pp(CDIVLS,'-',URBRURS)]
+        save(dvmt,file=load_file_name)
+        rm('dfs')
+      }
+      load(load_file_name)
     }
   
     ###########################################################
@@ -102,21 +119,13 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
         #TOOL USER INPUT: Load .csv file containing desired weights of fleet characteristics
         weights_file <- paste0(workingDir,"/data/fleet_weights_dev.csv")
   
-        #TOOL USER INPUT: Define average per-vehicle total dvmt from which a dvmt distribution will be created
-        # Note that vmt distribution width is hard coded in the vmt_WeightDistGen() function. This has yet to be verified.
-        avg_dvmt <- 28.5 #miles
-  
         #INTERNAL TOOL SETTING: Specifiy the vmt bin size to use for creating the fleet vmt distribution
         vmt_bin_size <- 10 #mile
   
         #INTERNAL TOOL SETTING: Set time series resolution over which kWh and average kW will be calculated
         # DO NOT CHANGE THIS UNLESS YOU PLAN TO RE-RUN PRECALCULATED LOAD PROFILES.
         time_step <- 1 #hours
-  
-        ###########################################################
-        # Create or load fleet characteristics weights
-        ###########################################################
-  
+        
         #Set to true to load fleet weights from .csv file.
         #Set to false to create fleet weights from create_fleet_weights() function in which you can quickly change weights in RStudio
         use_file <- TRUE
@@ -126,115 +135,141 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
           fleet_weights <- create_fleet_weights()
         }
   
-        #Take an average per-vehicle dvmt and generate a fleet dvmt distribution
-        fleet_weights$vmt_weights <- vmt_WeightDistGen(avg_dvmt,vmt_bin_size)
-  
-        ###########################################################
-        # Generate fleet and associated load profile
-        ###########################################################
-        #print(Sys.time())
-  
-        #Check desired fleet size. If greater than 50,000 then set fleet size to 50,000. Scale the load profiles accordingly later on.
-        if(fleet_size > 50000) {
-          fleet_size_scale <- fleet_size / 50000
-          fleet_size <- 50000
-        } else {
-          fleet_size_scale <- 1
+        ##############################################################################
+        # Create or load fleet characteristics weights for each DVMT value of interest
+        ##############################################################################
+        energy.and.power.constraints <- list()
+        for(season in u(dvmt$SEASON)){
+          energy.and.power.constraints[[season]] <- list()
+          for(weekday.type in u(dvmt$WKTIME)){
+            energy.and.power.constraints[[season]][[weekday.type]] <- list()
+            for(transit.type in c('no_transit','with_transit')){
+              energy.and.power.constraints[[season]][[weekday.type]][[transit.type]] <- list()
+              
+              #TOOL USER INPUT: Define average per-vehicle total dvmt from which a dvmt distribution will be created
+              # Note that vmt distribution width is hard coded in the vmt_WeightDistGen() function. This has yet to be verified.
+              # avg_dvmt <- 28.5 #miles
+              avg_dvmt <- dvmt[rmob==the.region & SEASON==season & WKTIME == weekday.type & transit == transit.type]$TRPMILES
+        
+              #Take an average per-vehicle dvmt and generate a fleet dvmt distribution
+              fleet_weights$vmt_weights <- vmt_WeightDistGen(avg_dvmt,vmt_bin_size)
+        
+              ###########################################################
+              # Generate fleet and associated load profile
+              ###########################################################
+              #print(Sys.time())
+        
+              #Check desired fleet size. If greater than 50,000 then set fleet size to 50,000. Scale the load profiles accordingly later on.
+              if(fleet_size > 50000) {
+                fleet_size_scale <- fleet_size / 50000
+                fleet_size <- 50000
+              } else {
+                fleet_size_scale <- 1
+              }
+        
+              #Create fleet
+              evi_fleet <- list(data = evi_fleetGen(evi_raw,
+                                                    fleet_size,
+                                                    fleet_weights$pev_weights,
+                                                    fleet_weights$pref_weights,
+                                                    fleet_weights$home_weights,
+                                                    fleet_weights$work_weights,
+                                                    fleet_weights$public_weights,
+                                                    fleet_weights$vmt_weights
+                                                    ))
+        
+              #Generate fleet statistics to check with desired characteristics
+              #evi_fleet$stats <- measureFleetWeights(evi_fleet$data)
+        
+              #-----Generate 48-hour Fleet Load Profile----------
+        
+              #Build list of unique_vid from evi_fleet that we'll use to construct the full load profile
+              id_key <- evi_fleet$data[,.(unique_vid = unique(unique_vid)),by=fleet_id]
+              setkey(id_key,unique_vid)
+        
+              #Subset load profiles specific to those unique_vids in the evi_fleet. This is the full load profile of the fleet
+              setkey(evi_load_profiles,unique_vid,session_id)
+              fleet_load_profiles <- evi_load_profiles[unique_vid %in% evi_fleet$data[,unique(unique_vid)]] #Subset to those unique_vids we are interested in
+              fleet_load_profiles <- id_key[fleet_load_profiles,allow.cartesian=TRUE] #Capture duplicate unique_vids by using fleet_id
+        
+              #Add day_of_week information
+              weekday_ref <- evi_fleet$data[!duplicated(unique_vid),day_of_week,by=unique_vid]
+              setkey(weekday_ref,unique_vid)
+              setkey(fleet_load_profiles,unique_vid)
+              fleet_load_profiles <- merge(weekday_ref,fleet_load_profiles,by="unique_vid",all.y=TRUE)
+        
+              #Scale load profile by fleet size scale factor.
+              # The approach is a straight multiplier on the kW of those vehicles in fleet_load_profiles. This does not increase the number of fleet
+              #   vehicles. For example, if the desired fleet size is 100,000, then there is a fleet of 50,000 and the kW associated with each charge
+              #   event is increased by 100,000 / 50,000 = 2.
+              # The variables schedule_vmt and kwh are also scaled.
+              fleet_load_profiles[,schedule_vmt := schedule_vmt * fleet_size_scale][,avg_kw := avg_kw * fleet_size_scale][,kwh := kwh * fleet_size_scale][,plugged_kw:=plugged_kw*fleet_size_scale]
+        
+              #### REPEAT FOR DELAYED LOAD SHAPE 
+        
+              setkey(evi_delayed_load_profiles,unique_vid,session_id)
+              delayed_fleet_load_profiles <- evi_delayed_load_profiles[unique_vid %in% evi_fleet$data[,unique(unique_vid)]] #Subset to those unique_vids we are interested in
+              delayed_fleet_load_profiles <- id_key[delayed_fleet_load_profiles,allow.cartesian=TRUE] #Capture duplicate unique_vids by using fleet_id
+              setkey(delayed_fleet_load_profiles,unique_vid)
+              delayed_fleet_load_profiles <- merge(weekday_ref,delayed_fleet_load_profiles,by="unique_vid",all.y=TRUE)
+              delayed_fleet_load_profiles[,schedule_vmt := schedule_vmt * fleet_size_scale][,avg_kw := avg_kw * fleet_size_scale][,kwh := kwh * fleet_size_scale]
+        
+              # Finally dependingon fracSmartCharge, replace some of the delayed with their original load
+              n.veh <- length(u(fleet_load_profiles$unique_vid))
+              unmanaged.ids <- sample(u(fleet_load_profiles$unique_vid),n.veh*(1-fractionSmartCharging))
+              delayed_fleet_load_profiles <- rbindlist(list(delayed_fleet_load_profiles[!unique_vid %in% unmanaged.ids],fleet_load_profiles[unique_vid%in%unmanaged.ids]))
+              
+              #remove temp variables
+              remove(id_key,weekday_ref)
+        
+              # Turn into energy and power constraints
+        
+              fleet_load_profiles[,t:=time_of_day]
+              delayed_fleet_load_profiles[,t:=time_of_day]
+              energy.constraints.unnormalized <- join.on(join.on(data.table(expand.grid(list(t=u(c(fleet_load_profiles$t,delayed_fleet_load_profiles$t)),day_of_week=c('weekday','weekend')))),fleet_load_profiles[,list(max.energy=sum(avg_kw)),by=c('t','day_of_week')],c('t','day_of_week'),c('t','day_of_week')), delayed_fleet_load_profiles[,list(min.energy=sum(avg_kw)),by=c('t','day_of_week')],c('t','day_of_week'),c('t','day_of_week'))
+              setkey(energy.constraints.unnormalized,day_of_week,t)
+              energy.constraints.unnormalized[is.na(min.energy) & t<5,min.energy:=0]
+              energy.constraints.unnormalized[,':='(min.energy=cumsum(min.energy),max.energy=cumsum(max.energy)),by='day_of_week']
+              max.diff <- energy.constraints.unnormalized[,list(diff=max(max.energy-min.energy,na.rm=T)),by='day_of_week']
+        
+              fleet_load_profiles[,t:=time_of_day%%24]
+              delayed_fleet_load_profiles[,t:=time_of_day%%24]
+              energy.constraints <- join.on(join.on(data.table(expand.grid(list(t=0:23,day_of_week=c('weekday','weekend')))),fleet_load_profiles[,list(max.energy=sum(avg_kw)),by=c('t','day_of_week')],c('t','day_of_week'),c('t','day_of_week')), delayed_fleet_load_profiles[,list(min.energy=sum(avg_kw)),by=c('t','day_of_week')],c('t','day_of_week'),c('t','day_of_week'))
+              setkey(energy.constraints,day_of_week,t)
+              energy.constraints[,':='(min.energy=cumsum(min.energy),max.energy=cumsum(max.energy)),by='day_of_week']
+              energy.constraints <- join.on(energy.constraints,max.diff,'day_of_week','day_of_week')
+              energy.constraints[,delta:= diff - max(max.energy-min.energy),by='day_of_week']
+              energy.constraints[,min.energy:=min.energy - delta]
+              energy.constraints[,':='(delta=NULL,diff=NULL)]
+        
+              power.constraints <- fleet_load_profiles[,.(max.power=sum(plugged_kw),min.power=0),by='t']
+              setkey(power.constraints)
+              
+              energy.and.power.constraints[[season]][[weekday.type]][[transit.type]][['energy']] <- energy.constraints
+              energy.and.power.constraints[[season]][[weekday.type]][[transit.type]][['power']] <- power.constraints
+            }
+          }
         }
   
-        #Create fleet
-        evi_fleet <- list(data = evi_fleetGen(evi_raw,
-                                              fleet_size,
-                                              fleet_weights$pev_weights,
-                                              fleet_weights$pref_weights,
-                                              fleet_weights$home_weights,
-                                              fleet_weights$work_weights,
-                                              fleet_weights$public_weights,
-                                              fleet_weights$vmt_weights
-                                              ))
-  
-        #Generate fleet statistics to check with desired characteristics
-        #evi_fleet$stats <- measureFleetWeights(evi_fleet$data)
-  
-        #-----Generate 48-hour Fleet Load Profile----------
-  
-        #Build list of unique_vid from evi_fleet that we'll use to construct the full load profile
-        id_key <- evi_fleet$data[,.(unique_vid = unique(unique_vid)),by=fleet_id]
-        setkey(id_key,unique_vid)
-  
-        #Subset load profiles specific to those unique_vids in the evi_fleet. This is the full load profile of the fleet
-        setkey(evi_load_profiles,unique_vid,session_id)
-        fleet_load_profiles <- evi_load_profiles[unique_vid %in% evi_fleet$data[,unique(unique_vid)]] #Subset to those unique_vids we are interested in
-        fleet_load_profiles <- id_key[fleet_load_profiles,allow.cartesian=TRUE] #Capture duplicate unique_vids by using fleet_id
-  
-        #Add day_of_week information
-        weekday_ref <- evi_fleet$data[!duplicated(unique_vid),day_of_week,by=unique_vid]
-        setkey(weekday_ref,unique_vid)
-        setkey(fleet_load_profiles,unique_vid)
-        fleet_load_profiles <- merge(weekday_ref,fleet_load_profiles,by="unique_vid",all.y=TRUE)
-  
-        #Scale load profile by fleet size scale factor.
-        # The approach is a straight multiplier on the kW of those vehicles in fleet_load_profiles. This does not increase the number of fleet
-        #   vehicles. For example, if the desired fleet size is 100,000, then there is a fleet of 50,000 and the kW associated with each charge
-        #   event is increased by 100,000 / 50,000 = 2.
-        # The variables schedule_vmt and kwh are also scaled.
-        fleet_load_profiles[,schedule_vmt := schedule_vmt * fleet_size_scale][,avg_kw := avg_kw * fleet_size_scale][,kwh := kwh * fleet_size_scale][,plugged_kw:=plugged_kw*fleet_size_scale]
-  
-        #### REPEAT FOR DELAYED LOAD SHAPE 
-  
-        setkey(evi_delayed_load_profiles,unique_vid,session_id)
-        delayed_fleet_load_profiles <- evi_delayed_load_profiles[unique_vid %in% evi_fleet$data[,unique(unique_vid)]] #Subset to those unique_vids we are interested in
-        delayed_fleet_load_profiles <- id_key[delayed_fleet_load_profiles,allow.cartesian=TRUE] #Capture duplicate unique_vids by using fleet_id
-        setkey(delayed_fleet_load_profiles,unique_vid)
-        delayed_fleet_load_profiles <- merge(weekday_ref,delayed_fleet_load_profiles,by="unique_vid",all.y=TRUE)
-        delayed_fleet_load_profiles[,schedule_vmt := schedule_vmt * fleet_size_scale][,avg_kw := avg_kw * fleet_size_scale][,kwh := kwh * fleet_size_scale]
-  
-        # Finally dependingon fracSmartCharge, replace some of the delayed with their original load
-        n.veh <- length(u(fleet_load_profiles$unique_vid))
-        unmanaged.ids <- sample(u(fleet_load_profiles$unique_vid),n.veh*(1-fractionSmartCharging))
-        delayed_fleet_load_profiles <- rbindlist(list(delayed_fleet_load_profiles[!unique_vid %in% unmanaged.ids],fleet_load_profiles[unique_vid%in%unmanaged.ids]))
-        
-        #remove temp variables
-        remove(id_key,weekday_ref)
-  
-        # Turn into energy and power constraints
-  
-        fleet_load_profiles[,t:=time_of_day]
-        delayed_fleet_load_profiles[,t:=time_of_day]
-        energy.constraints.unnormalized <- join.on(join.on(data.table(expand.grid(list(t=u(c(fleet_load_profiles$t,delayed_fleet_load_profiles$t)),day_of_week=c('weekday','weekend')))),fleet_load_profiles[,list(max.energy=sum(avg_kw)),by=c('t','day_of_week')],c('t','day_of_week'),c('t','day_of_week')), delayed_fleet_load_profiles[,list(min.energy=sum(avg_kw)),by=c('t','day_of_week')],c('t','day_of_week'),c('t','day_of_week'))
-        setkey(energy.constraints.unnormalized,day_of_week,t)
-        energy.constraints.unnormalized[is.na(min.energy) & t<5,min.energy:=0]
-        energy.constraints.unnormalized[,':='(min.energy=cumsum(min.energy),max.energy=cumsum(max.energy)),by='day_of_week']
-        max.diff <- energy.constraints.unnormalized[,list(diff=max(max.energy-min.energy,na.rm=T)),by='day_of_week']
-  
-        fleet_load_profiles[,t:=time_of_day%%24]
-        delayed_fleet_load_profiles[,t:=time_of_day%%24]
-        energy.constraints <- join.on(join.on(data.table(expand.grid(list(t=0:23,day_of_week=c('weekday','weekend')))),fleet_load_profiles[,list(max.energy=sum(avg_kw)),by=c('t','day_of_week')],c('t','day_of_week'),c('t','day_of_week')), delayed_fleet_load_profiles[,list(min.energy=sum(avg_kw)),by=c('t','day_of_week')],c('t','day_of_week'),c('t','day_of_week'))
-        setkey(energy.constraints,day_of_week,t)
-        energy.constraints[,':='(min.energy=cumsum(min.energy),max.energy=cumsum(max.energy)),by='day_of_week']
-        energy.constraints <- join.on(energy.constraints,max.diff,'day_of_week','day_of_week')
-        energy.constraints[,delta:= diff - max(max.energy-min.energy),by='day_of_week']
-        energy.constraints[,min.energy:=min.energy - delta]
-        energy.constraints[,':='(delta=NULL,diff=NULL)]
-  
-        power.constraints <- fleet_load_profiles[,.(max.power=sum(plugged_kw),min.power=0),by='t']
-        setkey(power.constraints)
-  
-        wdays <- weekdays(to.posix(pp(year,'-01-01 00:00:00+00'))+24*3600*(days-1))
-        setkey(energy.constraints,t)
-        all.energy.constraints <- list()
+        dates <- date.info(days,year)
+        cumul.energy.constraints <- list()
         for(i in 1:length(days)){
           the.day <- days[i]
-          the.wday <- wdays[i]
-          if(the.wday=='Sunday' || the.wday=='Saturday'){
-            the.day.type <- "weekend"
+          the.season <- toupper(dates$seasons[i])
+          the.day.type <- dates$day.types[i]
+          if(the.day.type == 'SA/SU'){
+            the.evipro.day.type <- "weekend"
           }else{
-            the.day.type <- "weekday"
+            the.evipro.day.type <- "weekday"
           }
-          df <- copy(energy.constraints)[day_of_week==the.day.type]
+          the.transit.type <- ifelse(includeTransitDemand,'with_transit','no_transit')
+          energy.constraints <- energy.and.power.constraints[[the.season]][[the.day.type]][[the.transit.type]][['energy']]
+          power.constraints <- energy.and.power.constraints[[the.season]][[the.day.type]][[the.transit.type]][['power']]
+          df <- copy(energy.constraints)[day_of_week==the.evipro.day.type]
+          setkey(df,t)
           df[,t:=t+(i-1)*24]
           if(i>1){
-            maxes <- all.energy.constraints[[length(all.energy.constraints)]][,list(max.max=max(max.energy),max.min=max(min.energy))]
+            maxes <- cumul.energy.constraints[[length(cumul.energy.constraints)]][,list(max.max=max(max.energy),max.min=max(min.energy))]
             mins <- df[,list(the.min=min(min.energy))]
             df[,max.energy:=max.energy+maxes$max.max]
             df[,min.energy:=min.energy+maxes$max.min-mins$the.min]
@@ -242,18 +277,18 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
           df[,max.power:=power.constraints$max.power]
           df[,min.power:=power.constraints$min.power]
           #ggplot(df,aes(x=t,y=min.energy,colour=day_of_week))+geom_line()+geom_line(aes(y=max.energy))
-          all.energy.constraints[[length(all.energy.constraints)+1]] <- df
+          cumul.energy.constraints[[length(cumul.energy.constraints)+1]] <- df
         }
-        all.energy.constraints <- rbindlist(all.energy.constraints)
+        cumul.energy.constraints <- rbindlist(cumul.energy.constraints)
   
-        ggplot(all.energy.constraints,aes(x=t,y=min.energy,colour=day_of_week))+geom_line()+geom_line(aes(y=max.energy))
+        ggplot(cumul.energy.constraints,aes(x=t,y=min.energy,colour=day_of_week))+geom_line()+geom_line(aes(y=max.energy))
   
-        all.energy.constraints[,t:=pp('t',sprintf('%04d',t+1))]
-        all.energy.constraints[,rmob:=the.region]
+        cumul.energy.constraints[,t:=pp('t',sprintf('%04d',t+1))]
+        cumul.energy.constraints[,rmob:=the.region]
   
-        save(all.energy.constraints,file=cache.file)
+        save(cumul.energy.constraints,file=cache.file)
       }
-      all.all.energy.constraints[[length(all.all.energy.constraints)+1]] <- copy(all.energy.constraints)
+      all.all.energy.constraints[[length(all.all.energy.constraints)+1]] <- copy(cumul.energy.constraints)
     }
     all.all.energy.constraints <- rbindlist(all.all.energy.constraints)
     inputs <- list()
@@ -270,7 +305,6 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
     inputs$parameters$personalEVChargePowerUB <- zero
     inputs$parameters$personalEVChargePowerLB <- zero
   }
-
 
   inputs
 }
