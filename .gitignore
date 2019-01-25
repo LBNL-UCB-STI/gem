@@ -6,3 +6,5 @@ _gams*
 experiments/*
 .Rhistory
 .Rdata
+.Rproj.user
+*.Rproj
