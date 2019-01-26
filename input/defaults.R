@@ -13,7 +13,8 @@ batteryCapitalCost <- 150
 scale.urban.form.factor <- 1.0
 includeTransitDemand <- 0 # 0 or 1
 fractionSAEVs <- 0.5
-fractionSmartCharging <- 0.25
+fractionSmartCharging <- 0
+privateFleetWeights <- "fleet_weights_dev" # name (without extension) of file in {gem.raw.inputs}/NREL-EVI-Pro-Preprocessed-Profiles/data
 congestion <- 'Freeflow'
 l10ChargerCost <- 500 # $/kW
 chargerCostSuperlinear <- 5 # rate of increase beyond linear from low to high power chargers
