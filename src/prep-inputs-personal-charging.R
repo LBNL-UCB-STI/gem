@@ -121,7 +121,8 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
       fleet_weights <- create_fleet_weights()
     }
     transit.type <- ifelse(includeTransitDemand,'with_transit','no_transit')
-    fleet.sizes <- inputs.mobility$parameters$demandUnscaled[,list(n.vehs=round(sum(value)/length(days)/3.37*(1-fractionSAEVs),0)),by='rmob']
+    # We assume 4.17 trips per person, this is based on NHTS overall trips per person 3.46 but then rescaled by 1/0.83 to account for the people who take no trips (which we effectively remove)
+    fleet.sizes <- inputs.mobility$parameters$demandUnscaled[,list(n.vehs=round(sum(value)/length(days)/4.17*(1-fractionSAEVs),0)),by='rmob']
     all.all.energy.constraints <- list()
     for(the.region in common.inputs$sets$rmob){
       fleet_size <- fleet.sizes[rmob==the.region]$n.vehs
