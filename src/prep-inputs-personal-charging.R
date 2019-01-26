@@ -107,48 +107,50 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
     ###########################################################
     # Configure variables and process profiles for every region
     ###########################################################
+    #INTERNAL TOOL SETTING: Specifiy the vmt bin size to use for creating the fleet vmt distribution
+    vmt_bin_size <- 10 #mile
+    #INTERNAL TOOL SETTING: Set time series resolution over which kWh and average kW will be calculated
+    # DO NOT CHANGE THIS UNLESS YOU PLAN TO RE-RUN PRECALCULATED LOAD PROFILES.
+    time_step <- 1 #hours
+    #TOOL USER INPUT: Load .csv file containing desired weights of fleet characteristics
+    weights_file <- paste0(workingDir,"/data/",privateFleetWeights,".csv")
+    if(file.exists(weights_file)) {
+      fleet_weights <- load_fleet_weights(weights_file)
+    } else {
+      cat("WARNING: no fleet weights file found, creating defaults with 'create_fleet_weights'....")
+      fleet_weights <- create_fleet_weights()
+    }
+    transit.type <- ifelse(includeTransitDemand,'with_transit','no_transit')
     fleet.sizes <- inputs.mobility$parameters$demandUnscaled[,list(n.vehs=round(sum(value)/length(days)/3.37*(1-fractionSAEVs),0)),by='rmob']
     all.all.energy.constraints <- list()
     for(the.region in common.inputs$sets$rmob){
       fleet_size <- fleet.sizes[rmob==the.region]$n.vehs
+      
+      ##############################################################################
+      # Create or load fleet characteristics weights for each DVMT value of interest
+      ##############################################################################
+      energy.and.power.constraints <- list()
+      dates <- date.info(days,year)
+      for(season in u(toupper(dates$seasons))){
+        energy.and.power.constraints[[season]] <- list()
+        for(weekday.type in u(dates$day.types)){
+          energy.and.power.constraints[[season]][[weekday.type]] <- list()
   
-      # Look for the results in the gem cache, otherwise process and load
-      cache.file <- pp(workingDir,'/data/gem-cache/region-',the.region,'-privateFleetWeights-',privateFleetWeights,'-smart-',fractionSmartCharging,'.Rdata')
-      if(file.exists(cache.file)){
-        load(cache.file)
-      }else{
-        #INTERNAL TOOL SETTING: Specifiy the vmt bin size to use for creating the fleet vmt distribution
-        vmt_bin_size <- 10 #mile
-        #INTERNAL TOOL SETTING: Set time series resolution over which kWh and average kW will be calculated
-        # DO NOT CHANGE THIS UNLESS YOU PLAN TO RE-RUN PRECALCULATED LOAD PROFILES.
-        time_step <- 1 #hours
-        #TOOL USER INPUT: Load .csv file containing desired weights of fleet characteristics
-        weights_file <- paste0(workingDir,"/data/",privateFleetWeights,".csv")
-        if(file.exists(weights_file)) {
-          fleet_weights <- load_fleet_weights(weights_file)
-        } else {
-          cat("WARNING: no fleet weights file found, creating defaults with 'create_fleet_weights'....")
-          fleet_weights <- create_fleet_weights()
-        }
-  
-        ##############################################################################
-        # Create or load fleet characteristics weights for each DVMT value of interest
-        ##############################################################################
-        energy.and.power.constraints <- list()
-        dates <- date.info(days,year)
-        for(season in u(toupper(dates$seasons))){
-          energy.and.power.constraints[[season]] <- list()
-          for(weekday.type in u(dates$day.types)){
-            energy.and.power.constraints[[season]][[weekday.type]] <- list()
-            transit.type <- ifelse(includeTransitDemand,'with_transit','no_transit')
-            
+          # Look for the results in the gem cache, otherwise process and load
+          cache.dir <- pp(workingDir,'/data/gem-cache/',the.region,'/')
+          make.dir(cache.dir)
+          cache.dir <- pp(cache.dir,privateFleetWeights,'/')
+          make.dir(cache.dir)
+          cache.file <- pp(cache.dir,'smart-',fractionSmartCharging,'-season-',season,'-day-',str_replace_all(weekday.type,"/",""),'-transit-',transit.type,'.Rdata')
+          if(file.exists(cache.file)){
+            load(cache.file)
+          }else{
             energy.and.power.constraints[[season]][[weekday.type]][[transit.type]] <- list()
             
             #TOOL USER INPUT: Define average per-vehicle total dvmt from which a dvmt distribution will be created
             # Note that vmt distribution width is hard coded in the vmt_WeightDistGen() function. This has yet to be verified.
             # avg_dvmt <- 28.5 #miles
             avg_dvmt <- dvmt[rmob==the.region & SEASON==season & WKTIME == weekday.type & transit == transit.type]$TRPMILES
-            
             #cat(pp(the.region,",",season,",",weekday.type,",",transit.type,"\n"))
             #cat(pp("Avg DVMT:",avg_dvmt,"\n"))
       
@@ -224,9 +226,9 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
             energy.and.power.constraints[[season]][[weekday.type]][[transit.type]][['energy']] <- energy.constraints
             energy.and.power.constraints[[season]][[weekday.type]][[transit.type]][['energy.min.offsets']] <- min.energy.initial.offsets
             energy.and.power.constraints[[season]][[weekday.type]][[transit.type]][['power']] <- power.constraints
+            save(energy.and.power.constraints,file=cache.file)
           }
         }
-        save(energy.and.power.constraints,file=cache.file)
       }
   
       cumul.energy.constraints <- list()
@@ -264,8 +266,8 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
       }
       cumul.energy.constraints <- rbindlist(cumul.energy.constraints)
 
-      p <- ggplot(cumul.energy.constraints,aes(x=t,y=min.energy,colour=day_of_week))+geom_line()+geom_line(aes(y=max.energy))
-      ggsave(pp(workingDir,'/data/gem-cache/region-',the.region,'-privateFleetWeights-',privateFleetWeights,'-smart-',fractionSmartCharging,'.pdf'),p,width=10,height=8,units='in')
+      #p <- ggplot(cumul.energy.constraints,aes(x=t,y=min.energy,colour=day_of_week))+geom_line()+geom_line(aes(y=max.energy))
+      #ggsave(pp(substr(cache.file,1,nchar(cache.file)-6),'.pdf'),p,width=10,height=8,units='in')
 
       cumul.energy.constraints[,t:=pp('t',sprintf('%04d',t+1))]
       cumul.energy.constraints[,rmob:=the.region]
