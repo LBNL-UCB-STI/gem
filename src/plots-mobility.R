@@ -159,7 +159,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   for(dat.to.save in data.to.save){
     streval(pp(dat.to.save,' <- join.on(',dat.to.save,',run.params,\'run\',\'run\')'))
   }
-  save(vehs,en,by.r,costs,veh.ch,vmt,fleet,file=pp(plots.dir,'/resuls-for-plotting.Rdata'))
+  streval(pp('save(',pp(data.to.save,collapse=','),',file="',plots.dir,'/resuls-for-plotting.Rdata")'))
   load(file=pp(plots.dir,'/resuls-for-plotting.Rdata'))
   
   ###################################
