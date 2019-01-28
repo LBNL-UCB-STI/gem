@@ -56,6 +56,8 @@ prep.inputs.grid <- function(exper.row,common.inputs){
   names(generators.Cost)[names(generators.Cost)=='generationCosts'] <- 'value'
   inputs$parameters$genCost <- generators.Cost
 
+  # Helpful plot to see capacities
+  #ggplot(generators[,.(Capacity=generationCapacities/1e3),by=c('FuelType','r')],aes(x=r,y=Capacity,fill=fct_rev(FuelType)))+geom_bar(stat='identity')+labs(x="Region",y="Capacity (GW)",fill="Fuel Type")
 
 
   inputs
