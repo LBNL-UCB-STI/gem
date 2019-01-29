@@ -32,7 +32,9 @@ source('input/defaults.R')
 #####################################################################################
 # PARSE COMMAND LINE OPTIONS 
 #####################################################################################
-option_list <- list()
+option_list <- list(make_option(c("-p", "--plots"), action="store_true", default=F,help="Only run code that produces plots, requires results to be already present in outputs [default %default]"),
+                    make_option(c("-t", "--notimestamp"), action="store_true", default=F,help="Don't add timestamp to outputs directory [default %default]"),
+                    make_option(c("-e", "--experiment"), type="character", default='input/experiments/base.yaml',help="Path to experiment file [default %default]",metavar="exp"))
 if(interactive()){
   args<-'input/experiments/congestion.yaml'
   args<-'input/experiments/l10ChargerCost.yaml'
@@ -41,66 +43,73 @@ if(interactive()){
   args<-'input/experiments/fractionSmartCharging.yaml'
   args<-'input/experiments/carbonTax.yaml'
   args<-'input/experiments/renewableScalingFactor.yaml'
-  args<-'input/experiments/fractionSAEVs.yaml'
   args<-'input/experiments/base.yaml'
-  args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=T,args=args)
+  args<-'input/experiments/fractionSAEVs.yaml'
+  args <- pp('--experiment=',args)
+  args <- c(args,'-t') # don't add timestamp
+  args <- c(args,'-p') # only plots
+  args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=F,args=args)
 }else{
-  args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=T)
+  args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=F)
 }
 
 #####################################################################################
 # Load Experiment
 #####################################################################################
-exper <- load.experiment(args$args[1])
+exper <- load.experiment(args$experiment,!args$notimestamp)
 
 #####################################################################################
 # Pre-Process Inputs
 #####################################################################################
-static.inputs <- prep.inputs.static()
-
-all.inputs <- list()
-i <- 1
-for(i in 1:nrow(exper$runs)){
-  cat(pp('Prepping inputs for run ',i,'\n'))
-  inputs <- list()
-
-  common.inputs <- c(static.inputs,prep.inputs.common(exper$run[i]))
-  exper.row <- exper$run[i]
-  inputs.mobility <- prep.inputs.mobility(exper$run[i],common.inputs)
-  inputs.personal.charging <- prep.inputs.personal.charging(exper$run[i],common.inputs,inputs.mobility)
-  inputs.grid <- prep.inputs.grid(exper$run[i],common.inputs) 
-
-  inputs$sets <- c(common.inputs$sets,inputs.mobility$sets,inputs.grid$sets,inputs.personal.charging$sets)
-  inputs$parameters <- c(common.inputs$parameters,inputs.mobility$parameters,inputs.grid$parameters,inputs.personal.charging$parameters)
-
-  #print(inputs)
-  make.dir(pp(exper$input.dir,'/runs'))
-  make.dir(pp(exper$input.dir,'/runs/run-',i))
-  write.gdx(pp(exper$input.dir,'/runs/run-',i,'/inputs.gdx'),params=lapply(inputs$parameters,as.data.frame,stringsAsFactors=F),sets=lapply(inputs$sets,as.data.frame,stringsAsFactors=F))
-  all.inputs[[length(all.inputs)+1]] <- inputs
-}
-save(all.inputs,file=pp(exper$input.dir,'/inputs.Rdata'))
-
-#####################################################################################
-# Load GAMS and Run
-#####################################################################################
-
-Sys.sleep(0.1) # Allow console statements to print to screen before continuing
-for(i in 1:nrow(exper$runs)) {
-  cat(pp('Running [',i,'] ',exper$runs[i],'\n'))
-  gem.gms <- readLines('src/gem.gms')
-  gem.gms <- gsub(pattern='<<gdxName>>',replace='inputs.gdx',x=gem.gms)
-  gem.baseGeneration.gms <- readLines('src/gem-baseGeneration.gms')
-  gem.baseGeneration.gms <- gsub(pattern='<<gdxName>>',replace='inputs.gdx',x=gem.baseGeneration.gms)
-  writeLines(gem.gms,con=pp(exper$input.dir,'/runs/run-',i,'/gem.gms'))
-  writeLines(gem.baseGeneration.gms,con=pp(exper$input.dir,'/runs/run-',i,'/gem-baseGeneration.gms'))
+if(!args$plots){ # only prep and run model if *not* in plot-only mode
+  static.inputs <- prep.inputs.static()
   
-  cat(pp(Sys.time(),'\n'))
-  setwd(pp(exper$input.dir,'/runs/run-',i))
-  gams('gem.gms')
-  gams('gem-baseGeneration.gms')
-  setwd(gem.project.directory)
-  cat(pp(Sys.time(),'\n'))
+  all.inputs <- list()
+  i <- 1
+  for(i in 1:nrow(exper$runs)){
+    cat(pp('Prepping inputs for run ',i,'\n'))
+    inputs <- list()
+  
+    common.inputs <- c(static.inputs,prep.inputs.common(exper$run[i]))
+    exper.row <- exper$run[i]
+    inputs.mobility <- prep.inputs.mobility(exper$run[i],common.inputs)
+    inputs.personal.charging <- prep.inputs.personal.charging(exper$run[i],common.inputs,inputs.mobility)
+    inputs.grid <- prep.inputs.grid(exper$run[i],common.inputs) 
+  
+    inputs$sets <- c(common.inputs$sets,inputs.mobility$sets,inputs.grid$sets,inputs.personal.charging$sets)
+    inputs$parameters <- c(common.inputs$parameters,inputs.mobility$parameters,inputs.grid$parameters,inputs.personal.charging$parameters)
+  
+    #print(inputs)
+    make.dir(pp(exper$input.dir,'/runs'))
+    make.dir(pp(exper$input.dir,'/runs/run-',i))
+    write.gdx(pp(exper$input.dir,'/runs/run-',i,'/inputs.gdx'),params=lapply(inputs$parameters,as.data.frame,stringsAsFactors=F),sets=lapply(inputs$sets,as.data.frame,stringsAsFactors=F))
+    all.inputs[[length(all.inputs)+1]] <- inputs
+  }
+  save(all.inputs,file=pp(exper$input.dir,'/inputs.Rdata'))
+  
+  #####################################################################################
+  # Load GAMS and Run
+  #####################################################################################
+  
+  Sys.sleep(0.1) # Allow console statements to print to screen before continuing
+  for(i in 1:nrow(exper$runs)) {
+    cat(pp('Running [',i,'] ',exper$runs[i],'\n'))
+    gem.gms <- readLines('src/gem.gms')
+    gem.gms <- gsub(pattern='<<gdxName>>',replace='inputs.gdx',x=gem.gms)
+    gem.baseGeneration.gms <- readLines('src/gem-baseGeneration.gms')
+    gem.baseGeneration.gms <- gsub(pattern='<<gdxName>>',replace='inputs.gdx',x=gem.baseGeneration.gms)
+    writeLines(gem.gms,con=pp(exper$input.dir,'/runs/run-',i,'/gem.gms'))
+    writeLines(gem.baseGeneration.gms,con=pp(exper$input.dir,'/runs/run-',i,'/gem-baseGeneration.gms'))
+    
+    cat(pp(Sys.time(),'\n'))
+    setwd(pp(exper$input.dir,'/runs/run-',i))
+    gams('gem.gms')
+    gams('gem-baseGeneration.gms')
+    setwd(gem.project.directory)
+    cat(pp(Sys.time(),'\n'))
+  }
+}else{
+  load(file=pp(exper$input.dir,'/inputs.Rdata'))
 }
 
 #####################################################################################
