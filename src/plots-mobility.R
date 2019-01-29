@@ -197,7 +197,9 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     streval(pp('setkey(personal.ev.ch,l,rmob,t,',param.names,')'))
     toplot <- personal.ev.ch[,.(gw.charging=sum(gw.charging)),by=c('l','t',param.names)]
     toplot <- rbindlist(list(to.plot,toplot),fill=T,use.names=T)
-    p <- ggplot(toplot,aes(x=t,y=gw.charging,fill=fct_rev(l)))+geom_bar(stat='identity',position='stack')+scale_fill_manual(values = rev(getPalette(toplot$l)))+labs(x='Hour',y='Load (GW)',fill='Charger Level')
+    p <- ggplot(toplot)+geom_bar(aes(x=t,y=gw.charging,fill=fct_rev(l)),stat='identity',position='stack')+
+    #geom_text(aes(x=Inf,y=Inf,hjust=1,vjust=1,label=sum(gw.charging)))+
+    scale_fill_manual(values = rev(getPalette(toplot$l)))+labs(x='Hour',y='Load (GW)',fill='Charger Level')
     streval(pp('p <- p + facet_wrap(~',param.names,')'))
     pdf.scale <- 1
     ggsave(pp(plots.dir,'_charging-all.pdf'),p,width=10*pdf.scale,height=8*pdf.scale,units='in')
