@@ -43,11 +43,11 @@ if(interactive()){
   args<-'input/experiments/fractionSmartCharging.yaml'
   args<-'input/experiments/carbonTax.yaml'
   args<-'input/experiments/renewableScalingFactor.yaml'
-  args<-'input/experiments/base.yaml'
   args<-'input/experiments/fractionSAEVs.yaml'
+  args<-'input/experiments/base.yaml'
   args <- pp('--experiment=',args)
   args <- c(args,'-t') # don't add timestamp
-  args <- c(args,'-p') # only plots
+#  args <- c(args,'-p') # only plots
   args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=F,args=args)
 }else{
   args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=F)
@@ -80,9 +80,23 @@ if(!args$plots){ # only prep and run model if *not* in plot-only mode
     inputs$parameters <- c(common.inputs$parameters,inputs.mobility$parameters,inputs.grid$parameters,inputs.personal.charging$parameters)
   
     #print(inputs)
-    make.dir(pp(exper$input.dir,'/runs'))
-    make.dir(pp(exper$input.dir,'/runs/run-',i))
-    write.gdx(pp(exper$input.dir,'/runs/run-',i,'/inputs.gdx'),params=lapply(inputs$parameters,as.data.frame,stringsAsFactors=F),sets=lapply(inputs$sets,as.data.frame,stringsAsFactors=F))
+    if(group.days==0){
+      make.dir(pp(exper$input.dir,'/runs'))
+      make.dir(pp(exper$input.dir,'/runs/run-',i))
+      write.gdx(pp(exper$input.dir,'/runs/run-',i,'/inputs.gdx'),params=lapply(inputs$parameters,as.data.frame,stringsAsFactors=F),sets=lapply(inputs$sets,as.data.frame,stringsAsFactors=F))
+    }else{
+      days.in.groups <- lapply(seq(1,length(days),by=group.days-1),function(idx){ idx:min(length(days),(idx+group.days-1)) })
+      all.t.set <- inputs$sets$t
+      for(day.i in 1:length(days.in.groups)){
+        hours.to.run <- days.in.groups[[day.i]]
+        make.dir(pp(exper$input.dir,'/runs'))
+        make.dir(pp(exper$input.dir,'/runs/run-',i))
+        make.dir(pp(exper$input.dir,'/runs/run-',i,'/day-group-',day.i))
+        inputs$sets$t <- all.t.set[as.vector(sapply(days.in.groups[[day.i]],function(x){ seq((x-1)*24+1,x*24)}))]
+        write.gdx(pp(exper$input.dir,'/runs/run-',i,'/day-group-',day.i,'/inputs.gdx'),params=lapply(inputs$parameters,as.data.frame,stringsAsFactors=F),sets=lapply(inputs$sets,as.data.frame,stringsAsFactors=F))
+      }
+      inputs$sets$t <- all.t.set
+    }
     all.inputs[[length(all.inputs)+1]] <- inputs
   }
   save(all.inputs,file=pp(exper$input.dir,'/inputs.Rdata'))
@@ -98,15 +112,30 @@ if(!args$plots){ # only prep and run model if *not* in plot-only mode
     gem.gms <- gsub(pattern='<<gdxName>>',replace='inputs.gdx',x=gem.gms)
     gem.baseGeneration.gms <- readLines('src/gem-baseGeneration.gms')
     gem.baseGeneration.gms <- gsub(pattern='<<gdxName>>',replace='inputs.gdx',x=gem.baseGeneration.gms)
-    writeLines(gem.gms,con=pp(exper$input.dir,'/runs/run-',i,'/gem.gms'))
-    writeLines(gem.baseGeneration.gms,con=pp(exper$input.dir,'/runs/run-',i,'/gem-baseGeneration.gms'))
+    if(group.days==0){
+      writeLines(gem.gms,con=pp(exper$input.dir,'/runs/run-',i,'/gem.gms'))
+      writeLines(gem.baseGeneration.gms,con=pp(exper$input.dir,'/runs/run-',i,'/gem-baseGeneration.gms'))
     
-    cat(pp(Sys.time(),'\n'))
-    setwd(pp(exper$input.dir,'/runs/run-',i))
-    gams('gem.gms')
-    gams('gem-baseGeneration.gms')
-    setwd(gem.project.directory)
-    cat(pp(Sys.time(),'\n'))
+      cat(pp(Sys.time(),'\n'))
+      setwd(pp(exper$input.dir,'/runs/run-',i))
+      gams('gem.gms')
+      gams('gem-baseGeneration.gms')
+      setwd(gem.project.directory)
+      cat(pp(Sys.time(),'\n'))
+    }else{
+      days.in.groups <- lapply(seq(1,length(days),by=group.days-1),function(idx){ idx:min(length(days),(idx+group.days-1)) })
+      for(day.i in 1:length(days.in.groups)){
+        writeLines(gem.gms,con=pp(exper$input.dir,'/runs/run-',i,'/day-group-',day.i,'/gem.gms'))
+        writeLines(gem.baseGeneration.gms,con=pp(exper$input.dir,'/runs/run-',i,'/day-group-',day.i,'/gem-baseGeneration.gms'))
+        cat(pp('day group ',day.i,'\n'))
+        cat(pp(Sys.time(),'\n'))
+        setwd(pp(exper$input.dir,'/runs/run-',i,'/day-group-',day.i))
+        gams('gem.gms')
+        gams('gem-baseGeneration.gms')
+        setwd(gem.project.directory)
+        cat(pp(Sys.time(),'\n'))
+      }
+    }
   }
 }else{
   load(file=pp(exper$input.dir,'/inputs.Rdata'))
@@ -119,13 +148,46 @@ plots.dir <- pp(exper$input.dir,'/plots/')
 make.dir(plots.dir)
 results <- list()
 for(i in 1:nrow(exper$runs)) {
-  result <- gdx.to.data.tables(gdx(pp(exper$input.dir,'/runs/run-',i,'/results.gdx')))
-  result.baseGen <- gdx.to.data.tables(gdx(pp(exper$input.dir,'/runs/run-',i,'/results-baseGeneration.gdx')))
-  result <- merge.baseGen(result,result.baseGen)
-  for(key in names(result)){
-    result[[key]][,run:=i]
-    if(i==1)results[[key]] <- list()
-    results[[key]][[length(results[[key]])+1]] <- result[[key]]
+  if(group.days==0){
+    result <- gdx.to.data.tables(gdx(pp(exper$input.dir,'/runs/run-',i,'/results.gdx')))
+    result.baseGen <- gdx.to.data.tables(gdx(pp(exper$input.dir,'/runs/run-',i,'/results-baseGeneration.gdx')))
+    result <- merge.baseGen(result,result.baseGen)
+    for(key in names(result)){
+      result[[key]][,run:=i]
+      if(i==1)results[[key]] <- list()
+      results[[key]][[length(results[[key]])+1]] <- result[[key]]
+    }
+  }else{
+    days.in.groups <- lapply(seq(1,length(days),by=group.days-1),function(idx){ idx:min(length(days),(idx+group.days-1)) })
+    day.group.result <- list()
+    for(day.i in 1:length(days.in.groups)){
+      result <- gdx.to.data.tables(gdx(pp(exper$input.dir,'/runs/run-',i,'/day-group-',day.i,'/results.gdx')))
+      result.baseGen <- gdx.to.data.tables(gdx(pp(exper$input.dir,'/runs/run-',i,'/day-group-',day.i,'/results-baseGeneration.gdx')))
+      result <- merge.baseGen(result,result.baseGen)
+      for(key in names(result)){
+        result[[key]][,run:=i]
+      }
+      day.group.result[[length(day.group.result)+1]] <- lapply(result,function(ll){
+        if('t' %in% names(ll)){
+          ll[t > min(t) + 11 & t <= max(t)-12]
+        }else{
+          ll
+        }
+      })
+    }
+    day.group.result <- sapply(names(day.group.result[[1]]),function(the.name){ rbindlist(lapply(day.group.result,function(ll){ ll[[the.name]] })) })
+    for(key in names(day.group.result)){
+      if(key == 'scalar'){
+        day.group.result[[key]] <- day.group.result[[key]][ ,lapply(.SD, max)]
+      }else if(!'t'%in%names(day.group.result[[key]])){
+        keys <- str_split(key,'-')[[1]]
+        not.keys <- names(day.group.result[[key]])[!names(day.group.result[[key]])%in%keys]
+        day.group.result[[key]] <- streval(pp('day.group.result[[key]][,.(',pp(not.keys,'=max(',not.keys,')',collapse = ","),'),by=c("',pp(keys,collapse='","'),'")]'))
+      }
+      day.group.result[[key]][,run:=i]
+      if(i==1)results[[key]] <- list()
+      results[[key]][[length(results[[key]])+1]] <- day.group.result[[key]]
+    }
   }
   make.dir(pp(plots.dir,'/run-',i,''))
 }
