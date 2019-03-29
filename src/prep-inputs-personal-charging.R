@@ -145,6 +145,7 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
           cache.file <- pp(cache.dir,'smart-',fractionSmartCharging,'-season-',season,'-day-',str_replace_all(weekday.type,"/",""),'-transit-',transit.type,'.Rdata')
           if(file.exists(cache.file)){
             load(cache.file)
+            energy.and.power.constraints[[season]][[weekday.type]][[transit.type]] <- energy.and.power.constraints.cache[[season]][[weekday.type]][[transit.type]]
           }else{
             energy.and.power.constraints[[season]][[weekday.type]][[transit.type]] <- list()
             
@@ -152,6 +153,7 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
             # Note that vmt distribution width is hard coded in the vmt_WeightDistGen() function. This has yet to be verified.
             # avg_dvmt <- 28.5 #miles
             avg_dvmt <- dvmt[rmob==the.region & SEASON==season & WKTIME == weekday.type & transit == transit.type]$TRPMILES
+            if(length(avg_dvmt)==0)avg_dvmt <- mean(dvmt[rmob==the.region & transit == transit.type]$TRPMILES) # handle missing data
             #cat(pp(the.region,",",season,",",weekday.type,",",transit.type,"\n"))
             #cat(pp("Avg DVMT:",avg_dvmt,"\n"))
       
@@ -227,7 +229,8 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
             energy.and.power.constraints[[season]][[weekday.type]][[transit.type]][['energy']] <- energy.constraints
             energy.and.power.constraints[[season]][[weekday.type]][[transit.type]][['energy.min.offsets']] <- min.energy.initial.offsets
             energy.and.power.constraints[[season]][[weekday.type]][[transit.type]][['power']] <- power.constraints
-            save(energy.and.power.constraints,file=cache.file)
+            energy.and.power.constraints.cache <- copy(energy.and.power.constraints)
+            save(energy.and.power.constraints.cache,file=cache.file)
           }
         }
       }
