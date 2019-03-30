@@ -43,6 +43,9 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
   }else{
     inputs$parameters$urbanFormFactor <- data.table(rmob=common.inputs$sets$rmob,value=1.3)
   }
+  
+  ##### Scaling Factors from RISE #####
+  rise <- data.table(read.csv(pp(gem.raw.inputs,'rise-scaling-factors.csv')))
 
   #### DEMAND ####
   if(F){
