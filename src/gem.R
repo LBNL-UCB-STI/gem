@@ -47,7 +47,7 @@ if(interactive()){
   args<-'input/experiments/base.yaml'
   args <- pp('--experiment=',args)
   args <- c(args,'-t') # don't add timestamp
-  args <- c(args,'-p') # only plots
+#  args <- c(args,'-p') # only plots
   args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=F,args=args)
 }else{
   args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=F)

@@ -46,11 +46,13 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
   
   ##### Scaling Factors from RISE #####
   rise <- data.table(read.csv(pp(gem.raw.inputs,'rise-scaling-factors.csv')))
+  closest.mode.share <- u(rise$mode_share)[which.min(abs(u(rise$mode_share)-fractionSAEVs))]
   rise[,chargeRelocationRatio:=d_chgempty+1]
+  inputs$parameters$chargeRelocationRatio <- rise[mode_share==closest.mode.share,.(rmob=abbrev,chargeRelocationRatio)]
   
   charge.eff <- data.table(read.csv(pp(gem.raw.inputs,'rise-charge-efficiency.csv')))
   charge.eff[,':='(rmob=r,r=NULL)]
-  inputs$parameters$chargeEfficiencyRatio <- charge.eff
+  inputs$parameters$chargeRelocationCorrection <- charge.eff
 
   #### DEMAND ####
   if(F){
