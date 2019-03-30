@@ -30,7 +30,7 @@ alias (r,o,p);
 parameters
 	demand(t,d,rmob)			Demand by distance type, time, and region
 	chargerPower(l)				kW per charger 
-	chargeReloc(rmob)			increase in energy consumption due to charging relocation
+	chargeRelocationRatio(rmob)		increase in energy consumption due to charging relocation
         chargeEff(b,l,rmob)			decrease in charger power due to relocation
 	fleetRatio(rmob)			ratio of optimal to actual fleet size
 	batteryRatio(rmob)			ratio of optimal to actual battery range
@@ -116,7 +116,7 @@ positive variable
 
 
 $gdxin <<gdxName>>
-$load d r rmob l t g gtor rmobtor demand speed sharingFactor urbanFormFactor travelDistance demandCharge chargerPower chargerCapitalCost chargerDistributionFactor solar wind hydro genCost demandLoad maxGen maxSolar maxWind transCap transCost personalEVChargeEnergyLB personalEVChargeEnergyUB personalEVChargePowerLB personalEVChargePowerUB distCorrection timeCorrection chargeReloc chargeEff fleetRatio batteryRatio vehicleLifetime batteryLifetime batteryCapitalCost discountRate chargerLifetime
+$load d r rmob l t g gtor rmobtor demand speed sharingFactor urbanFormFactor travelDistance demandCharge chargerPower chargerCapitalCost chargerDistributionFactor solar wind hydro genCost demandLoad maxGen maxSolar maxWind transCap transCost personalEVChargeEnergyLB personalEVChargeEnergyUB personalEVChargePowerLB personalEVChargePowerUB distCorrection timeCorrection chargeRelocationRatio chargeEff fleetRatio batteryRatio vehicleLifetime batteryLifetime batteryCapitalCost discountRate chargerLifetime
 $gdxin
 
 display
