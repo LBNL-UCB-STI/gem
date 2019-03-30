@@ -133,7 +133,6 @@ dailyDiscountRate = ((1 + discountRate)**(1/365)) - 1;
 
 equations
 	obj 				Objective Function
-	cEnergyCost 			Cost equality
 	cDemandChargeCost 		Cost equality
 	cVehicleMaintCost 		Cost equality
 	cDemandAllocation 		Our allocated demand must meet the exogenous value
@@ -240,11 +239,11 @@ model
 options
 	qcp = cplex
 	solvelink = 2
-	reslim = 50000
+	reslim = 500000
 ;
 
 $onecho > cplex.opt
-threads = 12
+threads = 16
 $offecho
 combinedModel.optFile = 1;
 combinedModel.holdfixed = 1;

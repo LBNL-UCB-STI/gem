@@ -1,6 +1,12 @@
 
 #### Common ####
-days <- c(2:4)
+#days <- c(1:4) 
+#days <- c(74:81,147:154,260:267,351:358) # 8 per week
+days <- c(74:77,79,148:152,260:264,351:355) # 5 per week, 4 weekday, 1 weekend
+#days <- c(74:81,147:154,260:267,351:358)
+#days <- c(74:81,147:154,260:267,351:358)
+#days <- c(264:267,351:355)
+group.days <- 0 # set this to 0 to run all "days" at once, set to non-zero to run "grouped.days" at a time over the full range of "days" overlap occurs for one day on end-points
 year <- 2040
 discountRate <- 0.05
 
