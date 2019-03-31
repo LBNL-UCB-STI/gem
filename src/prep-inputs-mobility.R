@@ -152,8 +152,8 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
   inputs$parameters$chargeRelocationRatio <- rise[mode_share==closest.mode.share,.(rmob=abbrev,chargeRelocationRatio)]
   inputs$parameters$fleetRatio <- rise[mode_share==closest.mode.share,.(rmob=abbrev,value=ntx_rat)]
   inputs$parameters$batteryRatio <- rise[mode_share==closest.mode.share,.(rmob=abbrev,value=bat_rat)]
-  inputs$parameters$distCorrection <- rise[mode_share==closest.mode.share,.(rmob=abbrev,value=d_trpempty)]
-  inputs$parameters$timeCorrection <- rise[mode_share==closest.mode.share,.(rmob=abbrev,value=t_trpempty)]
+  inputs$parameters$distCorrection <- rise[mode_share==closest.mode.share,.(rmob=abbrev,value=1+d_trpempty)]
+  inputs$parameters$timeCorrection <- rise[mode_share==closest.mode.share,.(rmob=abbrev,value=1+t_trpempty)]
   ### OTHER ADJUSTMENT FACTORS ###
   cached.raw.factors <- pp(gem.raw.inputs,'/rise-scaling-factors/cached-factors.Rdata')
   the.files <- grep(".csv",list.files(pp(gem.raw.inputs,'/rise-scaling-factors')),value=T)
