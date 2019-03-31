@@ -37,7 +37,6 @@ parameters
         distCorrection(rmob)			one + distance dead head ratio
 	timeCorrection(rmob)			one + time dead head ratio
 	sharingFactor				Avg person per vehicle trip 
-	urbanFormFactor(rmob)			one + dead head ratio
 	chargerDistributionFactor(l)		increased chargers needed to serve vehs 
 ************* We original varied from 0.262-0.310 per ES&T paper, but changed to center around 0.325 to match EVI-Pro assumptiosn ***************
 *	conversionEfficiency(b) 		kwh per mile / b075 0.262
@@ -116,11 +115,11 @@ positive variable
 
 
 $gdxin <<gdxName>>
-$load d r rmob l t g gtor rmobtor demand speed sharingFactor urbanFormFactor travelDistance demandCharge chargerPower chargerCapitalCost chargerDistributionFactor solar wind hydro genCost demandLoad maxGen maxSolar maxWind transCap transCost personalEVChargeEnergyLB personalEVChargeEnergyUB personalEVChargePowerLB personalEVChargePowerUB distCorrection timeCorrection chargeRelocationRatio chargeRelocationCorrection fleetRatio batteryRatio vehicleLifetime batteryLifetime batteryCapitalCost discountRate chargerLifetime
+$load d r rmob l t g gtor rmobtor demand speed sharingFactor travelDistance demandCharge chargerPower chargerCapitalCost chargerDistributionFactor solar wind hydro genCost demandLoad maxGen maxSolar maxWind transCap transCost personalEVChargeEnergyLB personalEVChargeEnergyUB personalEVChargePowerLB personalEVChargePowerUB distCorrection timeCorrection chargeRelocationRatio chargeRelocationCorrection fleetRatio batteryRatio vehicleLifetime batteryLifetime batteryCapitalCost discountRate chargerLifetime
 $gdxin
 
 display
-	demandLoad;
+	chargeRelocationCorrection;
 
 dailyDiscountRate = ((1 + discountRate)**(1/365)) - 1;
 
