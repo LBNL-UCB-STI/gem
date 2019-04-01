@@ -43,7 +43,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   personal.ev.ch[,l:='Private EVs']
   
   # Energy balance
-  en <- join.on(join.on(res[['b-l-rmob-t']],res[['b-l-rmob']],c('l','rmob','b','run'),c('l','rmob','b','run'))[,.(en.ch=sum(energyCharged/chargeEff)),by=c('t','rmob','b','run')],res[['b-d-rmob-t']][,.(en.mob=sum(energyConsumed)),by=c('t','rmob','b','run')],c('b','rmob','t','run'),c('b','rmob','t','run'))
+  en <- join.on(join.on(res[['b-l-rmob-t']],res[['b-l-rmob']],c('l','rmob','b','run'),c('l','rmob','b','run'))[,.(en.ch=sum(energyCharged/chargeRelocationCorrection)),by=c('t','rmob','b','run')],res[['b-d-rmob-t']][,.(en.mob=sum(energyConsumed)),by=c('t','rmob','b','run')],c('b','rmob','t','run'),c('b','rmob','t','run'))
   batt <- join.on(res[['b-rmob']],res[['b']],c('b','run'),c('b','run'))
   batt[,soc:=fleetSize*batteryCapacity]
   en <- join.on(en,batt,c('b','rmob','run'),c('b','rmob','run'),'soc')
@@ -101,11 +101,11 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     p <- ggplot(toplot,aes(x=factor(rmob),y=percent,fill=fct_rev(variable)))+geom_bar(stat='identity')+facet_grid(group~urb,scales='free_x', space ='free_x')+ theme(axis.text.x = element_text(angle = 50, hjust = 1))+scale_fill_manual(values = rev(getPalette(toplot$variable)),guide=guide_legend(reverse=F))
     ggsave(pp(plots.dir,'/run-',run.i,'/_fleet-size-and-type-percent.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
     
-    toplot <- res[['rmob']][,.(rmob,urbanFormFactor)]
-    toplot[,urb:=ifelse(grepl('RUR$',rmob),'Rural','Urban')]
-    toplot[,Region:=factor(rmob,geo.ordered)]
-    p <- ggplot(toplot,aes(x=Region,y=urbanFormFactor))+geom_bar(stat='identity')+facet_wrap(~urb,scales='free_x')+ theme(axis.text.x = element_text(angle = 50, hjust = 1))+coord_cartesian(ylim=c(1,max(toplot$urbanFormFactor)*1.01))
-    ggsave(pp(plots.dir,'/run-',run.i,'/_urban-form-factor-by-region.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
+    # toplot <- res[['rmob']][,.(rmob,urbanFormFactor)]
+    # toplot[,urb:=ifelse(grepl('RUR$',rmob),'Rural','Urban')]
+    # toplot[,Region:=factor(rmob,geo.ordered)]
+    # p <- ggplot(toplot,aes(x=Region,y=urbanFormFactor))+geom_bar(stat='identity')+facet_wrap(~urb,scales='free_x')+ theme(axis.text.x = element_text(angle = 50, hjust = 1))+coord_cartesian(ylim=c(1,max(toplot$urbanFormFactor)*1.01))
+    # ggsave(pp(plots.dir,'/run-',run.i,'/_urban-form-factor-by-region.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
 
     # Generation
     toplot <- merge(x=res[['g-t']][run==run.i],y=generators,by='g',all.x=TRUE)
