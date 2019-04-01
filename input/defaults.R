@@ -1,6 +1,6 @@
 
 #### Common ####
-days <- c(2:4)
+days <- c(261:267)
 year <- 2040
 discountRate <- 0.05
 
@@ -12,7 +12,7 @@ sharingFactor <- 1.5
 batteryCapitalCost <- 150
 scale.urban.form.factor <- 1.0
 includeTransitDemand <- 0 # 0 or 1
-fractionSAEVs <- 0.5
+fractionSAEVs <- 0
 fractionSmartCharging <- 0
 privateFleetWeights <- "fleet_weights_dev" # name (without extension) of file in {gem.raw.inputs}/NREL-EVI-Pro-Preprocessed-Profiles/data
 congestion <- 'Freeflow'
