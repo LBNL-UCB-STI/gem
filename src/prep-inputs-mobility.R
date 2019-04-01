@@ -144,9 +144,19 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
     inputs$parameters$demandCharge <- data.table(rmob=common.inputs$sets$rmob,value=7.7)
   }
   
-  ### ECON AND ADJUSTMENT FACTORS ###
-  cached.raw.factors <- pp(gem.raw.inputs,'/econ-and-scaling-factors/cached-factors.Rdata')
-  the.files <- grep(".csv",list.files(pp(gem.raw.inputs,'/econ-and-scaling-factors')),value=T)
+  
+  ##### Scaling Factors from RISE #####
+  rise <- data.table(read.csv(pp(gem.raw.inputs,'/rise-scaling-factors.csv')))
+  closest.mode.share <- u(rise$mode_share)[which.min(abs(u(rise$mode_share)-fractionSAEVs))]
+  rise[,chargeRelocationRatio:=d_chgempty+1]
+  inputs$parameters$chargeRelocationRatio <- rise[mode_share==closest.mode.share,.(rmob=abbrev,chargeRelocationRatio)]
+  inputs$parameters$fleetRatio <- rise[mode_share==closest.mode.share,.(rmob=abbrev,value=ntx_rat)]
+  inputs$parameters$batteryRatio <- rise[mode_share==closest.mode.share,.(rmob=abbrev,value=bat_rat)]
+  inputs$parameters$distCorrection <- rise[mode_share==closest.mode.share,.(rmob=abbrev,value=1+d_trpempty)]
+  inputs$parameters$timeCorrection <- rise[mode_share==closest.mode.share,.(rmob=abbrev,value=1+t_trpempty)]
+  ### OTHER ADJUSTMENT FACTORS ###
+  cached.raw.factors <- pp(gem.raw.inputs,'/rise-scaling-factors/cached-factors.Rdata')
+  the.files <- grep(".csv",list.files(pp(gem.raw.inputs,'/rise-scaling-factors')),value=T)
   the.params <- lapply(str_split(the.files,".csv"),function(ll){ ll[1] })
   if(file.exists(cached.raw.factors)){
     load(cached.raw.factors)
@@ -154,7 +164,7 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
     for(i in 1:length(the.files)){
       the.file <- the.files[i]
       the.param <- the.params[i]
-      streval(pp(the.param," <- data.table(read.csv('",pp(gem.raw.inputs,'/econ-and-scaling-factors/',the.file),"',stringsAsFactors=F))"))
+      streval(pp(the.param," <- data.table(read.csv('",pp(gem.raw.inputs,'/rise-scaling-factors/',the.file),"',stringsAsFactors=F))"))
     }
     streval(pp('save(',pp(the.params,collapse=","),',file="',cached.raw.factors,'")'))
   }

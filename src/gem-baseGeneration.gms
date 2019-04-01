@@ -30,14 +30,13 @@ alias (r,o,p);
 parameters
 	demand(t,d,rmob)			Demand by distance type, time, and region
 	chargerPower(l)				kW per charger 
-	chargeReloc(rmob)			increase in energy consumption due to charging relocation
-        chargeEff(b,l,rmob)			decrease in charger power due to relocation
+	chargeRelocationRatio(rmob)			increase in energy consumption due to charging relocation
+        chargeRelocationCorrection(b,l,rmob)			decrease in charger power due to relocation
 	fleetRatio(rmob)			ratio of optimal to actual fleet size
 	batteryRatio(rmob)			ratio of optimal to actual battery range
         distCorrection(rmob)			one + distance dead head ratio
 	timeCorrection(rmob)			one + time dead head ratio
 	sharingFactor				Avg person per vehicle trip 
-	urbanFormFactor(rmob)			one + dead head ratio
 	chargerDistributionFactor(l)		increased chargers needed to serve vehs 
 ************* We original varied from 0.262-0.310 per ES&T paper, but changed to center around 0.325 to match EVI-Pro assumptiosn ***************
 *	conversionEfficiency(b) 		kwh per mile / b075 0.262
@@ -102,7 +101,7 @@ positive variable
 
 
 $gdxin <<gdxName>>
-$load d r rmob l t g gtor rmobtor demand speed sharingFactor urbanFormFactor travelDistance demandCharge chargerPower chargerCapitalCost chargerDistributionFactor solar wind hydro genCost demandLoad maxGen maxSolar maxWind transCap transCost personalEVChargeEnergyLB personalEVChargeEnergyUB personalEVChargePowerLB personalEVChargePowerUB distCorrection timeCorrection chargeReloc chargeEff fleetRatio batteryRatio vehicleLifetime batteryLifetime batteryCapitalCost discountRate chargerLifetime
+$load d r rmob l t g gtor rmobtor demand speed sharingFactor travelDistance demandCharge chargerPower chargerCapitalCost chargerDistributionFactor solar wind hydro genCost demandLoad maxGen maxSolar maxWind transCap transCost personalEVChargeEnergyLB personalEVChargeEnergyUB personalEVChargePowerLB personalEVChargePowerUB distCorrection timeCorrection chargeRelocationRatio chargeRelocationCorrection fleetRatio batteryRatio vehicleLifetime batteryLifetime batteryCapitalCost discountRate chargerLifetime
 $gdxin
 
 display
@@ -148,10 +147,11 @@ model
 options
 	qcp = cplex
 	solvelink = 2
-	reslim = 50000
+	reslim = 500000
 ;
 
 $onecho > cplex.opt
+threads = 16
 $offecho
 combinedModel.optFile = 1;
 combinedModel.holdfixed = 1;

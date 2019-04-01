@@ -1,6 +1,12 @@
 
 #### Common ####
-days <- c(261:267)
+
+# days <- c(1:3) 
+#days <- c(74:81,147:154,260:267,351:358) # 8 per week
+days <- c(74:77,79,148:152,260:264,351:355) # 5 per week, 4 weekday, 1 weekend
+#days <- c(148:152) 
+group.days <- 0 # set this to 0 to run all "days" at once, set to non-zero to run "grouped.days" at a time over the full range of "days" overlap occurs for one day on end-points
+
 year <- 2040
 discountRate <- 0.05
 
@@ -17,7 +23,7 @@ fractionSmartCharging <- 0
 privateFleetWeights <- "fleet_weights_dev" # name (without extension) of file in {gem.raw.inputs}/NREL-EVI-Pro-Preprocessed-Profiles/data
 congestion <- 'Freeflow'
 l10ChargerCost <- 500 # $/kW
-chargerCostSuperlinear <- 5 # rate of increase beyond linear from low to high power chargers
+chargerCostSuperlinear <- 3 # rate of increase beyond linear from low to high power chargers
 
 #### Grid ####
 generators <- data.table(read.csv(pp(gem.raw.inputs,'gem_gridInputs_generators.csv')))
