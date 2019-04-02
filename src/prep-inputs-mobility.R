@@ -144,7 +144,6 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
     inputs$parameters$demandCharge <- data.table(rmob=common.inputs$sets$rmob,value=7.7)
   }
   
-  
   ##### Scaling Factors from RISE #####
   rise <- data.table(read.csv(pp(gem.raw.inputs,'/rise-scaling-factors.csv')))
   closest.mode.share <- u(rise$mode_share)[which.min(abs(u(rise$mode_share)-fractionSAEVs))]
