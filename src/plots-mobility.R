@@ -240,13 +240,13 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
       p <- ggplot(to.plot[,scen:=param.names],aes(x=scen,y=cost.per.mile,fill=fct_rev(variable)))+geom_bar(stat='identity')+ theme(axis.text.x = element_text(angle = 50, hjust = 1))+scale_fill_manual(values = rev(getPalette(to.plot$variable)))+coord_polar('y',start=0)+theme(axis.text.x=element_blank())+ geom_text(aes(y = cost.per.mile/3 + c(0, cumsum(cost.per.mile)[-length(cost.per.mile)]), label = roundC(cost.per.mile,3)), size=5)
       ggsave(pp(plots.dir,'_costs-per-mile-pie.pdf'),p,width=6*pdf.scale,height=6*pdf.scale,units='in')  
     }
-    p <- ggplot(melt(vmt.by.region,id.vars=c('rmob','b'),measure.vars='daily.vmt.per.vehicle'),aes(x=rmob,y=value,fill=b))+geom_bar(stat='identity',position='dodge')+ theme(axis.text.x = element_text(angle = 50, hjust = 1))+scale_fill_manual(values = rev(getPalette(vmt.by.region$b)),guide=guide_legend(reverse=F))
+    p <- ggplot(melt(vmt.by.region,id.vars=c('rmob','b'),measure.vars='daily.vmt.per.vehicle'),aes(x=rmob,y=value,fill=b))+geom_bar(stat='identity',position='dodge')+ theme(axis.text.x = element_text(angle = 50, hjust = 1))+scale_fill_manual(values = (getPalette(vmt.by.region$b)),guide=guide_legend(reverse=F))
     ggsave(pp(plots.dir,'_daily-vmt.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')  
     vmt.by.region[,lifetime.target:=200e3/(daily.vmt.per.vehicle*365)]
     vmt.by.region[,lifetime.error:=lifetime.target-assumed.lifetime.value]
-    p <- ggplot(melt(vmt.by.region,id.vars=c('rmob','b'),measure.vars='lifetime.target'),aes(x=rmob,y=value,fill=b))+geom_bar(stat='identity',position='dodge')+ theme(axis.text.x = element_text(angle = 50, hjust = 1))+scale_fill_manual(values = rev(getPalette(vmt.by.region$b)),guide=guide_legend(reverse=F))
+    p <- ggplot(melt(vmt.by.region,id.vars=c('rmob','b'),measure.vars='lifetime.target'),aes(x=rmob,y=value,fill=b))+geom_bar(stat='identity',position='dodge')+ theme(axis.text.x = element_text(angle = 50, hjust = 1))+scale_fill_manual(values = (getPalette(vmt.by.region$b)),guide=guide_legend(reverse=F))
     ggsave(pp(plots.dir,'_vehicle-lifetime-targets.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')  
-    p <- ggplot(melt(vmt.by.region,id.vars=c('rmob','b'),measure.vars='lifetime.error'),aes(x=rmob,y=value,fill=b))+geom_bar(stat='identity',position='dodge')+ theme(axis.text.x = element_text(angle = 50, hjust = 1))+scale_fill_manual(values = rev(getPalette(vmt.by.region$b)),guide=guide_legend(reverse=F))
+    p <- ggplot(melt(vmt.by.region,id.vars=c('rmob','b'),measure.vars='lifetime.error'),aes(x=rmob,y=value,fill=b))+geom_bar(stat='identity',position='dodge')+ theme(axis.text.x = element_text(angle = 50, hjust = 1))+scale_fill_manual(values = (getPalette(vmt.by.region$b)),guide=guide_legend(reverse=F))
     ggsave(pp(plots.dir,'_vehicle-lifetime-errors.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')  
     
     
