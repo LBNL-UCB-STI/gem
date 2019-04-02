@@ -119,7 +119,7 @@ $load d r rmob l t g gtor rmobtor demand speed sharingFactor travelDistance dema
 $gdxin
 
 display
-	chargeRelocationCorrection;
+	demandCharge;
 
 dailyDiscountRate = ((1 + discountRate)**(1/365)) - 1;
 
@@ -158,10 +158,10 @@ equations
 ;
 
 obj..
-	systemCost =e= sum(rmob,sum(t,demandChargeCost(t,rmob)+vehicleMaintCost(t,rmob))+infrastructureCost(rmob)+fleetCost(rmob)+sum((g,t),generation(g,t)*genCost(g))+sum((r,t,o),trans(r,t,o)*transCost(r,o)));
+	systemCost =e= sum(rmob,sum(t,demandChargeCost(t,rmob)+card(t)/24*(vehicleMaintCost(t,rmob))+card(t)/24*infrastructureCost(rmob))+fleetCost(rmob))+sum((g,t),generation(g,t)*genCost(g))+sum((r,t,o),trans(r,t,o)*transCost(r,o));
 
 cDemandChargeCost(t,rmob)..
-	demandChargeCost(t,rmob) - maxDemand(rmob)*demandCharge(rmob)/30.4/card(t) =e= 0;
+	demandChargeCost(t,rmob) - maxDemand(rmob)*demandCharge(rmob)/30.4/24 =e= 0;
 
 cVehicleMaintCost(t,rmob)..
 	vehicleMaintCost(t,rmob) - vehiclePerMileCosts*sum((b,d),vehiclesMoving(t,b,d,rmob)*speed(t,d,rmob)) =e= 0;
