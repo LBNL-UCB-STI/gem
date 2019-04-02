@@ -5,9 +5,9 @@
 #days <- c(74:77,79,148:152,260:264,351:355) # 5 per week, 4 weekday, 1 weekend
 #days <- c(74:77,79)
 #days <- c(148:152) 
-days <- c(74:77,79,148:152)
+#days <- c(74:77,79,148:152)
 #days <- c(260:264)
-#days <- c(351:353)
+days <- c(351:353)
 #days <- c(260:264,351:355)
 group.days <- 0 # set this to 0 to run all "days" at once, set to non-zero to run "grouped.days" at a time over the full range of "days" overlap occurs for one day on end-points
 year <- 2040

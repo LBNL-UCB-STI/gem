@@ -148,7 +148,7 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
   rise <- data.table(read.csv(pp(gem.raw.inputs,'/rise-scaling-factors.csv')))
   closest.mode.share <- u(rise$mode_share)[which.min(abs(u(rise$mode_share)-fractionSAEVs))]
   rise[,chargeRelocationRatio:=d_chgempty+1]
-  inputs$parameters$chargeRelocationRatio <- rise[mode_share==closest.mode.share,.(rmob=abbrev,chargeRelocationRatio)]
+  inputs$parameters$chargeRelocationRatio <- rise[mode_share==closest.mode.share,.(rmob=abbrev,value=chargeRelocationRatio)]
   inputs$parameters$fleetRatio <- rise[mode_share==closest.mode.share,.(rmob=abbrev,value=ntx_rat)]
   inputs$parameters$batteryRatio <- rise[mode_share==closest.mode.share,.(rmob=abbrev,value=bat_rat)]
   inputs$parameters$distCorrection <- rise[mode_share==closest.mode.share,.(rmob=abbrev,value=1+d_trpempty)]
