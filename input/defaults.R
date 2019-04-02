@@ -1,6 +1,6 @@
 
 #### Common ####
-days <- 261:267
+days <- 352:358
 # days <- c(1:3) 
 #days <- c(74:81,147:154,260:267,351:358) # 8 per week
 #days <- c(74:77,79,148:152,260:264,351:355) # 5 per week, 4 weekday, 1 weekend
