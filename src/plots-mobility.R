@@ -153,8 +153,11 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   vmt[,vmt:=vehiclesMoving*travelDistance]
   vmt[,pmt:=demandAllocated*travelDistance]
   fleet <- res[['b-rmob']]
+  vmt.by.region <- join.on(join.on(fleet,vmt[,.(vmt=sum(vmt)),by=c('rmob','b')],c('rmob','b'),c('rmob','b')),inputs$parameters$vehicleLifetime,c('rmob','b'),c('rmob','b'),'value','assumed.lifetime.')
+  n.days <- max(vmt$t)/24
+  vmt.by.region[,daily.vmt.per.vehicle:=vmt/fleetSize/n.days]
   
-  data.to.save <- c('vehs','en','by.r','costs','veh.ch','vmt','fleet','personal.ev.ch')
+  data.to.save <- c('vehs','en','by.r','costs','veh.ch','vmt','fleet','personal.ev.ch','vmt.by.region')
   run.params <- copy(exper$runs)[,run:=1:.N]
   for(dat.to.save in data.to.save){
     streval(pp(dat.to.save,' <- join.on(',dat.to.save,',run.params,\'run\',\'run\')'))
@@ -237,6 +240,15 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
       p <- ggplot(to.plot[,scen:=param.names],aes(x=scen,y=cost.per.mile,fill=fct_rev(variable)))+geom_bar(stat='identity')+ theme(axis.text.x = element_text(angle = 50, hjust = 1))+scale_fill_manual(values = rev(getPalette(to.plot$variable)))+coord_polar('y',start=0)+theme(axis.text.x=element_blank())+ geom_text(aes(y = cost.per.mile/3 + c(0, cumsum(cost.per.mile)[-length(cost.per.mile)]), label = roundC(cost.per.mile,3)), size=5)
       ggsave(pp(plots.dir,'_costs-per-mile-pie.pdf'),p,width=6*pdf.scale,height=6*pdf.scale,units='in')  
     }
+    p <- ggplot(melt(vmt.by.region,id.vars=c('rmob','b'),measure.vars='daily.vmt.per.vehicle'),aes(x=rmob,y=value,fill=b))+geom_bar(stat='identity',position='dodge')+ theme(axis.text.x = element_text(angle = 50, hjust = 1))+scale_fill_manual(values = rev(getPalette(vmt.by.region$b)),guide=guide_legend(reverse=F))
+    ggsave(pp(plots.dir,'_daily-vmt.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')  
+    vmt.by.region[,lifetime.target:=200e3/(daily.vmt.per.vehicle*365)]
+    vmt.by.region[,lifetime.error:=lifetime.target-assumed.lifetime.value]
+    p <- ggplot(melt(vmt.by.region,id.vars=c('rmob','b'),measure.vars='lifetime.target'),aes(x=rmob,y=value,fill=b))+geom_bar(stat='identity',position='dodge')+ theme(axis.text.x = element_text(angle = 50, hjust = 1))+scale_fill_manual(values = rev(getPalette(vmt.by.region$b)),guide=guide_legend(reverse=F))
+    ggsave(pp(plots.dir,'_vehicle-lifetime-targets.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')  
+    p <- ggplot(melt(vmt.by.region,id.vars=c('rmob','b'),measure.vars='lifetime.error'),aes(x=rmob,y=value,fill=b))+geom_bar(stat='identity',position='dodge')+ theme(axis.text.x = element_text(angle = 50, hjust = 1))+scale_fill_manual(values = rev(getPalette(vmt.by.region$b)),guide=guide_legend(reverse=F))
+    ggsave(pp(plots.dir,'_vehicle-lifetime-errors.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')  
+    
     
     lbs <- rbindlist(lapply(seq_along(all.inputs),function(i){ all.inputs[[i]]$parameters$personalEVChargeEnergyLB[,run:=i] }),fill=T)
     ubs <- rbindlist(lapply(seq_along(all.inputs),function(i){ all.inputs[[i]]$parameters$personalEVChargeEnergyUB[,run:=i] }),fill=T)

@@ -4,11 +4,11 @@
 # days <- c(1:3) 
 #days <- c(74:81,147:154,260:267,351:358) # 8 per week
 #days <- c(74:77,79,148:152,260:264,351:355) # 5 per week, 4 weekday, 1 weekend
-#days <- c(74:77,79)
+days <- c(74:77,79)
 #days <- c(148:152) 
 #days <- c(74:77,79,148:152)
 #days <- c(260:264)
-days <- c(351:353)
+#days <- c(351:353)
 #days <- c(260:264,351:355)
 group.days <- 0 # set this to 0 to run all "days" at once, set to non-zero to run "grouped.days" at a time over the full range of "days" overlap occurs for one day on end-points
 
@@ -23,7 +23,7 @@ sharingFactor <- 1.5
 batteryCapitalCost <- 150
 scale.urban.form.factor <- 1.0
 includeTransitDemand <- 0 # 0 or 1
-fractionSAEVs <- 0
+fractionSAEVs <- 0.5
 fractionSmartCharging <- 0
 privateFleetWeights <- "fleet_weights_dev" # name (without extension) of file in {gem.raw.inputs}/NREL-EVI-Pro-Preprocessed-Profiles/data
 congestion <- 'Freeflow'
