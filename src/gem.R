@@ -1,4 +1,4 @@
-#!/usr/local/bin/Rscript
+#!/usr/bin/Rscript
 #####################################################################################
 # Grid-Integrated Electric Mobility Model (GEM)
 # 
