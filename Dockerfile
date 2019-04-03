@@ -47,9 +47,9 @@ VOLUME ["${GEM_RAW_INPUTS_DIR}","${GAMS_HOME}"]
 
 # Set required paths for GEM and GAMS in Rprofile file
 RUN touch /root/.Rprofile && \
-    echo "gem.project.directory='${GAMS_HOME}/'" >> /root/.Rprofile && \
-    echo "gams.executable.location='${GAMS_HOME}/'" >> /root/.Rprofile && \
-    echo "gem.raw.inputs='${GEM_RAW_INPUTS_DIR}/'" >> /root/.Rprofile
+    echo "gem.raw.inputs=${GEM_RAW_INPUTS_DIR}/'" >> /root/.Rprofile && \
+    echo "gem.project.directory='${GEM_HOME}/'" >> /root/.Rprofile && \
+    echo "gams.executable.location='${GAMS_HOME}/'" >> /root/.Rprofile
 
 # Run GAMS
 RUN echo "export PATH=$PATH:$GAMS_HOME" >> ~/.bashrc && \
