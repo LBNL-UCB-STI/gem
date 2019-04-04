@@ -51,4 +51,4 @@ RUN touch /root/.Rprofile && \
     echo "export PATH=$PATH:$GAMS_HOME" >> ~/.bashrc
 
 # Run GEM
-CMD cd $GAMS_HOME && ./gamsinst -a && cd $GEM_HOME && ./src/gem.R -e /input/experiments/base.yaml
+CMD cd $GAMS_HOME && ./gamsinst -a && cd $GEM_HOME && ./src/gem.R -e input/experiments/base.yaml
