@@ -1,0 +1,4 @@
+# Add all files to be ignored while copying to docker
+Docker-README.md
+README.md
+Rprofile-example
