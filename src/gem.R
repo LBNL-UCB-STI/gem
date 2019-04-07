@@ -28,7 +28,6 @@ source('src/prep-inputs-personal-charging.R')
 source('src/prep-inputs-grid.R')
 source('src/plots-mobility.R')
 source('input/defaults.R')
-"test"
 
 #####################################################################################
 # PARSE COMMAND LINE OPTIONS 
