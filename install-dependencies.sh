@@ -1,0 +1,13 @@
+#!/bin/bash
+Rscript -e 'install.packages("stringr")'
+Rscript -e 'install.packages("yaml")'
+Rscript -e 'install.packages("devtools")'
+Rscript -e 'library("devtools");install_github("lolow/gdxtools")'
+Rscript -e 'install.packages("data.table")'
+Rscript -e 'install.packages("ggplot2")'
+Rscript -e 'install.packages("optparse")'
+Rscript -e 'install.packages("reshape")'
+Rscript -e 'install.packages("grid")'
+Rscript -e 'install.packages("lubridate")'
+Rscript -e 'install.packages("RColorBrewer")' 
+Rscript -e 'install.packages("forcats")'

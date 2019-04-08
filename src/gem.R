@@ -43,8 +43,8 @@ if(interactive()){
   args<-'input/experiments/fractionSmartCharging.yaml'
   args<-'input/experiments/carbonTax.yaml'
   args<-'input/experiments/renewableScalingFactor.yaml'
-  args<-'input/experiments/fractionSAEVs.yaml'
   args<-'input/experiments/base.yaml'
+  args<-'input/experiments/fractionSAEVs.yaml'
   args <- pp('--experiment=',args)
   args <- c(args,'-t') # don't add timestamp
 #  args <- c(args,'-p') # only plots
