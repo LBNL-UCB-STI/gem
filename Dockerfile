@@ -1,19 +1,5 @@
 #
-# Stage 1 : Cloning GEM git repo 
-#
-FROM alpine:3.6 as git
-# Git details as build args
-RUN apk update && apk add git && git --version
-ARG COMMIT_ID
-ARG GIT_USERNAME
-ARG GIT_PASSWORD
-ARG GIT_HOST_URL="github.com"
-ARG GIT_REPO_NAME="LBNL-UCB-STI/gem"
-RUN git clone https://${GIT_USERNAME}:${GIT_PASSWORD}@${GIT_HOST_URL}/${GIT_REPO_NAME}.git gem && ls gem/
-RUN if [ -n "$COMMIT_ID" ] ; then cd gem && git checkout $COMMIT_ID ; fi
-
-#
-# Stage 2 : GAMS download
+# Stage 1 : GAMS download
 #
 FROM ubuntu:18.04 as gams
 # Set GAMS version , GAMS bit architecture, either 'x64_64' or 'x86_32'
@@ -37,32 +23,36 @@ RUN mkdir ${GAMS_HOME} && \
     rm -rf ${GAMS_HOME}-download
 
 #
-# Stage 3 : Running GEM and GAMS
+# Stage 2 : Running GEM and GAMS
 #
 FROM r-base:3.5.3
 RUN cp -r /usr/bin/Rscript /usr/local/bin/Rscript 
 # Install curl and openssl
-RUN apt-get update && apt-get install -y --no-install-recommends libcurl4-openssl-dev \
-    && apt-get install -y --no-install-recommends libssl-dev 
+RUN apt-get update && apt-get install -y --no-install-recommends libcurl4-openssl-dev libssl-dev git
+ENV GIT_HOST_URL="github.com"
+ENV GIT_REPO_NAME="LBNL-UCB-STI/gem"
 # Create required project directories
-RUN mkdir /gem && mkdir /gams && mkdir /gem-raw-inputs
+RUN mkdir /gem && mkdir /gem-raw-inputs
 # Set required home paths as env variables
 ENV GEM_HOME=/gem
 ENV GAMS_HOME=/gams
 ENV GEM_RAW_INPUTS_DIR=/gem-raw-inputs
+ENV GEM_RUN_SCRIPT=run-gem.sh
 # Copy the GEM project directory & GAMS directories from previous stages   
-COPY --from=git ${GEM_HOME} ${GEM_HOME}
 COPY --from=gams ${GAMS_HOME} ${GAMS_HOME}
-# Install R dependencies required for GEM
-RUN ./gem/install-dependencies.sh
 # Expose GEM_RAW_INPUTS_DIR & GAMS_HOME as volumes to mount required files during runtime
 VOLUME ["${GEM_RAW_INPUTS_DIR}","${GAMS_HOME}"]
 # Set required paths for GEM and GAMS in Rprofile file
-RUN chmod +x $GEM_HOME/src/gem.R &&\ 
-    touch /root/.Rprofile &&\
+RUN touch /root/.Rprofile &&\
     echo "gem.raw.inputs='${GEM_RAW_INPUTS_DIR}/'" >> /root/.Rprofile &&\
     echo "gem.project.directory='${GEM_HOME}/'" >> /root/.Rprofile &&\
     echo "gams.executable.location='${GAMS_HOME}/'" >> /root/.Rprofile &&\
     echo "export PATH=$PATH:$GAMS_HOME" >> ~/.bashrc
+RUN touch ${GEM_RUN_SCRIPT} && chmod +x ${GEM_RUN_SCRIPT} &&\
+    echo "git clone https://\${GIT_USERNAME}:\${GIT_PASSWORD}@\${GIT_HOST_URL}/\${GIT_REPO_NAME}.git gem" >> ${GEM_RUN_SCRIPT} &&\
+    echo "if [ -n '\$COMMIT_ID' ] ; then cd gem && git checkout \$COMMIT_ID ; fi " >> ${GEM_RUN_SCRIPT} &&\
+    echo "chmod +x \$GEM_HOME/src/gem.R"  >> ${GEM_RUN_SCRIPT} &&\
+    echo "cd \$GEM_HOME && ./install-dependencies.sh && src/gem.R -e \${INPUT_FILE}" >> ${GEM_RUN_SCRIPT}
+
 # Run GEM
-CMD cd $GAMS_HOME && ./gamsinst -a && cd $GEM_HOME && src/gem.R -e ${INPUT_FILE}
+CMD cd $GAMS_HOME && ./gamsinst -a && cd / && ./${GEM_RUN_SCRIPT}
