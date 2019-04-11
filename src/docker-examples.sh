@@ -1,0 +1,1 @@
+docker run -it --name=gems -v /Users/critter/odrive/GoogleDriveLBL/VGI4NewMobility/gem-raw-inputs/:/gem-raw-inputs  -v /Applications/GAMS25.1/gamslice.txt:/gams/gamslice.txt -e INPUT_FILE=input/experiments/base.yaml gems:2
