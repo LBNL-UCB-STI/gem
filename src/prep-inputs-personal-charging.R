@@ -281,7 +281,7 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
     inputs <- list()
     inputs$sets <- list()
     inputs$parameters <- list()
-    inputs$parameters$personalEVChargeEnergyUB <- all.all.energy.constraints[,list(t,rmob,value=max.energy)]
+    inputs$parameters$personalEVChargeEnergyUB <- all.all.energy.constraints[,list(t,rmob,value=ifelse(max.energy>=min.energy,max.energy,min.energy))]
     inputs$parameters$personalEVChargeEnergyLB <- all.all.energy.constraints[,list(t,rmob,value=min.energy)]
     inputs$parameters$personalEVChargePowerUB <- all.all.energy.constraints[,list(t,rmob,value=max.power)]
     inputs$parameters$personalEVChargePowerLB <- all.all.energy.constraints[,list(t,rmob,value=min.power)]

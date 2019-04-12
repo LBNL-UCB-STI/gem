@@ -64,6 +64,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   generators$Simplified <- factor(generators$Simplified,levels=meritOrder)
 
   # Run by Run Plots
+  run.i <- u(vehs$run)[1]
   for(run.i in u(vehs$run)){
     setkey(vehs,run,b,rmob,t)
     to.plot <- melt(vehs[run==run.i],id.vars=c('b','rmob','t'))
@@ -232,6 +233,11 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   # p <- ggplot(tr,aes(x=t,y=value,colour=variable))+geom_line()+facet_grid(group~rmob,scales='free_y') # geom_bar(stat='identity',position='dodge')
   # ggsave(pp(plots.dir,'_energy-vs-price.pdf'),p,width=12*pdf.scale,height=8*pdf.scale,units='in')
   
+  generation <- merge(x=res[['g-t']],y=generators,by='g',all.x=TRUE)
+  generation <- generation[,list(generation=sum(generation),base.generation=sum(base.generation)),by=list(run,r,Simplified,t)]
+  generation[,consq.generation:=generation-base.generation]
+  generation <- generation[complete.cases(generation),]
+  
   gen.cost <- merge(x=res[['g-t']],y=generators,by='g',all.x=TRUE)
   gen.cost <- gen.cost[,list(energyCost=sum(generationCosts*(generation-base.generation))),by=list(r,run)]
   
@@ -258,7 +264,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   vmt.by.region[,battery.level:=paste(battery.level,'kWh')]
   vmt.by.region$battery.level <- factor(vmt.by.region$battery.level,levels=unique(vmt.by.region$battery.level)[mixedorder(unique(vmt.by.region$battery.level))])
   
-  data.to.save <- c('vehs','en','by.r','costs','veh.ch','vmt','fleet','personal.ev.ch','vmt.by.region')
+  data.to.save <- c('vehs','en','by.r','costs','veh.ch','vmt','fleet','personal.ev.ch','vmt.by.region','generation')
   run.params <- copy(exper$runs)[,run:=1:.N]
   for(dat.to.save in data.to.save){
     streval(pp(dat.to.save,' <- join.on(',dat.to.save,',run.params,\'run\',\'run\')'))
@@ -323,10 +329,10 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
       theme_bw()
     streval(pp('p <- p + facet_wrap(~',param.names,')'))
     pdf.scale <- 1
-    ggsave(pp(plots.dir,'_charging.pdf'),p,width=10*pdf.scale,height=8*pdf.scale,units='in')
+    ggsave(pp(plots.dir,'_charging-saevs.pdf'),p,width=10*pdf.scale,height=8*pdf.scale,units='in')
     streval(pp('setkey(personal.ev.ch,l,rmob,t,',param.names,')'))
-    to.plot <- personal.ev.ch[,.(gw.charging=sum(gw.charging)),by=c('l','charger.level','t',param.names)]
-    to.plot <- rbindlist(list(to.plot,to.plot),fill=T,use.names=T)
+    to.plot.personal <- personal.ev.ch[,.(gw.charging=sum(gw.charging)),by=c('l','charger.level','t',param.names)]
+    to.plot <- rbindlist(list(to.plot,to.plot.personal),fill=T,use.names=T)
     p <- ggplot(to.plot)+
       geom_bar(aes(x=t,y=gw.charging,fill=fct_rev(charger.level)),stat='identity',position='stack')+
     #geom_text(aes(x=Inf,y=Inf,hjust=1,vjust=1,label=sum(gw.charging)))+
@@ -370,6 +376,25 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
       scale_fill_manual(name='Charger/Battery Level',values = rev(getPalette(to.plot$var.clean)))+
       theme_bw()
     ggsave(pp(plots.dir,'_fleet-size-and-type.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')  
+    
+    # Generation 
+    p <- ggplot(generation[,.(generation=sum(generation)),by=c('t','Simplified',param.names)],aes(x=t,y=generation/1000,fill=Simplified))+
+      geom_area()+
+      xlab('Hour')+
+      ylab('Generation (GW)')+
+      scale_fill_discrete(name='Fuel Type')+
+      theme_bw()
+    streval(pp('p <- p + facet_wrap(~',param.names,')'))
+    ggsave(pp(plots.dir,'/_generation-total-by-fuel.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
+
+    p <- ggplot(generation[,.(consq.generation=sum(consq.generation)),by=c('t','Simplified',param.names)],aes(x=t,y=consq.generation/1000,fill=Simplified))+
+      geom_area()+
+      xlab('Hour')+
+      ylab('Generation (GW)')+
+      scale_fill_discrete(name='Fuel Type')+
+      theme_bw()
+    streval(pp('p <- p + facet_wrap(~',param.names,')'))
+    ggsave(pp(plots.dir,'/_generation-cnsq-total-by-fuel.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
     
     # Costs
     to.plot <- melt(costs,measure.vars=c('demandChargeCost','vehicleMaintCost','infrastructureCost','fleetCost','energyCost'),id.vars=c('r',param.names))[,.(value=sum(value)),by=c('variable',param.names)]
