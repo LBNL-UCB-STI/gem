@@ -42,9 +42,9 @@ if(interactive()){
   args<-'input/experiments/discountRate.yaml'
   args<-'input/experiments/carbonTax.yaml'
   args<-'input/experiments/renewableScalingFactor.yaml'
-  args<-'input/experiments/base.yaml'
   args<-'input/experiments/fractionSAEVs.yaml'
   args<-'input/experiments/fractionSmartCharging.yaml'
+  args<-'input/experiments/base.yaml'
   args <- pp('--experiment=',args)
   args <- c(args,'-t') # don't add timestamp
   args <- c(args,'-p') # only plots
@@ -105,7 +105,11 @@ if(!args$plots){ # only prep and run model if *not* in plot-only mode
     cat(pp(Sys.time(),'\n'))
     setwd(pp(exper$input.dir,'/runs/run-',i))
     gams('gem.gms')
+    print('Full GEM results:')
+    print.lst.status('gem.lst')
     gams('gem-baseGeneration.gms')
+    print('Base generation results:')
+    print.lst.status('gem-baseGeneration.lst')
     setwd(gem.project.directory)
     cat(pp(Sys.time(),'\n'))
   }
