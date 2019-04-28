@@ -137,3 +137,9 @@ merge.baseGen <- function(result,result.baseGen) {
 }
 
 to.number <- function(x){ as.numeric(substr(as.character(x),2,nchar(as.character(x)))) }
+
+print.lst.status <- function(file) {
+  lst.file <- readLines(file)
+  print(grep('SOLVER STATUS',lst.file,value=TRUE))
+  print(grep('MODEL STATUS',lst.file,value=TRUE))
+}

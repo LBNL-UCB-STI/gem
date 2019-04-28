@@ -55,7 +55,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   setkey(en,b,rmob,t)
   en[,soc:=soc+cumsum(en.ch-en.mob),by=c('b','rmob','run')]
   en[,battery.level:=gsub('b|b0','',b)]
-  en[,battery.level:=paste(battery.level,'kWh')]
+  en[,battery.level:=paste(battery.level,'mi')]
   en$battery.level <- factor(en$battery.level,levels=unique(en$battery.level)[mixedorder(unique(en$battery.level))])
 
   # Merit order
@@ -136,7 +136,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     # Fleet size & type
     by.r <- rbindlist(list(res[['l-rmob']][,':='(run=run,variable=l,value=numChargers,group='Chargers')],res[['b-rmob']][,':='(run=run,variable=b,value=fleetSize,group='Fleet')]),fill=T)
     setkey(by.r,run,variable)
-    by.r[,var.clean:=ifelse(grepl('L',variable),paste('Chgr:',variable,'kW'),paste('Bat:',variable,'kWh'))]
+    by.r[,var.clean:=ifelse(grepl('L',variable),paste('Chgr:',variable,'kW'),paste('Bat:',variable,'mi'))]
     by.r[,var.clean:=gsub(' L| L0| b| b0',' ',var.clean)]
     by.r$var.clean <- factor(by.r$var.clean,levels=unique(by.r$var.clean)[mixedorder(unique(by.r$var.clean))])
     p <- ggplot(by.r[run==run.i],aes(x=rmob,y=value/1000,fill=fct_rev(var.clean)))+
@@ -261,7 +261,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   n.days <- max(vmt$t)/24
   vmt.by.region[,daily.vmt.per.vehicle:=vmt/fleetSize/n.days]
   vmt.by.region[,battery.level:=gsub('b|b0','',b)]
-  vmt.by.region[,battery.level:=paste(battery.level,'kWh')]
+  vmt.by.region[,battery.level:=paste(battery.level,'mi')]
   vmt.by.region$battery.level <- factor(vmt.by.region$battery.level,levels=unique(vmt.by.region$battery.level)[mixedorder(unique(vmt.by.region$battery.level))])
   
   data.to.save <- c('vehs','en','by.r','costs','veh.ch','vmt','fleet','personal.ev.ch','vmt.by.region','generation')
@@ -364,7 +364,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     
     # Fleet and Chargers
     to.plot <- by.r[,.(value=sum(value)),by=c('group','variable',param.names)]
-    to.plot[,var.clean:=ifelse(grepl('L',variable),paste('Chgr',variable,'kW'),paste('Bat',variable,'kWh'))]
+    to.plot[,var.clean:=ifelse(grepl('L',variable),paste('Chgr',variable,'kW'),paste('Bat',variable,'mi'))]
     to.plot[,var.clean:=gsub(' L| L0| b| b0',' ',var.clean)]
     to.plot$var.clean <- factor(to.plot$var.clean,levels=unique(to.plot$var.clean)[mixedorder(unique(to.plot$var.clean))])
 

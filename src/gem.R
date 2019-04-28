@@ -105,7 +105,11 @@ if(!args$plots){ # only prep and run model if *not* in plot-only mode
     cat(pp(Sys.time(),'\n'))
     setwd(pp(exper$input.dir,'/runs/run-',i))
     gams('gem.gms')
+    print('Full GEM results:')
+    print.lst.status('gem.lst')
     gams('gem-baseGeneration.gms')
+    print('Base generation results:')
+    print.lst.status('gem-baseGeneration.lst')
     setwd(gem.project.directory)
     cat(pp(Sys.time(),'\n'))
   }
