@@ -440,25 +440,27 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     }
 
     ## Flagged, modified but maybe we can visualize differently? Can we also do PMT? ##
-    p <- ggplot(melt(vmt.by.region,id.vars=c('rmob','battery.level'),measure.vars='daily.vmt.per.vehicle'),aes(x=rmob,y=value,fill=battery.level))+
+    p <- ggplot(melt(vmt.by.region,id.vars=c('rmob','battery.level',param.names),measure.vars='daily.vmt.per.vehicle'),aes(x=rmob,y=value,fill=battery.level))+
       geom_bar(stat='identity',position='dodge')+
       xlab('Region')+
       ylab('Total vehicle miles traveled (mi)')+
       theme_bw()+
       theme(axis.text.x = element_text(angle = 50, hjust = 1))+
       scale_fill_manual(name='Vehicle battery size',values = (getPalette(vmt.by.region$battery.level)),guide=guide_legend(reverse=F))
+    streval(pp('p <- p + facet_wrap(~',param.names,')'))
     ggsave(pp(plots.dir,'_daily-vmt.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')  
     vmt.by.region[,lifetime.target:=200e3/(daily.vmt.per.vehicle*365)]
     vmt.by.region[,lifetime.error:=lifetime.target-assumed.lifetime.value]
 
     ## Not sure exactly what the "value" represents ##
-    p <- ggplot(melt(vmt.by.region,id.vars=c('rmob','battery.level'),measure.vars='lifetime.target'),aes(x=rmob,y=value,fill=battery.level))+
+    p <- ggplot(melt(vmt.by.region,id.vars=c('rmob','battery.level',param.names),measure.vars='lifetime.target'),aes(x=rmob,y=value,fill=battery.level))+
       geom_bar(stat='identity',position='dodge')+
       xlab('Region')+
       #ylab('???')+
       theme_bw()+
       theme(axis.text.x = element_text(angle = 50, hjust = 1))+
       scale_fill_manual(name='Vehicle battery level',values = (getPalette(vmt.by.region$battery.level)),guide=guide_legend(reverse=F))
+    streval(pp('p <- p + facet_wrap(~',param.names,')'))
     ggsave(pp(plots.dir,'_vehicle-lifetime-targets.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')  
 
     ## Not sure exactly what the "value" represents ##
