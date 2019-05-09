@@ -14,7 +14,7 @@ library('forcats')
 library('gtools')
 
 gdx.to.data.tables <- function(mygdx){
-  keys <- all_items(mygdx)$sets
+  keys <- all_items(mygdx)$set
   keydims <- c()
   for(key in keys){
     keydims <- c(keydims,length(mygdx[key]$V1))

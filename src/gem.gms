@@ -31,10 +31,10 @@ parameters
 	demand(t,d,rmob)			Demand by distance type, time, and region
 	chargerPower(l)				kW per charger 
 	chargeRelocationRatio(rmob)		increase in energy consumption due to charging relocation
-        chargeRelocationCorrection(b,l,rmob)	decrease in charger power due to relocation
+    chargeRelocationCorrection(b,l,rmob)	decrease in charger power due to relocation
 	fleetRatio(rmob)			ratio of optimal to actual fleet size
 	batteryRatio(rmob)			ratio of optimal to actual battery range
-        distCorrection(rmob)			one + distance dead head ratio
+    distCorrection(rmob)			one + distance dead head ratio
 	timeCorrection(rmob)			one + time dead head ratio
 	sharingFactor				Avg person per vehicle trip 
 	chargerDistributionFactor(l)		increased chargers needed to serve vehs 

@@ -3,10 +3,10 @@
 # days <- 352:358
 #days <- c(1) 
 #days <- c(74:81,147:154,260:267,351:358) # 8 per week
-days <- c(74:80,147:153,260:266,351:357) # 7 per week
+#days <- c(74:80,147:153,260:266,351:357) # 7 per week
 #days <- c(74:77,79,148:152,260:264,351:355) # 5 per week, 4 weekday, 1 weekend
 #days <- c(75:77,148:150,260:262,351:353) # 3 per week, 2 weekday, 1 weekend
-#days <- c(75:76,149:150,261:262,352:353) # 2 per week, 2 weekday
+days <- c(75:76,149:150,261:262,352:353) # 2 per week, 2 weekday
 #days <- c(74:77,79)
 #days <- c(148:152) 
 #days <- c(74:77,79,148:152)
