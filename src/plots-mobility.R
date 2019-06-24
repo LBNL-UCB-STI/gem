@@ -462,6 +462,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
       scale_fill_manual(name='Vehicle battery level',values = (getPalette(vmt.by.region$battery.level)),guide=guide_legend(reverse=F))
     streval(pp('p <- p + facet_wrap(~',param.names,')'))
     ggsave(pp(plots.dir,'_vehicle-lifetime-targets.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')  
+    write.csv(melt(vmt.by.region,id.vars=c('rmob','b',param.names),measure.vars='lifetime.target'),file=pp(plots.dir,'_vehicle-lifetime-targets.csv'))
 
     ## Not sure exactly what the "value" represents ##
     p <- ggplot(melt(vmt.by.region,id.vars=c('rmob','battery.level'),measure.vars='lifetime.error'),aes(x=rmob,y=value,fill=battery.level))+
