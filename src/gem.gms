@@ -249,7 +249,7 @@ model
 
 options
 	qcp = cplex
-  nlp = CONOPT
+	nlp = IPOPT
 	solvelink = 2
 	reslim = 500000
 ;
