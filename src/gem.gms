@@ -59,8 +59,6 @@ parameters
 	discountRate				  rate
 	chargerCapitalCost(l)			  cost per kW 	
 	chargerLifetime				  years
-	vehicleLifetime(b,rmob)			  years
-	batteryLifetime(b,rmob)			  years
 	batteryCapitalCost			  USD per kWh 
 	batteryCapacity(b)			  avg per veh in kWh /b075 19.65
 													b150 41.10
@@ -104,6 +102,8 @@ positive variable
 	vehiclesCharging(t,b,l,rmob) 	No. charging
 	vehiclesMoving(t,b,d,rmob) 		No. serving mobility
 	vehiclesIdle(t,b,rmob)			No. parked
+	vehicleLifetime(b,rmob)			  years
+	batteryLifetime(b,rmob)			  years
 	numChargers(l,rmob) 			Total no. infrastructure
 	infrastructureCost(rmob) 		Total daily infrastructure cost
 	fleetCost(rmob) 				Total daily fleet cost
@@ -115,7 +115,7 @@ positive variable
 
 
 $gdxin <<gdxName>>
-$load d r rmob l t g gtor rmobtor demand speed sharingFactor travelDistance demandCharge chargerPower chargerCapitalCost chargerDistributionFactor solar wind hydro genCost demandLoad maxGen maxSolar maxWind transCap transCost personalEVChargeEnergyLB personalEVChargeEnergyUB personalEVChargePowerLB personalEVChargePowerUB distCorrection timeCorrection chargeRelocationRatio chargeRelocationCorrection fleetRatio batteryRatio vehicleLifetime batteryLifetime batteryCapitalCost discountRate chargerLifetime
+$load d r rmob l t g gtor rmobtor demand speed sharingFactor travelDistance demandCharge chargerPower chargerCapitalCost chargerDistributionFactor solar wind hydro genCost demandLoad maxGen maxSolar maxWind transCap transCost personalEVChargeEnergyLB personalEVChargeEnergyUB personalEVChargePowerLB personalEVChargePowerUB distCorrection timeCorrection chargeRelocationRatio chargeRelocationCorrection fleetRatio batteryRatio batteryCapitalCost discountRate chargerLifetime
 $gdxin
 
 display
@@ -135,6 +135,7 @@ equations
 	cDemandChargeCost 		Cost equality
 	cVehicleMaintCost 		Cost equality
 	cDemandAllocation 		Our allocated demand must meet the exogenous value
+  cAllVehicleTypesUsed
 	cEnergyToMeetDemand		Mobility demand function
 	cChargingUpperBound		Cannot charge more than has been consumed
 	cChargingLowerBound		Cannot consume more than bat cap of fleet must charge to keep up
@@ -149,12 +150,14 @@ equations
 	cDemandCharges 			Inequality to capture max demand for a day
 	cGeneration			Generation must equal load
 	cMaxSolar			Solar generation cannot exceed sun supply
-	cMaxWind			Wind generation cannot exceed wind supply
+	cMaxWind			      Wind generation cannot exceed wind supply
 *	#constraint4			Hydro generation cannot exceed capacity factor
 	cPersonalEVChargeEnergyLB	Energy boundaries and power boundaries
 	cPersonalEVChargeEnergyUB
 	cPersonalEVChargePowerLB
 	cPersonalEVChargePowerUB
+  cVehicleLifetime
+  cBatteryLifetime
 ;
 
 obj..
@@ -168,6 +171,9 @@ cVehicleMaintCost(t,rmob)..
 
 cDemandAllocation(t,d,rmob)..
 	demand(t,d,rmob) - sum(b,demandAllocated(t,b,d,rmob)) =e= 0;
+
+cAllVehicleTypesUsed(b,rmob)..
+	sum(t,sum(d,demandAllocated(t,b,d,rmob))) =g= 0.1;
 
 cEnergyToMeetDemand(t,b,d,rmob)..
 	energyConsumed(t,b,d,rmob) / chargeRelocationRatio(rmob) * sharingFactor / (distCorrection(rmob) * conversionEfficiency(b) * travelDistance(d,rmob)) - demandAllocated(t,b,d,rmob) =e= 0;
@@ -199,8 +205,14 @@ cFleetDispatch(t,b,rmob)..
 cInfrastructureCost(rmob)..
 	infrastructureCost(rmob) - sum(l,numChargers(l,rmob)*(chargerCapitalCost(l) * dailyDiscountRate * (1 + dailyDiscountRate)**(chargerLifetime*365) / ((1 +  dailyDiscountRate)**(chargerLifetime*365) - 1))*chargerDistributionFactor(l)*chargerPower(l)) =e= 0;
 
+cVehicleLifetime(b,rmob)..
+  vehicleLifetime(b,rmob) * sum(t,sum(d,demandAllocated(t,b,d,rmob) * travelDistance(d,rmob))) * sum(t,sum(d,vehiclesMoving(t,b,d,rmob))) * (card(t)/24) / 365 - 200000 =e= 0;
+
+cBatteryLifetime(b,rmob)..
+  batteryLifetime(b,rmob) - vehicleLifetime(b,rmob) =e= 0;
+
 cFleetCost(rmob)..
-        fleetCost(rmob) - sum(b,fleetSize(b,rmob) * fleetRatio(rmob) * (vehiclePerYearCosts / 365 + vehicleCapitalCost * dailyDiscountRate * (1 + dailyDiscountRate)**(vehicleLifetime(b,rmob)*365) / ((1 +  dailyDiscountRate)**(vehicleLifetime(b,rmob)*365) - 1) + batteryRatio(rmob) * batteryCapacity(b) * batteryCapitalCost * dailyDiscountRate * (1 + dailyDiscountRate)**(batteryLifetime(b,rmob)*365) / ((1 +  dailyDiscountRate)**(batteryLifetime(b,rmob)*365) - 1))) =e= 0;
+        fleetCost(rmob) - sum(b,fleetSize(b,rmob) * fleetRatio(rmob) * (vehiclePerYearCosts / 365 + vehicleCapitalCost * dailyDiscountRate * (1 + dailyDiscountRate)**(vehicleLifetime(b,rmob)*365) / ((1 +  dailyDiscountRate)**(vehicleLifetime(b,rmob)*365) - 0.999) + batteryRatio(rmob) * batteryCapacity(b) * batteryCapitalCost * dailyDiscountRate * (1 + dailyDiscountRate)**(batteryLifetime(b,rmob)*365) / ((1 +  dailyDiscountRate)**(batteryLifetime(b,rmob)*365) - 0.999))) =e= 0;
 
 cDemandCharges(t,rmob)..
 	maxDemand(rmob) - sum((b,l),energyCharged(t,b,l,rmob)) / deltaT - personalEVPower(t,rmob)/deltaT =g= 0;
@@ -232,11 +244,12 @@ cPersonalEVChargeEnergyUB(t,rmob)..
 
 
 model
-	combinedModel /obj,cDemandAllocation,cDemandChargeCost,cVehicleMaintCost,cEnergyToMeetDemand,cChargingUpperBound,cChargingLowerBound,cNoChargeAtStart,cTerminalSOC,cNumCharging,cMaxCharging,cNumMoving,cFleetDispatch,cInfrastructureCost,cFleetCost,cDemandCharges,cGeneration,cMaxSolar,cMaxWind,cPersonalEVChargeEnergyLB,cPersonalEVChargeEnergyUB,cPersonalEVChargePowerLB,cPersonalEVChargePowerUB/
+	combinedModel /obj,cDemandAllocation,cAllVehicleTypesUsed,cDemandChargeCost,cVehicleMaintCost,cEnergyToMeetDemand,cChargingUpperBound,cChargingLowerBound,cNoChargeAtStart,cTerminalSOC,cNumCharging,cMaxCharging,cNumMoving,cFleetDispatch,cInfrastructureCost,cVehicleLifetime,cBatteryLifetime,cFleetCost,cDemandCharges,cGeneration,cMaxSolar,cMaxWind,cPersonalEVChargeEnergyLB,cPersonalEVChargeEnergyUB,cPersonalEVChargePowerLB,cPersonalEVChargePowerUB/
 *	combinedModel /obj,cDemandAllocation,cDemandChargeCost,cVehicleMaintCost,cEnergyToMeetDemand,cChargingUpperBound,cChargingLowerBound,cNoChargeAtStart,cTerminalSOC,cNumCharging,cMaxCharging,cNumMoving,cFleetDispatch,cInfrastructureCost,cFleetCost,cDemandCharges,cGeneration,cMaxSolar,cMaxWind,cPersonalEVChargeEnergyLB,cPersonalEVChargeEnergyUB,cPersonalEVChargePowerLB,cPersonalEVChargePowerUB/
 
 options
 	qcp = cplex
+  nlp = CONOPT
 	solvelink = 2
 	reslim = 500000
 ;
@@ -249,7 +262,7 @@ combinedModel.holdfixed = 1;
 
 solve
 	combinedModel
-	using qcp
+	using nlp
 	minimizing systemCost
 ;
 
