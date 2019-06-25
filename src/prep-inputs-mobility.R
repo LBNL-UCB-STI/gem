@@ -170,6 +170,12 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
   for(the.param in the.params){
     streval(pp('inputs$parameters$',the.param,' <- ',the.param))
   }
+  if('vehicleLifetime'%in%param.names){
+    inputs$parameters$vehicleLifetime[,value:=exper.row$vehicleLifetime]
+  }
+  if('batteryLifetime'%in%param.names){
+    inputs$parameters$batteryLifetime[,value:=exper.row$batteryLifetime]
+  }
   
   inputs
 }

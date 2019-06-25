@@ -370,7 +370,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
 
     p <- streval(pp('ggplot(to.plot,aes(x=factor(',param.names,'),y=value/10^6,fill=fct_rev(var.clean)))'))+
       geom_bar(stat='identity')+
-      xlab('Fraction of SAEVs')+
+      xlab(param.names)+
       ylab('Count (millions)')+
       facet_wrap(~group,scales='free_y')+
       scale_fill_manual(name='Charger/Battery Level',values = rev(getPalette(to.plot$var.clean)))+
@@ -403,7 +403,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     to.plot <- merge(x=to.plot,y=cost.key,by='variable',all.x=TRUE)
     p <- streval(pp('ggplot(to.plot,aes(x=factor(',param.names,'),y=value/10^9,fill=fct_rev(cost)))'))+
       geom_bar(stat='identity')+
-      xlab('Fraction of SAEVs')+
+      xlab(param.names)+
       ylab('Total cost (bns of $)')+
       theme_bw()+
       theme(axis.text.x = element_text(angle = 50, hjust = 1))+
@@ -421,7 +421,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     costs.per.mile <- to.plot 
     p <- streval(pp('ggplot(to.plot,aes(x=factor(',param.names,'),y=cost.per.mile,fill=fct_rev(cost)))'))+
       geom_bar(stat='identity')+
-      xlab('Fraction of SAEVs')+
+      xlab(param.names)+
       ylab('Cost per mile ($)')+
       theme_bw()+
       theme(axis.text.x = element_text(angle = 50, hjust = 1))+
