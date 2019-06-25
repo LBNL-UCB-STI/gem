@@ -135,7 +135,6 @@ equations
 	cDemandChargeCost 		Cost equality
 	cVehicleMaintCost 		Cost equality
 	cDemandAllocation 		Our allocated demand must meet the exogenous value
-  cAllVehicleTypesUsed
 	cEnergyToMeetDemand		Mobility demand function
 	cChargingUpperBound		Cannot charge more than has been consumed
 	cChargingLowerBound		Cannot consume more than bat cap of fleet must charge to keep up
@@ -171,9 +170,6 @@ cVehicleMaintCost(t,rmob)..
 
 cDemandAllocation(t,d,rmob)..
 	demand(t,d,rmob) - sum(b,demandAllocated(t,b,d,rmob)) =e= 0;
-
-cAllVehicleTypesUsed(b,rmob)..
-	sum(t,sum(d,demandAllocated(t,b,d,rmob))) =g= 0.1;
 
 cEnergyToMeetDemand(t,b,d,rmob)..
 	energyConsumed(t,b,d,rmob) / chargeRelocationRatio(rmob) * sharingFactor / (distCorrection(rmob) * conversionEfficiency(b) * travelDistance(d,rmob)) - demandAllocated(t,b,d,rmob) =e= 0;
@@ -212,7 +208,8 @@ cBatteryLifetime(b,rmob)..
   batteryLifetime(b,rmob) - vehicleLifetime(b,rmob) =e= 0;
 
 cFleetCost(rmob)..
-        fleetCost(rmob) - sum(b,fleetSize(b,rmob) * fleetRatio(rmob) * (vehiclePerYearCosts / 365 + vehicleCapitalCost * dailyDiscountRate * (1 + dailyDiscountRate)**(vehicleLifetime(b,rmob)*365) / ((1 +  dailyDiscountRate)**(vehicleLifetime(b,rmob)*365) - 0.999) + batteryRatio(rmob) * batteryCapacity(b) * batteryCapitalCost * dailyDiscountRate * (1 + dailyDiscountRate)**(batteryLifetime(b,rmob)*365) / ((1 +  dailyDiscountRate)**(batteryLifetime(b,rmob)*365) - 0.999))) =e= 0;
+        fleetCost(rmob) - sum(b,fleetSize(b,rmob) * fleetRatio(rmob) * 
+(vehiclePerYearCosts / 365 + vehicleCapitalCost * (1 / (vehicleLifetime(b,rmob)*365) + dailyDiscountRate)) + batteryRatio(rmob) * batteryCapacity(b) * batteryCapitalCost * (1 / (batteryLifetime(b,rmob)*365) + dailyDiscountRate)) =e= 0;
 
 cDemandCharges(t,rmob)..
 	maxDemand(rmob) - sum((b,l),energyCharged(t,b,l,rmob)) / deltaT - personalEVPower(t,rmob)/deltaT =g= 0;
@@ -241,10 +238,11 @@ cPersonalEVChargeEnergyLB(t,rmob)..
 cPersonalEVChargeEnergyUB(t,rmob)..
 	sum(tp$(ord(tp) le ord(t)), personalEVPower(tp,rmob))  =l= personalEVChargeEnergyUB(t,rmob);
 
-
+vehicleLifetime.lo(b,rmob) = 0.1;
+batteryLifetime.lo(b,rmob) = 0.1;
 
 model
-	combinedModel /obj,cDemandAllocation,cAllVehicleTypesUsed,cDemandChargeCost,cVehicleMaintCost,cEnergyToMeetDemand,cChargingUpperBound,cChargingLowerBound,cNoChargeAtStart,cTerminalSOC,cNumCharging,cMaxCharging,cNumMoving,cFleetDispatch,cInfrastructureCost,cVehicleLifetime,cBatteryLifetime,cFleetCost,cDemandCharges,cGeneration,cMaxSolar,cMaxWind,cPersonalEVChargeEnergyLB,cPersonalEVChargeEnergyUB,cPersonalEVChargePowerLB,cPersonalEVChargePowerUB/
+	combinedModel /obj,cDemandAllocation,cDemandChargeCost,cVehicleMaintCost,cEnergyToMeetDemand,cChargingUpperBound,cChargingLowerBound,cNoChargeAtStart,cTerminalSOC,cNumCharging,cMaxCharging,cNumMoving,cFleetDispatch,cInfrastructureCost,cVehicleLifetime,cBatteryLifetime,cFleetCost,cDemandCharges,cGeneration,cMaxSolar,cMaxWind,cPersonalEVChargeEnergyLB,cPersonalEVChargeEnergyUB,cPersonalEVChargePowerLB,cPersonalEVChargePowerUB/
 *	combinedModel /obj,cDemandAllocation,cDemandChargeCost,cVehicleMaintCost,cEnergyToMeetDemand,cChargingUpperBound,cChargingLowerBound,cNoChargeAtStart,cTerminalSOC,cNumCharging,cMaxCharging,cNumMoving,cFleetDispatch,cInfrastructureCost,cFleetCost,cDemandCharges,cGeneration,cMaxSolar,cMaxWind,cPersonalEVChargeEnergyLB,cPersonalEVChargeEnergyUB,cPersonalEVChargePowerLB,cPersonalEVChargePowerUB/
 
 options
@@ -262,7 +260,7 @@ combinedModel.holdfixed = 1;
 
 solve
 	combinedModel
-	using nlp
+	using qcp
 	minimizing systemCost
 ;
 

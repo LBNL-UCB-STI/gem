@@ -7,9 +7,9 @@
 #days <- c(74:77,79,148:152,260:264,351:355) # 5 per week, 4 weekday, 1 weekend
 #days <- c(75:77,148:150,260:262,351:353) # 3 per week, 2 weekday, 1 weekend
 #days <- c(75:76,149:150,261:262,352:353) # 2 per week, 2 weekday
-days <- c(75,149,261,352) # 1 per week, 1 weekday
+#days <- c(75,149,261,352) # 1 per week, 1 weekday
 #days <- c(74:77,79)
-#days <- c(148:152) 
+days <- c(148:149) 
 #days <- c(74:77,79,148:152)
 #days <- c(260:264)
 #days <- c(351:355)
