@@ -103,7 +103,6 @@ positive variable
 	vehiclesMoving(t,b,d,rmob) 		No. serving mobility
 	vehiclesIdle(t,b,rmob)			No. parked
 	vehicleLifetime(b,rmob)			  years
-	batteryLifetime(b,rmob)			  years
 	numChargers(l,rmob) 			Total no. infrastructure
 	infrastructureCost(rmob) 		Total daily infrastructure cost
 	fleetCost(rmob) 				Total daily fleet cost
@@ -156,7 +155,6 @@ equations
 	cPersonalEVChargePowerLB
 	cPersonalEVChargePowerUB
   cVehicleLifetime
-  cBatteryLifetime
 ;
 
 obj..
@@ -204,12 +202,9 @@ cInfrastructureCost(rmob)..
 cVehicleLifetime(b,rmob)..
   vehicleLifetime(b,rmob) * sum(t,sum(d,demandAllocated(t,b,d,rmob) * travelDistance(d,rmob))) * sum(t,sum(d,vehiclesMoving(t,b,d,rmob))) * (card(t)/24) / 365 - 200000 =e= 0;
 
-cBatteryLifetime(b,rmob)..
-  batteryLifetime(b,rmob) - vehicleLifetime(b,rmob) =e= 0;
-
 cFleetCost(rmob)..
         fleetCost(rmob) - sum(b,fleetSize(b,rmob) * fleetRatio(rmob) * 
-(vehiclePerYearCosts / 365 + vehicleCapitalCost * (1 / (vehicleLifetime(b,rmob)*365) + dailyDiscountRate)) + batteryRatio(rmob) * batteryCapacity(b) * batteryCapitalCost * (1 / (batteryLifetime(b,rmob)*365) + dailyDiscountRate)) =e= 0;
+(vehiclePerYearCosts / 365 + vehicleCapitalCost * (1 / (vehicleLifetime(b,rmob)*365) + dailyDiscountRate)) + batteryRatio(rmob) * batteryCapacity(b) * batteryCapitalCost * (1 / (vehicleLifetime(b,rmob)*365) + dailyDiscountRate)) =e= 0;
 
 cDemandCharges(t,rmob)..
 	maxDemand(rmob) - sum((b,l),energyCharged(t,b,l,rmob)) / deltaT - personalEVPower(t,rmob)/deltaT =g= 0;
@@ -239,10 +234,9 @@ cPersonalEVChargeEnergyUB(t,rmob)..
 	sum(tp$(ord(tp) le ord(t)), personalEVPower(tp,rmob))  =l= personalEVChargeEnergyUB(t,rmob);
 
 vehicleLifetime.lo(b,rmob) = 0.1;
-batteryLifetime.lo(b,rmob) = 0.1;
 
 model
-	combinedModel /obj,cDemandAllocation,cDemandChargeCost,cVehicleMaintCost,cEnergyToMeetDemand,cChargingUpperBound,cChargingLowerBound,cNoChargeAtStart,cTerminalSOC,cNumCharging,cMaxCharging,cNumMoving,cFleetDispatch,cInfrastructureCost,cVehicleLifetime,cBatteryLifetime,cFleetCost,cDemandCharges,cGeneration,cMaxSolar,cMaxWind,cPersonalEVChargeEnergyLB,cPersonalEVChargeEnergyUB,cPersonalEVChargePowerLB,cPersonalEVChargePowerUB/
+	combinedModel /obj,cDemandAllocation,cDemandChargeCost,cVehicleMaintCost,cEnergyToMeetDemand,cChargingUpperBound,cChargingLowerBound,cNoChargeAtStart,cTerminalSOC,cNumCharging,cMaxCharging,cNumMoving,cFleetDispatch,cInfrastructureCost,cVehicleLifetime,cFleetCost,cDemandCharges,cGeneration,cMaxSolar,cMaxWind,cPersonalEVChargeEnergyLB,cPersonalEVChargeEnergyUB,cPersonalEVChargePowerLB,cPersonalEVChargePowerUB/
 *	combinedModel /obj,cDemandAllocation,cDemandChargeCost,cVehicleMaintCost,cEnergyToMeetDemand,cChargingUpperBound,cChargingLowerBound,cNoChargeAtStart,cTerminalSOC,cNumCharging,cMaxCharging,cNumMoving,cFleetDispatch,cInfrastructureCost,cFleetCost,cDemandCharges,cGeneration,cMaxSolar,cMaxWind,cPersonalEVChargeEnergyLB,cPersonalEVChargeEnergyUB,cPersonalEVChargePowerLB,cPersonalEVChargePowerUB/
 
 options
