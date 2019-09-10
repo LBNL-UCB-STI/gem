@@ -449,10 +449,10 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
       scale_fill_manual(name='Vehicle battery size',values = (getPalette(vmt.by.region$battery.level)),guide=guide_legend(reverse=F))
     streval(pp('p <- p + facet_wrap(~',param.names,')'))
     ggsave(pp(plots.dir,'_daily-vmt.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')  
-    vmt.by.region[,lifetime.target:=200e3/(daily.vmt.per.vehicle*365)]
-    vmt.by.region[,lifetime.error:=lifetime.target-assumed.lifetime.value]
 
     ## Not sure exactly what the "value" represents ##
+    vmt.by.region[,lifetime.target:=200e3/(daily.vmt.per.vehicle*365)]
+    vmt.by.region[,lifetime.error:=lifetime.target-assumed.lifetime.value]
     p <- ggplot(melt(vmt.by.region,id.vars=c('rmob','battery.level',param.names),measure.vars='lifetime.target'),aes(x=rmob,y=value,fill=battery.level))+
       geom_bar(stat='identity',position='dodge')+
       xlab('Region')+
@@ -462,7 +462,29 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
       scale_fill_manual(name='Vehicle battery level',values = (getPalette(vmt.by.region$battery.level)),guide=guide_legend(reverse=F))
     streval(pp('p <- p + facet_wrap(~',param.names,')'))
     ggsave(pp(plots.dir,'_vehicle-lifetime-targets.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')  
-    write.csv(melt(vmt.by.region,id.vars=c('rmob','b',param.names),measure.vars='lifetime.target'),file=pp(plots.dir,'_vehicle-lifetime-targets.csv'))
+    towrite <- melt(vmt.by.region,id.vars=c('rmob','b',param.names),measure.vars='lifetime.target')
+    towrite[is.na(value),value:=mean(towrite$value,na.rm=T)]
+    towrite[value<=0.5,value:=0.5]
+    towrite.prev <- data.table(read.csv(pp(gem.raw.inputs,'/rise-scaling-factors/vehicleLifetimes/vehicleLifetime.csv')))
+    towrite.new <- join.on(towrite,towrite.prev,c('b','rmob'),c('b','rmob'))
+    towrite.new[,value:=(value*7+i.value)/8] # weight toward previous 7 to 1
+    write.csv(towrite.new[,.(b,rmob,value)],file=pp(gem.raw.inputs,'/rise-scaling-factors/vehicleLifetimes/vehicleLifetime.csv'),row.names=F)
+    write.csv(towrite.new[,.(b,rmob,value)],file=pp(gem.raw.inputs,'/rise-scaling-factors/vehicleLifetimes/batteryLifetime.csv'),row.names=F)
+    write.csv(towrite.new[,.(b,rmob,value)],file=pp(gem.raw.inputs,'/rise-scaling-factors/vehicleLifetime.csv'),row.names=F)
+    write.csv(towrite.new[,.(b,rmob,value)],file=pp(gem.raw.inputs,'/rise-scaling-factors/batteryLifetime.csv'),row.names=F)
+    the.dir <- '/Users/critter/odrive/GoogleDriveLBL/VGI4NewMobility/gem-raw-inputs/rise-scaling-factors/vehicleLifetimes/'
+    last.iter <- tail(sort(as.numeric(unlist(lapply(str_split(grep('-',list.files(the.dir),value=T),"-"),function(ll){ str_split(ll[2],".csv")[[1]][1] })))),1)
+    write.csv(towrite.new[,.(b,rmob,value)],file=pp(gem.raw.inputs,'/rise-scaling-factors/vehicleLifetimes/vehicleLifetime-',last.iter+1,'.csv'),row.names=F)
+    
+    all <- list()
+    for(file in grep('-',list.files(the.dir),value=T)){ 
+      all[[length(all)+1]] <- data.table(read.csv(pp(the.dir,file)))
+      the.iter <- as.numeric(str_split(str_split(tail(str_split(file,"/")[[1]],1),"-")[[1]][2],'.csv')[[1]][1])
+      all[[length(all)]][,iter:=the.iter]
+    }
+    all <- rbindlist(all)
+    p <- ggplot(all[iter>=11],aes(x=factor(iter),y=value,fill=b))+geom_bar(position='dodge',stat='identity')+facet_wrap(~rmob)
+    ggsave(pp(gem.raw.inputs,'/rise-scaling-factors/vehicleLifetimes/vehicleLifetimeTargets.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')  
 
     ## Not sure exactly what the "value" represents ##
     p <- ggplot(melt(vmt.by.region,id.vars=c('rmob','battery.level'),measure.vars='lifetime.error'),aes(x=rmob,y=value,fill=battery.level))+

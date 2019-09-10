@@ -157,16 +157,16 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
   cached.raw.factors <- pp(gem.raw.inputs,'/rise-scaling-factors/cached-factors.Rdata')
   the.files <- grep(".csv",list.files(pp(gem.raw.inputs,'/rise-scaling-factors')),value=T)
   the.params <- lapply(str_split(the.files,".csv"),function(ll){ ll[1] })
-  if(file.exists(cached.raw.factors)){
-    load(cached.raw.factors)
-  }else{
+#  if(file.exists(cached.raw.factors)){
+#    load(cached.raw.factors)
+#  }else{
     for(i in 1:length(the.files)){
       the.file <- the.files[i]
       the.param <- the.params[i]
       streval(pp(the.param," <- data.table(read.csv('",pp(gem.raw.inputs,'/rise-scaling-factors/',the.file),"',stringsAsFactors=F))"))
     }
-    streval(pp('save(',pp(the.params,collapse=","),',file="',cached.raw.factors,'")'))
-  }
+#    streval(pp('save(',pp(the.params,collapse=","),',file="',cached.raw.factors,'")'))
+#  }
   for(the.param in the.params){
     streval(pp('inputs$parameters$',the.param,' <- ',the.param))
   }

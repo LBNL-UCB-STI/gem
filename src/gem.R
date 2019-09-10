@@ -45,11 +45,12 @@ if(interactive()){
   args<-'input/experiments/fractionSAEVs.yaml'
   args<-'input/experiments/fractionSmartCharging.yaml'
   args<-'input/experiments/base.yaml'
+  args<-'input/experiments/fractionSAEVsAndSmartCharging.yaml'
 #  args<-'input/experiments/batteryLifetime.yaml'
 #  args<-'input/experiments/vehicleLifetime.yaml'
   args <- pp('--experiment=',args)
 #  args <- c(args,'-t') # don't add timestamp
- # args <- c(args,'-p') # only plots
+#  args <- c(args,'-p') # only plots
   args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=F,args=args)
 }else{
   args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=F)
@@ -139,4 +140,3 @@ for(i in 1:nrow(exper$runs)) {
 res <- lapply(results,function(ll){ rbindlist(ll,fill=T) })
 
 plots.mobility(exper,all.inputs,res,plots.dir)
-
