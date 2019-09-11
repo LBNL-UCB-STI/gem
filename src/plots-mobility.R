@@ -13,12 +13,18 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     if(ncol>9){
       colorRampPalette(brewer.pal(9, "Set1"))(ncol)
     }else if(any(u(vals)=='b075',na.rm=TRUE)|any(u(vals)=='75 kWh',na.rm=TRUE)){
-      head(colorRampPalette(brewer.pal(9, "Set1"))(10),5)
+      if(ncol==5){
+        head(colorRampPalette(brewer.pal(9, "Set1"))(10),5)
+      }else{
+        c(head(colorRampPalette(brewer.pal(9, "Set1"))(10),5),tail(colorRampPalette(brewer.pal(9, "Set1"))(10),ncol-5))
+      }
     }else if(any(u(vals)=='L010',na.rm=TRUE)|any(u(vals)=='10 kW',na.rm=TRUE)){
       if(ncol==5){
         tail(colorRampPalette(brewer.pal(9, "Set1"))(10),5)
-      }else{
+      }else if(ncol==6){
         c(tail(colorRampPalette(brewer.pal(9, "Set1"))(10),5),'#e41a1c')
+      }else{
+        c(tail(colorRampPalette(brewer.pal(9, "Set1"))(10),5),head(colorRampPalette(brewer.pal(9, "Set1"))(10),ncol-5))
       }
     }else{
       colorRampPalette(brewer.pal(ncol, "Set1"))(ncol)
@@ -57,6 +63,13 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   en[,battery.level:=gsub('b|b0','',b)]
   en[,battery.level:=paste(battery.level,'mi')]
   en$battery.level <- factor(en$battery.level,levels=unique(en$battery.level)[mixedorder(unique(en$battery.level))])
+  
+  # Fleet size and num chargers
+  by.r <- rbindlist(list(res[['l-rmob']][,':='(run=run,variable=l,value=numChargers,group='Chargers')],res[['b-rmob']][,':='(run=run,variable=b,value=fleetSize,group='Fleet')]),fill=T)
+  setkey(by.r,run,variable)
+  by.r[,var.clean:=ifelse(grepl('L',variable),paste('Chgr:',variable,'kW'),paste('Bat:',variable,'mi'))]
+  by.r[,var.clean:=gsub(' L| L0| b| b0',' ',var.clean)]
+  by.r$var.clean <- factor(by.r$var.clean,levels=unique(by.r$var.clean)[mixedorder(unique(by.r$var.clean))])
 
   # Merit order
   generators$g <- as.character(generators$g)
@@ -134,11 +147,6 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     ggsave(pp(plots.dir,'/run-',run.i,'/_soc-bar.pdf'),p,width=10*pdf.scale,height=8*pdf.scale,units='in')
     
     # Fleet size & type
-    by.r <- rbindlist(list(res[['l-rmob']][,':='(run=run,variable=l,value=numChargers,group='Chargers')],res[['b-rmob']][,':='(run=run,variable=b,value=fleetSize,group='Fleet')]),fill=T)
-    setkey(by.r,run,variable)
-    by.r[,var.clean:=ifelse(grepl('L',variable),paste('Chgr:',variable,'kW'),paste('Bat:',variable,'mi'))]
-    by.r[,var.clean:=gsub(' L| L0| b| b0',' ',var.clean)]
-    by.r$var.clean <- factor(by.r$var.clean,levels=unique(by.r$var.clean)[mixedorder(unique(by.r$var.clean))])
     p <- ggplot(by.r[run==run.i],aes(x=rmob,y=value/1000,fill=fct_rev(var.clean)))+
       geom_bar(stat='identity')+
       xlab('Region')+
@@ -276,6 +284,72 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   # Across factor plots
   ###################################
   param.names <- names(exper$runs)
+  
+  # Overall Metrics: # vehicles, peak demand, # chargers, emissions, costs
+  # (We also need a counterfactual case (all gasoline vehicles) to provide electricity demand, CO2 emissions and costs to compare with. )
+    
+  personal.evs <- rbindlist(lapply(1:length(all.inputs),function(i){ all.inputs[[i]]$parameters$personalEVFleetSize[,.(value=sum(value),run=i),by='type'] }))[,.(run,b=pp("Private_",type),value)]
+  personal.evs <- join.on(personal.evs,run.params,'run','run')
+  
+  to.plot.fleet <- rbindlist(list(by.r[group=='Fleet',.(value=sum(fleetSize),bplus=pp('SAEV_BEV',substr(b,2,nchar(b)))),by=c('run',param.names,'b')],personal.evs),fill=T)
+  to.plot.fleet[,max.value:=max(to.plot.fleet[,.(val=sum(value)),by='run']$val)]
+  to.plot.fleet[,scaled:=value/max.value]
+  to.plot.fleet[,variable:=ifelse(is.na(bplus),b,bplus)]
+  to.plot.fleet[,metric:='Fleet Size']
+  to.plot.fleet[,col:=getPalette(b)[order(b)]]
+  
+  personal.chargers <- rbindlist(lapply(1:length(all.inputs),function(i){ all.inputs[[i]]$parameters$personalEVChargers[,.(value=sum(value),run=i),by=c('type','level')] }))[,.(run,variable=pp(type,'_Chgr_',ifelse(level=='L1','1.5kW',ifelse(level=='L2','7kW','50kW'))),value)]
+  personal.chargers <- join.on(personal.chargers,run.params,'run','run')
+  to.plot.chargers <- by.r[group=='Chargers',.(value=sum(numChargers)),by=c('run',param.names,'l')]
+  to.plot.chargers[,variable:=pp('SAEV_Chgr_',as.numeric(substr(l,2,nchar(l))),"kW")]
+  to.plot.chargers <- rbindlist(list(to.plot.chargers,personal.chargers),fill=T)
+  to.plot.chargers[,max.value:=max(to.plot.chargers[,.(val=sum(value)),by='run']$val)]
+  to.plot.chargers[,scaled:=value/max.value]
+  to.plot.chargers[,metric:='# Chargers']
+  to.plot.chargers[is.na(l),l:=variable]
+  to.plot.chargers[,col:=getPalette(l)[order(ifelse(substr(l,1,1)=='L',pp('a',l),l))]]
+  
+  to.plot.ch <- rbindlist(list(veh.ch,personal.ev.ch),fill=T,use.names=T)
+  to.plot.ch <- join.on(to.plot.ch,to.plot.ch[,.(gw=sum(gw.charging,na.rm=T)),by=c('run','t')][,.(peak.t=t[which.max(gw)]),by='run'],'run','run')
+  to.plot.peak.ch <- to.plot.ch[t==peak.t,.(value=sum(gw.charging,na.rm=T)),by=c('run','l',param.names)]
+  to.plot.peak.ch[,max.value:=max(to.plot.peak.ch[,.(val=sum(value)),by='run']$val)]
+  to.plot.peak.ch[,scaled:=value/max.value]
+  to.plot.peak.ch[,variable:=ifelse(l=='Private EVs',l,pp('SAEV_Chgr_',as.numeric(substr(l,2,nchar(l))),"kW"))]
+  to.plot.peak.ch[,metric:='Peak Load']
+  to.plot.peak.ch[,col:=getPalette(l)[order(ifelse(substr(l,1,1)=='L',pp('a',l),l))]]
+  
+  to.plot.em <- merge(x=res[['g-t']],y=generators,by='g',all.x=TRUE)[!Simplified%in%c('Solar','Wind','Hydro','Pumps','Nuclear','Geothermal')]
+  to.plot.em <- to.plot.em[,list(emissions=sum(generationCO2*generation),base.emissions=sum(generationCO2*base.generation)),by=c('run','Simplified')]
+  to.plot.em[,value:=emissions-base.emissions]
+  to.plot.em[,max.value:=max(to.plot.em[,.(val=sum(value)),by='run']$val)]
+  to.plot.em[,scaled:=value/max.value]
+  to.plot.em<- to.plot.em[complete.cases(to.plot.em),]
+  to.plot.em[,metric:='Emissions']
+  to.plot.em[,variable:=Simplified]
+  to.plot.em <- join.on(to.plot.em,run.params,'run','run')
+  to.plot.em[,col:=getPalette(variable)[order(variable)]]
+  
+  to.plot.cost <- melt(costs,measure.vars=c('demandChargeCost','vehicleMaintCost','infrastructureCost','fleetCost','energyCost'),id.vars=c('run',param.names))[,.(value=sum(value)),by=c('variable','run',param.names)]
+  cost.key <- data.table(variable=c('demandChargeCost','vehicleMaintCost','infrastructureCost','fleetCost','energyCost'),cost=c('Demand Charges','Maintenance','Infrastructure','Fleet Capital','Energy'))
+  cost.key$cost <- factor(cost.key$cost,levels=c('Demand Charges','Maintenance','Infrastructure','Fleet Capital','Energy'))
+  to.plot.cost <- merge(x=to.plot.cost,y=cost.key,by='variable',all.x=TRUE)
+  to.plot.cost[,max.value:=max(to.plot.cost[,.(val=sum(value)),by='run']$val)]
+  to.plot.cost[,scaled:=value/max.value]
+  to.plot.cost[,metric:='Cost']
+  to.plot.cost[,col:=getPalette(variable)[order(variable)]]
+  
+  all <- rbindlist(list(to.plot.fleet,to.plot.chargers,to.plot.peak.ch,to.plot.em,to.plot.cost),fill=T)
+  the.cols <- all$col
+  names(the.cols) <- all$variable
+  
+  p <- ggplot(all,aes(x=metric,y=scaled,fill=variable))+geom_bar(stat='identity')+scale_fill_manual(values = the.cols)
+  if(length(param.names)==1){
+    p <- p + streval(pp('facet_wrap(~',param.names[1],')'))
+  }else if (length(param.names)==2){
+    p <- p + streval(pp('facet_grid(',param.names[1],'~',param.names[2],')'))
+  }
+  print(p)
+  
   if(length(param.names)>1){
     cat('Post-process script not yet capable of plotting mulit-factorial results, skipping')
   }else{

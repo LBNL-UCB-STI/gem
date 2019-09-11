@@ -124,6 +124,8 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
     # We assume 4.17 trips per person, this is based on NHTS overall trips per person 3.46 but then rescaled by 1/0.83 to account for the people who take no trips (which we effectively remove)
     fleet.sizes <- inputs.mobility$parameters$demandUnscaled[,list(n.vehs=round(sum(value)/length(days)/4.17*(1-fractionSAEVs),0)),by='rmob']
     all.all.energy.constraints <- list()
+    all.fleets <- list()
+    all.chargers <- list()
     for(the.region in common.inputs$sets$rmob){
       fleet_size <- fleet.sizes[rmob==the.region]$n.vehs
       
@@ -164,37 +166,43 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
             # Generate fleet and associated load profile
             ###########################################################
             #Create fleet
-            evi_fleet <- list(data = evi_fleetGen(evi_raw,
-                                                  50000,
-                                                  fleet_weights$pev_weights,
-                                                  fleet_weights$pref_weights,
-                                                  fleet_weights$home_weights,
-                                                  fleet_weights$work_weights,
-                                                  fleet_weights$public_weights,
-                                                  fleet_weights$vmt_weights
-                                                  ))
-      
-            #Generate fleet statistics to check with desired characteristics
-            #evi_fleet$stats <- measureFleetWeights(evi_fleet$data)
-            #print(evi_fleet$stats)
+            evi_fleet <- evi_fleetGen(evi_raw,
+                                        50000,
+                                        fleet_weights$pev_weights,
+                                        fleet_weights$pref_weights,
+                                        fleet_weights$home_weights,
+                                        fleet_weights$work_weights,
+                                        fleet_weights$public_weights,
+                                        fleet_weights$vmt_weights
+                                        )
+            
+            # Collect data on charging infrastructure requirements
+            n.home <- evi_fleet[dest_type=='Home',.(req=length(u(unique_vid))),by=c('dest_type','dest_chg_level')]
+            evi_fleet[,row:=1:nrow(evi_fleet)]
+            occupied <- evi_fleet[dest_type!='Home',.(t=seq(start_time,end_time_prk,by=.25)),by=c('row','dest_type','dest_chg_level')]
+            occupied[,t15:=round(t*4,0)/4]
+            n.non.home <- occupied[,.(n=.N),by=c('dest_type','t15','dest_chg_level')][,.(req=max(n)),by=c('dest_type','dest_chg_level')]
+            unscaled.ch.requirements <- rbindlist(list(n.non.home,n.home))
+            the.weights <- measureFleetWeights(evi_fleet)
+            private.fleet <- rbindlist(list(the.weights$weekend$pev_weights[,days:=2],the.weights$weekday$pev_weights[,days:=5]))[,.(share=weighted.mean(weight,days)),by='name']
       
             #-----Generate 48-hour Fleet Load Profile----------
       
             #Build list of unique_vid from evi_fleet that we'll use to construct the full load profile
-            id_key <- evi_fleet$data[,.(unique_vid = unique(unique_vid)),by=fleet_id]
+            id_key <- evi_fleet[,.(unique_vid = unique(unique_vid)),by=fleet_id]
             setkey(id_key,unique_vid)
             #Subset load profiles specific to those unique_vids in the evi_fleet. This is the full load profile of the fleet
             setkey(evi_load_profiles,unique_vid,session_id)
-            fleet_load_profiles <- evi_load_profiles[unique_vid %in% evi_fleet$data[,unique(unique_vid)]] #Subset to those unique_vids we are interested in
+            fleet_load_profiles <- evi_load_profiles[unique_vid %in% evi_fleet[,unique(unique_vid)]] #Subset to those unique_vids we are interested in
             fleet_load_profiles <- id_key[fleet_load_profiles,allow.cartesian=TRUE] #Capture duplicate unique_vids by using fleet_id
             #Add day_of_week information
-            weekday_ref <- evi_fleet$data[!duplicated(unique_vid),day_of_week,by=unique_vid]
+            weekday_ref <- evi_fleet[!duplicated(unique_vid),day_of_week,by=unique_vid]
             setkey(weekday_ref,unique_vid)
             setkey(fleet_load_profiles,unique_vid)
             fleet_load_profiles <- merge(weekday_ref,fleet_load_profiles,by="unique_vid",all.y=TRUE)
             #### REPEAT FOR DELAYED LOAD SHAPE 
             setkey(evi_delayed_load_profiles,unique_vid,session_id)
-            delayed_fleet_load_profiles <- evi_delayed_load_profiles[unique_vid %in% evi_fleet$data[,unique(unique_vid)]] #Subset to those unique_vids we are interested in
+            delayed_fleet_load_profiles <- evi_delayed_load_profiles[unique_vid %in% evi_fleet[,unique(unique_vid)]] #Subset to those unique_vids we are interested in
             delayed_fleet_load_profiles <- id_key[delayed_fleet_load_profiles,allow.cartesian=TRUE] #Capture duplicate unique_vids by using fleet_id
             setkey(delayed_fleet_load_profiles,unique_vid)
             delayed_fleet_load_profiles <- merge(weekday_ref,delayed_fleet_load_profiles,by="unique_vid",all.y=TRUE)
@@ -229,12 +237,16 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
             energy.and.power.constraints[[season]][[weekday.type]][[transit.type]][['energy']] <- energy.constraints
             energy.and.power.constraints[[season]][[weekday.type]][[transit.type]][['energy.min.offsets']] <- min.energy.initial.offsets
             energy.and.power.constraints[[season]][[weekday.type]][[transit.type]][['power']] <- power.constraints
+            energy.and.power.constraints[[season]][[weekday.type]][[transit.type]][['unscaled.charger.reqs']] <- unscaled.ch.requirements
+            energy.and.power.constraints[[season]][[weekday.type]][[transit.type]][['private.fleet.share']] <- private.fleet
             energy.and.power.constraints.cache <- copy(energy.and.power.constraints)
-            save(energy.and.power.constraints.cache,file=cache.file)
+            save(energy.and.power.constraints.cache,unscaled.ch.requirements,file=cache.file)
           }
         }
       }
   
+      fleets <- list()
+      chargers <- list()
       cumul.energy.constraints <- list()
       for(i in 1:length(days)){
         the.day <- days[i]
@@ -267,17 +279,27 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
         df[,min.power:=power.constraints$min.power]
         #ggplot(df,aes(x=t,y=min.energy,colour=day_of_week))+geom_line()+geom_line(aes(y=max.energy))
         cumul.energy.constraints[[length(cumul.energy.constraints)+1]] <- df
+        chargers[[length(chargers)+1]] <- energy.and.power.constraints[[season]][[weekday.type]][[transit.type]][['unscaled.charger.reqs']][,.(dest_type,dest_chg_level,n.ch=req*scaling.factor,day=i)]
+        fleets[[length(fleets)+1]] <- energy.and.power.constraints[[season]][[weekday.type]][[transit.type]][['private.fleet.share']][,.(name,n.veh=share*fleet_size,day=i)]
       }
       cumul.energy.constraints <- rbindlist(cumul.energy.constraints)
+      chargers <- rbindlist(chargers)[,.(n.ch=max(n.ch)),by=c('dest_type','dest_chg_level')]
+      fleets <- rbindlist(fleets)[,.(n.veh=mean(n.veh)),by=c('name')]
 
       #p <- ggplot(cumul.energy.constraints,aes(x=t,y=min.energy,colour=day_of_week))+geom_line()+geom_line(aes(y=max.energy))
       #ggsave(pp(substr(cache.file,1,nchar(cache.file)-6),'.pdf'),p,width=10,height=8,units='in')
 
       cumul.energy.constraints[,t:=pp('t',sprintf('%04d',t+1))]
       cumul.energy.constraints[,rmob:=the.region]
+      chargers[,rmob:=the.region]
+      fleets[,rmob:=the.region]
+      all.chargers[[length(all.chargers)+1]] <- chargers
+      all.fleets[[length(all.fleets)+1]] <- fleets
       all.all.energy.constraints[[length(all.all.energy.constraints)+1]] <- copy(cumul.energy.constraints)
     }
     all.all.energy.constraints <- rbindlist(all.all.energy.constraints)
+    all.chargers <- rbindlist(all.chargers)
+    all.fleets <- rbindlist(all.fleets)
     inputs <- list()
     inputs$sets <- list()
     inputs$parameters <- list()
@@ -285,12 +307,16 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
     inputs$parameters$personalEVChargeEnergyLB <- all.all.energy.constraints[,list(t,rmob,value=min.energy)]
     inputs$parameters$personalEVChargePowerUB <- all.all.energy.constraints[,list(t,rmob,value=max.power)]
     inputs$parameters$personalEVChargePowerLB <- all.all.energy.constraints[,list(t,rmob,value=min.power)]
+    inputs$parameters$personalEVFleetSize <- all.fleets[,.(rmob,value=n.veh,type=name)]
+    inputs$parameters$personalEVChargers <- all.chargers[,.(rmob,value=n.ch,type=dest_type,level=dest_chg_level)]
   }else{
     zero <- data.table(expand.grid(t=common.inputs$sets$t,rmob=common.inputs$sets$rmob,value=0)) 
     inputs$parameters$personalEVChargeEnergyUB <- zero
     inputs$parameters$personalEVChargeEnergyLB <- zero
     inputs$parameters$personalEVChargePowerUB <- zero
     inputs$parameters$personalEVChargePowerLB <- zero
+    inputs$parameters$personalEVFleetSize <- data.table(expand.grid(rmob=common.inputs$sets$rmob,value=0,type=c('PHEV20','PHEV50','BEV100','BEV250'))) 
+    inputs$parameters$personalEVChargers <- data.table(expand.grid(t=common.inputs$sets$t,rmob=common.inputs$sets$rmob,value=0,type=c(type=c('Public','Home','Work'),level=c('L1','L2','L3')))) 
   }
   inputs
 }
