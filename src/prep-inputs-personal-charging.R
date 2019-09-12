@@ -220,7 +220,8 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
             delayed_fleet_load_profiles[,t:=time_of_day]
             energy.constraints.unnormalized <- join.on(join.on(data.table(expand.grid(list(t=u(c(fleet_load_profiles$t,delayed_fleet_load_profiles$t)),day_of_week=c('weekday','weekend')))),fleet_load_profiles[,list(max.energy=sum(avg_kw)),by=c('t','day_of_week')],c('t','day_of_week'),c('t','day_of_week')), delayed_fleet_load_profiles[,list(min.energy=sum(avg_kw)),by=c('t','day_of_week')],c('t','day_of_week'),c('t','day_of_week'))
             setkey(energy.constraints.unnormalized,day_of_week,t)
-            energy.constraints.unnormalized[is.na(min.energy) & t<5,min.energy:=0]
+            energy.constraints.unnormalized[is.na(min.energy),min.energy:=0]
+            energy.constraints.unnormalized[is.na(max.energy),max.energy:=0]
             energy.constraints.unnormalized[,':='(min.energy=cumsum(min.energy),max.energy=cumsum(max.energy)),by='day_of_week']
             max.diff <- energy.constraints.unnormalized[,list(diff=max(max.energy-min.energy,na.rm=T)),by='day_of_week']
       
