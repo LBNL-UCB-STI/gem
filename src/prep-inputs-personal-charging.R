@@ -126,6 +126,7 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
     all.all.energy.constraints <- list()
     all.fleets <- list()
     all.chargers <- list()
+    the.region <- common.inputs$sets$rmob[1]
     for(the.region in common.inputs$sets$rmob){
       fleet_size <- fleet.sizes[rmob==the.region]$n.vehs
       
@@ -181,13 +182,14 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
             evi_fleet[,row:=1:nrow(evi_fleet)]
             occupied <- evi_fleet[dest_type!='Home',.(t=seq(start_time,end_time_prk,by=.25)),by=c('row','dest_type','dest_chg_level')]
             occupied[,t15:=round(t*4,0)/4]
-            n.non.home <- occupied[,.(n=.N),by=c('dest_type','t15','dest_chg_level')][,.(req=max(n)),by=c('dest_type','dest_chg_level')]
+            n.non.home <- occupied[,.(n=.N * 1.2 ),by=c('dest_type','t15','dest_chg_level')][,.(req=max(n)),by=c('dest_type','dest_chg_level')]
             unscaled.ch.requirements <- rbindlist(list(n.non.home,n.home))
             the.weights <- measureFleetWeights(evi_fleet)
             private.fleet <- rbindlist(list(the.weights$weekend$pev_weights[,days:=2],the.weights$weekday$pev_weights[,days:=5]))[,.(share=weighted.mean(weight,days)),by='name']
       
             #-----Generate 48-hour Fleet Load Profile----------
-      
+            
+            #Handle missing data
             #Build list of unique_vid from evi_fleet that we'll use to construct the full load profile
             id_key <- evi_fleet[,.(unique_vid = unique(unique_vid)),by=fleet_id]
             setkey(id_key,unique_vid)
@@ -195,6 +197,7 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
             setkey(evi_load_profiles,unique_vid,session_id)
             fleet_load_profiles <- evi_load_profiles[unique_vid %in% evi_fleet[,unique(unique_vid)]] #Subset to those unique_vids we are interested in
             fleet_load_profiles <- id_key[fleet_load_profiles,allow.cartesian=TRUE] #Capture duplicate unique_vids by using fleet_id
+            fleet_load_profiles[is.na(avg_kw),avg_kw:=0]
             #Add day_of_week information
             weekday_ref <- evi_fleet[!duplicated(unique_vid),day_of_week,by=unique_vid]
             setkey(weekday_ref,unique_vid)
