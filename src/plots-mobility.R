@@ -348,7 +348,8 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   }else if (length(param.names)==2){
     p <- p + streval(pp('facet_grid(',param.names[1],'~',param.names[2],')'))
   }
-  print(p)
+  pdf.scale <- 1
+  ggsave(pp(plots.dir,'_metrics.pdf'),p,width=14*pdf.scale,height=8*pdf.scale,units='in')
   
   if(length(param.names)>1){
     cat('Post-process script not yet capable of plotting mulit-factorial results, skipping')

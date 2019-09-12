@@ -4,8 +4,10 @@ Factors:
   - Name: fractionSAEVs
     Levels:
       - 0.0
+      - 0.1
+      - 0.25
       - 0.5
-      - 1.0
+      - 0.9
   - Name: fractionSmartCharging
     Levels:
       - 0.0
