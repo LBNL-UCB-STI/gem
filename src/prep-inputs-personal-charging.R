@@ -178,11 +178,11 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
                                         )
             
             # Collect data on charging infrastructure requirements
-            n.home <- evi_fleet[dest_type=='Home',.(req=length(u(unique_vid))),by=c('dest_type','dest_chg_level')]
+            n.home <- fleet_weights$home_weights[,.(dest_type='Home',dest_chg_level=ifelse(name=='HomeL1','L1',ifelse(name=='HomeL2','L2',NA)),req=weight*50e3)][!is.na(dest_chg_level)]
             evi_fleet[,row:=1:nrow(evi_fleet)]
             occupied <- evi_fleet[dest_type!='Home',.(t=seq(start_time,end_time_prk,by=.25)),by=c('row','dest_type','dest_chg_level')]
             occupied[,t15:=round(t*4,0)/4]
-            n.non.home <- occupied[,.(n=.N * 1.2 ),by=c('dest_type','t15','dest_chg_level')][,.(req=max(n)),by=c('dest_type','dest_chg_level')]
+            n.non.home <- occupied[,.(n=.N * 1.5 ),by=c('dest_type','t15','dest_chg_level')][,.(req=max(n)),by=c('dest_type','dest_chg_level')]
             unscaled.ch.requirements <- rbindlist(list(n.non.home,n.home))
             the.weights <- measureFleetWeights(evi_fleet)
             private.fleet <- rbindlist(list(the.weights$weekend$pev_weights[,days:=2],the.weights$weekday$pev_weights[,days:=5]))[,.(share=weighted.mean(weight,days)),by='name']
