@@ -229,6 +229,8 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
             delayed_fleet_load_profiles[,t:=time_of_day%%24]
             energy.constraints <- join.on(join.on(data.table(expand.grid(list(t=0:23,day_of_week=c('weekday','weekend')))),fleet_load_profiles[,list(max.energy=sum(avg_kw)),by=c('t','day_of_week')],c('t','day_of_week'),c('t','day_of_week')), delayed_fleet_load_profiles[,list(min.energy=sum(avg_kw)),by=c('t','day_of_week')],c('t','day_of_week'),c('t','day_of_week'))
             setkey(energy.constraints,day_of_week,t)
+            energy.constraints[is.na(min.energy),min.energy:=0]
+            energy.constraints[is.na(max.energy),max.energy:=0]
             energy.constraints[,':='(min.energy=cumsum(min.energy),max.energy=cumsum(max.energy)),by='day_of_week']
             energy.constraints <- join.on(energy.constraints,max.diff,'day_of_week','day_of_week')
             energy.constraints[,delta:= diff - max(max.energy-min.energy),by='day_of_week']
@@ -265,6 +267,7 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
         scaling.factor <- fleet_size / 50000
         energy.constraints <- copy(energy.and.power.constraints[[the.season]][[the.day.type]][[the.transit.type]][['energy']])
         energy.constraints[,':='(max.energy=max.energy*scaling.factor,min.energy=min.energy*scaling.factor)]
+        if(any(is.na(energy.constraints$min.energy)))stop('here')
         min.energy.initial.offsets <- copy(energy.and.power.constraints[[the.season]][[the.day.type]][[the.transit.type]][['energy.min.offsets']])
         min.energy.initial.offsets[,':='(min.offset=min.offset*scaling.factor)]
         power.constraints <- copy(energy.and.power.constraints[[the.season]][[the.day.type]][[the.transit.type]][['power']])
