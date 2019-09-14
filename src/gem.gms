@@ -28,7 +28,7 @@ alias (t,tp);
 alias (r,o,p);
 
 parameters
-	demand(t,d,rmob)			Demand by distance type, time, and region
+	demand(t,d,rmob)			Demand by distance type time and region
 	chargerPower(l)				kW per charger 
 	chargeRelocationRatio(rmob)		increase in energy consumption due to charging relocation
     chargeRelocationCorrection(b,l,rmob)	decrease in charger power due to relocation

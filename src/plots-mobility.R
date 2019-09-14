@@ -220,6 +220,8 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   # p <- ggplot(tr,aes(x=t,y=value,colour=variable))+geom_line()+facet_grid(group~rmob,scales='free_y') # geom_bar(stat='identity',position='dodge')
   # ggsave(pp(plots.dir,'_energy-vs-price.pdf'),p,width=12*pdf.scale,height=8*pdf.scale,units='in')
   
+  generators[,g:=as.numeric(g)]
+  res[['g-t']][,g:=as.numeric(g)]
   generation <- merge(x=res[['g-t']],y=generators,by='g',all.x=TRUE)
   generation <- generation[,list(generation=sum(generation),base.generation=sum(base.generation)),by=list(run,r,Simplified,t)]
   generation[,consq.generation:=generation-base.generation]
@@ -257,7 +259,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     streval(pp(dat.to.save,' <- join.on(',dat.to.save,',run.params,\'run\',\'run\')'))
   }
   streval(pp('save(',pp(data.to.save,collapse=','),',file="',plots.dir,'/resuls-for-plotting.Rdata")'))
-  load(file=pp(plots.dir,'/resuls-for-plotting.Rdata'))
+  #load(file=pp(plots.dir,'/resuls-for-plotting.Rdata'))
   
   ###################################
   # Across factor plots
@@ -356,21 +358,28 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   all[,metric:=factor(metric,levels = c('Fleet Size','# Chargers','Peak Load','Cost','Emissions'))]
   the.cols <- all$col
   names(the.cols) <- all$variable
+  if(length(param.names)>2){
+    param.inds <- tail(1:length(param.names),-2)
+    first.vals <- sapply(param.inds,function(i){ exper$yaml$Factors[[i]]$Levels[1] })
+    my.cat(pp('Fixing level of following factors to their first: ',pp(param.names[param.inds],'=',first.vals,collapse=', ')))
+    all <- streval(pp('all[',pp(param.names[param.inds],'==',first.vals,collapse=' & '),']'))
+  }
   
   p <- ggplot(all,aes(x=metric,y=scaled*100,fill=variable))+geom_bar(stat='identity')+scale_fill_manual(values = the.cols)+
       theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x="",y="% of Reference Scenario",fill='')
   if(length(param.names)==1){
     p <- p + streval(pp('facet_wrap(~',param.names[1],')'))
-  }else if (length(param.names)==2){
+  }else if (length(param.names)>=2){
     p <- p + streval(pp('facet_grid(',param.names[1],'~',param.names[2],')'))
   }
   pdf.scale <- 1
   ggsave(pp(plots.dir,'_metrics_2d.pdf'),p,width=14*pdf.scale,height=8*pdf.scale,units='in')
   for(the.metric in u(all$metric)){
-    p <- ggplot(all[fractionSmartCharging==0.5 & metric==the.metric],aes(x=factor(fractionSAEVs),y=scaled*100,fill=variable))+geom_bar(stat='identity',colour='black')+scale_fill_manual(values = the.cols)+
-        theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x="",y="% of Reference Scenario",title=the.metric,fill='')
-    pdf.scale <- 1
-    ggsave(pp(plots.dir,'_metric_',the.metric,'.pdf'),p,width=8*pdf.scale,height=6*pdf.scale,units='in')
+    for(the.level in u(streval(pp('all$',param.names[2])))){
+      p <- ggplot(streval(pp('all[',param.names[2],'==',the.level,' & metric==the.metric]')),aes(x=factor(fractionSAEVs),y=scaled*100,fill=variable))+geom_bar(stat='identity',colour='black')+scale_fill_manual(values = the.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x="",y="% of Reference Scenario",title=the.metric,fill='')
+      pdf.scale <- 1
+      ggsave(pp(plots.dir,'_metric_',the.metric,'_',param.names[2],the.level,'.pdf'),p,width=8*pdf.scale,height=6*pdf.scale,units='in')
+    }
   }
   
   if(length(param.names)>1){

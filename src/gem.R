@@ -34,7 +34,8 @@ source('input/defaults.R')
 #####################################################################################
 option_list <- list(make_option(c("-p", "--plots"), action="store_true", default=F,help="Only run code that produces plots, requires results to be already present in outputs [default %default]"),
                     make_option(c("-t", "--notimestamp"), action="store_true", default=F,help="Don't add timestamp to outputs directory [default %default]"),
-                    make_option(c("-e", "--experiment"), type="character", default='input/experiments/base.yaml',help="Path to experiment file [default %default]",metavar="exp"))
+                    make_option(c("-e", "--experiment"), type="character", default='input/experiments/base.yaml',help="Path to experiment file [default %default]",metavar="exp"),
+                    make_option(c("-r", "--runsubset"), type="character", default='',help="Comma separate list of runs to execute [default %default]"))
 if(interactive()){
   args<-'input/experiments/congestion.yaml'
   args<-'input/experiments/l10ChargerCost.yaml'
@@ -45,12 +46,13 @@ if(interactive()){
   args<-'input/experiments/fractionSAEVs.yaml'
   args<-'input/experiments/fractionSmartCharging.yaml'
 #  args<-'input/experiments/base.yaml'
-  args<-'input/experiments/fractionSAEVsAndSmartCharging.yaml'
+  args<-'input/experiments/fractionSAEVsAndSmartChargingAndRE.yaml'
 #  args<-'input/experiments/batteryLifetime.yaml'
 #  args<-'input/experiments/vehicleLifetime.yaml'
   args <- pp('--experiment=',args)
 args <- c(args,'-t') # don't add timestamp
-args <- c(args,'-p') # only plots
+#args <- c(args,'-p') # only plots
+#args <- c(args,'--runsubset=4,8,25,30') # only plots
   args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=F,args=args)
 }else{
   args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=F)
@@ -60,7 +62,11 @@ args <- c(args,'-p') # only plots
 # Load Experiment
 #####################################################################################
 exper <- load.experiment(args$experiment,!args$notimestamp)
-
+if(args$runsubset==''){
+  runs.to.run <- 1:nrow(exper$runs)
+}else{
+  runs.to.run <- unlist(lapply(str_split(args$runsubset,","),as.numeric))
+}
 #####################################################################################
 # Pre-Process Inputs
 #####################################################################################
@@ -68,8 +74,9 @@ if(!args$plots){ # only prep and run model if *not* in plot-only mode
   static.inputs <- prep.inputs.static()
   
   all.inputs <- list()
-  i <- 1
-  for(i in 1:nrow(exper$runs)){
+  
+  i <- runs.to.run[1]
+  for(i in runs.to.run){
     cat(pp('Prepping inputs for run ',i,'\n'))
     inputs <- list()
   
@@ -95,8 +102,8 @@ if(!args$plots){ # only prep and run model if *not* in plot-only mode
   # Load GAMS and Run
   #####################################################################################
   
-  Sys.sleep(0.1) # Allow console statements to print to screen before continuing
-  for(i in 1:nrow(exper$runs)) {
+  for(i in runs.to.run) {
+    Sys.sleep(0.1) # Allow console statements to print to screen before continuing
     cat(pp('Running [',i,'] ',exper$runs[i],'\n'))
     gem.gms <- readLines('src/gem.gms')
     gem.gms <- gsub(pattern='<<gdxName>>',replace='inputs.gdx',x=gem.gms)
@@ -126,7 +133,7 @@ if(!args$plots){ # only prep and run model if *not* in plot-only mode
 plots.dir <- pp(exper$input.dir,'/plots/')
 make.dir(plots.dir)
 results <- list()
-for(i in 1:nrow(exper$runs)) {
+for(i in runs.to.run) {
   result <- gdx.to.data.tables(gdx(pp(exper$input.dir,'/runs/run-',i,'/results.gdx')))
   result.baseGen <- gdx.to.data.tables(gdx(pp(exper$input.dir,'/runs/run-',i,'/results-baseGeneration.gdx')))
   result <- merge.baseGen(result,result.baseGen)

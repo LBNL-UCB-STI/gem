@@ -1,4 +1,4 @@
-Name: fracSAEVsAndSmartCharging
+Name: fracSAEVsAndSmartChargingAndRE
 Mode: combinatorial
 Factors:
   - Name: fractionSAEVs
@@ -15,5 +15,5 @@ Factors:
       - 1.0
   - Name: renewableScalingFactor
     Levels:
-      - 1
+      - 1.0
       - 1.8

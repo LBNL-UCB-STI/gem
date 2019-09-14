@@ -246,7 +246,7 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
             energy.and.power.constraints[[season]][[weekday.type]][[transit.type]][['unscaled.charger.reqs']] <- unscaled.ch.requirements
             energy.and.power.constraints[[season]][[weekday.type]][[transit.type]][['private.fleet.share']] <- private.fleet
             energy.and.power.constraints.cache <- copy(energy.and.power.constraints)
-            save(energy.and.power.constraints.cache,unscaled.ch.requirements,file=cache.file)
+            save(energy.and.power.constraints.cache,file=cache.file)
           }
         }
       }
@@ -323,7 +323,7 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
     inputs$parameters$personalEVChargePowerUB <- zero
     inputs$parameters$personalEVChargePowerLB <- zero
     inputs$parameters$personalEVFleetSize <- data.table(expand.grid(rmob=common.inputs$sets$rmob,value=0,type=c('PHEV20','PHEV50','BEV100','BEV250'))) 
-    inputs$parameters$personalEVChargers <- data.table(expand.grid(t=common.inputs$sets$t,rmob=common.inputs$sets$rmob,value=0,type=c(type=c('Public','Home','Work'),level=c('L1','L2','L3')))) 
+    inputs$parameters$personalEVChargers <- data.table(expand.grid(t=common.inputs$sets$t,rmob=common.inputs$sets$rmob,value=0,type=c(type=c('Public','Home','Work')),level=c('L1','L2','L3')))
   }
   inputs
 }
