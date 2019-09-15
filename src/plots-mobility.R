@@ -296,7 +296,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   to.plot.chargers[,metric:='# Chargers']
   to.plot.chargers[is.na(l),l:=variable]
   to.plot.chargers[,l.ordered:=ifelse(substr(l,1,1)=='L',pp('a',l),l)]
-  to.plot.chargers[,col:=getPalette(l)[match(l.ordered,rev(u(l.ordered)))]]
+  to.plot.chargers[,col:=getPalette(l)[match(l.ordered,u(l.ordered))]]
   
   to.plot.ch <- rbindlist(list(veh.ch,personal.ev.ch),fill=T,use.names=T)
   to.plot.ch <- join.on(to.plot.ch,to.plot.ch[,.(gw=sum(gw.charging,na.rm=T)),by=c('run','t')][,.(peak.t=t[which.max(gw)]),by='run'],'run','run')
@@ -358,29 +358,59 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   all[,metric:=factor(metric,levels = c('Fleet Size','# Chargers','Peak Load','Cost','Emissions'))]
   the.cols <- all$col
   names(the.cols) <- all$variable
-  if(length(param.names)>2){
-    param.inds <- tail(1:length(param.names),-2)
-    first.vals <- sapply(param.inds,function(i){ exper$yaml$Factors[[i]]$Levels[1] })
-    my.cat(pp('Fixing level of following factors to their first: ',pp(param.names[param.inds],'=',first.vals,collapse=', ')))
-    all <- streval(pp('all[',pp(param.names[param.inds],'==',first.vals,collapse=' & '),']'))
+  make.2d.metric.plot <- function(all.sub,code,freeCols){
+    all.sub <- join.on(all.sub,all.sub[,.(val=sum(value)),by=c('run','metric')][,.(max.value=max(val)),by=c('metric')],'metric','metric')
+    all.sub[,scaled:=value/max.value]
+    p <- ggplot(all.sub,aes(x=metric,y=scaled*100,fill=variable))+geom_bar(stat='identity')+scale_fill_manual(values = the.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x="",y="% of Reference Scenario",fill='')
+    p <- p + streval(pp('facet_grid(',freeCols[1],'~',freeCols[2],')'))
+    pdf.scale <- 1
+    ggsave(pp(plots.dir,'_metrics_2d',ifelse(code=='','',pp('_',code)),'.pdf'),p,width=14*pdf.scale,height=8*pdf.scale,units='in')
   }
-  
-  p <- ggplot(all,aes(x=metric,y=scaled*100,fill=variable))+geom_bar(stat='identity')+scale_fill_manual(values = the.cols)+
-      theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x="",y="% of Reference Scenario",fill='')
-  if(length(param.names)==1){
-    p <- p + streval(pp('facet_wrap(~',param.names[1],')'))
-  }else if (length(param.names)>=2){
-    p <- p + streval(pp('facet_grid(',param.names[1],'~',param.names[2],')'))
-  }
-  pdf.scale <- 1
-  ggsave(pp(plots.dir,'_metrics_2d.pdf'),p,width=14*pdf.scale,height=8*pdf.scale,units='in')
-  for(the.metric in u(all$metric)){
-    for(the.level in u(streval(pp('all$',param.names[2])))){
-      p <- ggplot(streval(pp('all[',param.names[2],'==',the.level,' & metric==the.metric]')),aes(x=factor(fractionSAEVs),y=scaled*100,fill=variable))+geom_bar(stat='identity',colour='black')+scale_fill_manual(values = the.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x="",y="% of Reference Scenario",title=the.metric,fill='')
-      pdf.scale <- 1
-      ggsave(pp(plots.dir,'_metric_',the.metric,'_',param.names[2],the.level,'.pdf'),p,width=8*pdf.scale,height=6*pdf.scale,units='in')
+  if(length(param.names)==2){
+    make.2d.metric.plot(all,'',param.names)
+  }else if(length(param.names)>2){
+    param.inds <- data.table(t(combn(length(param.names),length(param.names)-2)))
+    for(param.ind.i in 1:nrow(param.inds)){
+      the.param.inds <- unlist(param.inds[param.ind.i])
+      param.vals <- sapply(the.param.inds,function(i){ exper$yaml$Factors[[i]]$Levels })
+      param.combs <- data.table(expand.grid(param.vals))
+      names(param.combs) <- param.names[the.param.inds]
+      the.free.cols <- param.names[(1:length(param.names))[!(1:length(param.names)%in%the.param.inds)]]
+      for(comb.i in 1:nrow(param.combs)){
+        code <- pp(param.names[the.param.inds],unlist(param.combs[comb.i]),collapse='_')
+        my.cat(pp('Fixing levels to: ',code))
+        all.sub <- streval(pp('all[',pp(param.names[the.param.inds],'==',unlist(param.combs[comb.i]),collapse=' & '),']'))
+        make.2d.metric.plot(all.sub,code,the.free.cols)
+      }
     }
   }
+  make.1d.metric.plot <- function(all.sub,code,freeCol){
+    make.dir(pp(plots.dir,'/1d-metrics'))
+    for(the.metric in u(all.sub$metric)){
+        p <- ggplot(all.sub[metric==the.metric],aes(x=factor(streval(freeCol)),y=scaled*100,fill=variable))+geom_bar(stat='identity',colour='black')+scale_fill_manual(values = the.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x=freeCol,y="% of Reference Scenario",title=pp(the.metric,ifelse(code=='','',' when '),code),fill='')
+        pdf.scale <- 1
+        ggsave(pp(plots.dir,'/1d-metrics/metric_',the.metric,'_',code,'.pdf'),p,width=8*pdf.scale,height=6*pdf.scale,units='in')
+    }
+  }
+  if(length(param.names)==1){
+    make.1d.metric.plot(all)
+  }else{
+    param.inds <- data.table(t(combn(length(param.names),length(param.names)-1)))
+    for(param.ind.i in 1:nrow(param.inds)){
+      the.param.inds <- unlist(param.inds[param.ind.i])
+      param.vals <- sapply(the.param.inds,function(i){ exper$yaml$Factors[[i]]$Levels })
+      param.combs <- data.table(expand.grid(param.vals))
+      names(param.combs) <- param.names[the.param.inds]
+      the.free.col <- param.names[(1:length(param.names))[!(1:length(param.names)%in%the.param.inds)]]
+      for(comb.i in 1:nrow(param.combs)){
+        code <- pp(param.names[the.param.inds],unlist(param.combs[comb.i]),collapse='_')
+        my.cat(pp('Fixing levels to: ',code))
+        all.sub <- streval(pp('all[',pp(param.names[the.param.inds],'==',unlist(param.combs[comb.i]),collapse=' & '),']'))
+        make.1d.metric.plot(all.sub,code,the.free.col)
+      }
+    }
+  }
+  
   
   if(length(param.names)>1){
     cat('Post-process script not yet capable of plotting mulit-factorial results, skipping')

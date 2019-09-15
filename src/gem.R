@@ -51,8 +51,8 @@ if(interactive()){
 #  args<-'input/experiments/vehicleLifetime.yaml'
   args <- pp('--experiment=',args)
 args <- c(args,'-t') # don't add timestamp
-#args <- c(args,'-p') # only plots
-#args <- c(args,'--runsubset=4,8,25,30') # only plots
+args <- c(args,'-p') # only plots
+args <- c(args,'--runsubset=4,8,25,30') # only plots
   args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=F,args=args)
 }else{
   args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=F)
@@ -96,7 +96,7 @@ if(!args$plots){ # only prep and run model if *not* in plot-only mode
     save(inputs,file=pp(exper$input.dir,'/runs/run-',i,'/inputs.Rdata'))
     all.inputs[[length(all.inputs)+1]] <- inputs
   }
-  save(all.inputs,file=pp(exper$input.dir,'/inputs.Rdata'))
+  if(args$runsubset=='')save(all.inputs,file=pp(exper$input.dir,'/inputs.Rdata'))
   
   #####################################################################################
   # Load GAMS and Run
