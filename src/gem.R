@@ -52,7 +52,7 @@ if(interactive()){
   args <- pp('--experiment=',args)
 args <- c(args,'-t') # don't add timestamp
 args <- c(args,'-p') # only plots
-args <- c(args,'--runsubset=4,8,25,30') # only plots
+#args <- c(args,'--runsubset=8,25,30') # only plots
   args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=F,args=args)
 }else{
   args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=F)
@@ -133,7 +133,7 @@ if(!args$plots){ # only prep and run model if *not* in plot-only mode
 plots.dir <- pp(exper$input.dir,'/plots/')
 make.dir(plots.dir)
 results <- list()
-for(i in runs.to.run) {
+for(i in 1:nrow(exper$runs)) {
   result <- gdx.to.data.tables(gdx(pp(exper$input.dir,'/runs/run-',i,'/results.gdx')))
   result.baseGen <- gdx.to.data.tables(gdx(pp(exper$input.dir,'/runs/run-',i,'/results-baseGeneration.gdx')))
   result <- merge.baseGen(result,result.baseGen)

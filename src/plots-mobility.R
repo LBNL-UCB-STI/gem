@@ -57,7 +57,8 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
 
   # Run by Run Plots
   run.i <- u(vehs$run)[1]
-  for(run.i in u(vehs$run)){
+  # for(run.i in u(vehs$run)){
+  if(F){
     setkey(vehs,run,b,rmob,t)
     to.plot <- melt(vehs[run==run.i],id.vars=c('b','rmob','t'))
     to.plot[,vehicle.activity:=gsub('\\.L0|\\.L','(',gsub('vehiclesCharging','Charging ',variable))]
@@ -258,7 +259,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   for(dat.to.save in data.to.save){
     streval(pp(dat.to.save,' <- join.on(',dat.to.save,',run.params,\'run\',\'run\')'))
   }
-  streval(pp('save(',pp(data.to.save,collapse=','),',file="',plots.dir,'/resuls-for-plotting.Rdata")'))
+  streval(pp('save(',pp(data.to.save,collapse=','),',file="',plots.dir,'/results-for-plotting.Rdata")'))
   #load(file=pp(plots.dir,'/resuls-for-plotting.Rdata'))
   
   ###################################
@@ -276,8 +277,6 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   to.plot.fleet <- rbindlist(list(by.r[group=='Fleet',.(value=sum(fleetSize),bplus=pp('SAEV_BEV',substr(b,2,nchar(b)))),by=c('run',param.names,'b')],personal.evs),fill=T)
   not.needed <- to.plot.fleet[,sum(value),by='b'][V1<=1]$b
   to.plot.fleet <- to.plot.fleet[!b%in%not.needed]
-  to.plot.fleet[,max.value:=max(to.plot.fleet[,.(val=sum(value)),by='run']$val)]
-  to.plot.fleet[,scaled:=value/max.value]
   to.plot.fleet[,variable:=ifelse(is.na(bplus),b,bplus)]
   to.plot.fleet[,metric:='Fleet Size']
   to.plot.fleet[,col:=getPalette(b)[match(to.plot.fleet$b,u(to.plot.fleet$b))]]
@@ -291,8 +290,6 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   to.plot.chargers[,variable:=pp('SAEV_Chgr_',ifelse(level.kw<=20,'AC','DC'))]
   to.plot.chargers <- rbindlist(list(to.plot.chargers,personal.chargers),fill=T)
   to.plot.chargers <- to.plot.chargers[,.(value=sum(value),l=l[1]),by=c('run','variable',param.names)]
-  to.plot.chargers[,max.value:=max(to.plot.chargers[,.(val=sum(value)),by='run']$val)]
-  to.plot.chargers[,scaled:=value/max.value]
   to.plot.chargers[,metric:='# Chargers']
   to.plot.chargers[is.na(l),l:=variable]
   to.plot.chargers[,l.ordered:=ifelse(substr(l,1,1)=='L',pp('a',l),l)]
@@ -301,10 +298,9 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   to.plot.ch <- rbindlist(list(veh.ch,personal.ev.ch),fill=T,use.names=T)
   to.plot.ch <- join.on(to.plot.ch,to.plot.ch[,.(gw=sum(gw.charging,na.rm=T)),by=c('run','t')][,.(peak.t=t[which.max(gw)]),by='run'],'run','run')
   to.plot.peak.ch <- to.plot.ch[t==peak.t,.(value=sum(gw.charging,na.rm=T)),by=c('run','l',param.names)]
-  to.plot.peak.ch[,max.value:=max(to.plot.peak.ch[,.(val=sum(value)),by='run']$val)]
-  to.plot.peak.ch[,scaled:=value/max.value]
   to.plot.peak.ch[,level.kw:=as.numeric(substr(l,2,nchar(l)))]
   to.plot.peak.ch[,variable:=ifelse(l=='Private EVs','Private_EV_Load',pp('SAEV_Load_',ifelse(level.kw<=20,'AC','DC')))]
+  to.plot.peak.ch <- to.plot.peak.ch[,.(value=sum(value),l=l[1],level.kw=level.kw[1]),by=c('run',param.names,'variable')]
   to.plot.peak.ch[,metric:='Peak Load']
   to.plot.peak.ch[,l.ordered:=ifelse(substr(l,1,1)=='L',pp('a',l),l)]
   to.plot.peak.ch[,col:=getPalette(l)[match(l.ordered,u(l.ordered))]]
@@ -315,8 +311,6 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   to.plot.em[Simplified=='Biomass',Simplified:='Other']
   to.plot.em <- to.plot.em[,list(emissions=sum(generationCO2*generation),base.emissions=sum(generationCO2*base.generation)),by=c('run','Simplified')]
   to.plot.em[,value:=emissions-base.emissions]
-  to.plot.em[,max.value:=max(to.plot.em[,.(val=sum(value)),by='run']$val)]
-  to.plot.em[,scaled:=value/max.value]
   to.plot.em<- to.plot.em[complete.cases(to.plot.em),]
   to.plot.em[,metric:='Emissions']
   to.plot.em[,variable:=factor(as.character(Simplified))]
@@ -346,13 +340,17 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   to.plot.cost <- melt(costs,measure.vars=c('totalEnergyCost','totalFleetCost','infrastructureCost'),id.vars=c('run',param.names))[,.(value=sum(value)),by=c('variable','run',param.names)]
   to.plot.cost <- rbindlist(list(to.plot.cost,melt(join.on(join.on(infra.cost,veh.cost,'run','run'),run.params,'run','run'),measure.vars=c('privateInfrastructureCost','privateFleetCost'),id.vars=c('run',param.names))),fill=T)
   to.plot.cost[,max.value:=max(to.plot.cost[,.(val=sum(value)),by='run']$val)]
-  to.plot.cost[,scaled:=value/max.value]
   to.plot.cost[,metric:='Cost']
   to.plot.cost[,variable.short:=variable]
   cost.key <- data.table(variable=c('infrastructureCost','totalFleetCost','totalEnergyCost','privateInfrastructureCost','privateFleetCost'),cost.key=c('SAEV Infrastructure','SAEV Fleet','Energy','Private Infrastructure','Private Fleet'))
   to.plot.cost <- join.on(to.plot.cost,cost.key,'variable.short','variable')
   to.plot.cost[,variable:=pp('Cost: ',cost.key)]
   to.plot.cost[,col:=getPalette(variable.short)[match(variable.short,u(variable.short))]]
+  
+  metric.units <- data.table(metric=c('Fleet Size','# Chargers','Peak Load','Emissions','Cost'),
+                             scale.factor=c(1e6,1e6,1,1e6,1e9),
+                             label=c('Millions of Vehicles','Millions of Chargers','Peak Load (GW)','Emissions (Million Tonnes CO2eq)','Cost (Billions of $)')
+                             )
   
   all <- rbindlist(list(to.plot.fleet,to.plot.chargers,to.plot.peak.ch,to.plot.em,to.plot.cost),fill=T)
   all[,metric:=factor(metric,levels = c('Fleet Size','# Chargers','Peak Load','Cost','Emissions'))]
@@ -361,7 +359,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   make.2d.metric.plot <- function(all.sub,code,freeCols){
     all.sub <- join.on(all.sub,all.sub[,.(val=sum(value)),by=c('run','metric')][,.(max.value=max(val)),by=c('metric')],'metric','metric')
     all.sub[,scaled:=value/max.value]
-    p <- ggplot(all.sub,aes(x=metric,y=scaled*100,fill=variable))+geom_bar(stat='identity')+scale_fill_manual(values = the.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x="",y="% of Reference Scenario",fill='')
+    p <- ggplot(all.sub,aes(x=metric,y=scaled*100,fill=variable))+geom_bar(stat='identity')+scale_fill_manual(values = the.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x="",y="% of Reference Scenario",fill='')+theme_bw()
     p <- p + streval(pp('facet_grid(',freeCols[1],'~',freeCols[2],')'))
     pdf.scale <- 1
     ggsave(pp(plots.dir,'_metrics_2d',ifelse(code=='','',pp('_',code)),'.pdf'),p,width=14*pdf.scale,height=8*pdf.scale,units='in')
@@ -384,16 +382,17 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
       }
     }
   }
-  make.1d.metric.plot <- function(all.sub,code,freeCol){
-    make.dir(pp(plots.dir,'/1d-metrics'))
+  make.1d.metric.plot <- function(all.sub,code,freeCol,sub.dir){
+    make.dir(sub.dir)
     for(the.metric in u(all.sub$metric)){
-        p <- ggplot(all.sub[metric==the.metric],aes(x=factor(streval(freeCol)),y=scaled*100,fill=variable))+geom_bar(stat='identity',colour='black')+scale_fill_manual(values = the.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x=freeCol,y="% of Reference Scenario",title=pp(the.metric,ifelse(code=='','',' when '),code),fill='')
+        p <- ggplot(all.sub[metric==the.metric],aes(x=factor(streval(freeCol)),y=value/metric.units[metric==the.metric]$scale.factor,fill=variable))+geom_bar(stat='identity',colour='black')+scale_fill_manual(values = the.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x=freeCol,y=metric.units[metric==the.metric]$label,title=pp(the.metric,ifelse(code=='','',' when '),code),fill='')+theme_bw()
         pdf.scale <- 1
-        ggsave(pp(plots.dir,'/1d-metrics/metric_',the.metric,'_',code,'.pdf'),p,width=8*pdf.scale,height=6*pdf.scale,units='in')
+        ggsave(pp(sub.dir,'/metric_',the.metric,'_',code,'.pdf'),p,width=8*pdf.scale,height=6*pdf.scale,units='in')
     }
   }
+  make.dir(pp(plots.dir,'/_metrics_1d'))
   if(length(param.names)==1){
-    make.1d.metric.plot(all)
+    make.1d.metric.plot(all,'',param.names[1],pp(plots.dir,'/_metrics_1d'))
   }else{
     param.inds <- data.table(t(combn(length(param.names),length(param.names)-1)))
     for(param.ind.i in 1:nrow(param.inds)){
@@ -406,16 +405,12 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
         code <- pp(param.names[the.param.inds],unlist(param.combs[comb.i]),collapse='_')
         my.cat(pp('Fixing levels to: ',code))
         all.sub <- streval(pp('all[',pp(param.names[the.param.inds],'==',unlist(param.combs[comb.i]),collapse=' & '),']'))
-        make.1d.metric.plot(all.sub,code,the.free.col)
+        make.1d.metric.plot(all.sub,code,the.free.col,pp(plots.dir,'/_metrics_1d/',code))
       }
     }
   }
   
-  
-  if(length(param.names)>1){
-    cat('Post-process script not yet capable of plotting mulit-factorial results, skipping')
-  }else{
-    
+  if(length(param.names)==1){
     # Vehicle allocations
     to.plot <- melt(vehs,id.vars=c('b','rmob','t',param.names))
     to.plot <- to.plot[,.(value=sum(value)),by=c('b','t',param.names,'variable')]
