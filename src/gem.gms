@@ -241,12 +241,12 @@ model
 
 options
 	qcp = cplex
-	nlp = IPOPT
+	nlp = snopt
 	solvelink = 2
 	reslim = 500000
 ;
 
-$onecho > cplex.opt
+$onecho > snopt.opt
 threads = 16
 $offecho
 combinedModel.optFile = 1;
@@ -254,7 +254,7 @@ combinedModel.holdfixed = 1;
 
 solve
 	combinedModel
-	using qcp
+	using nlp
 	minimizing systemCost
 ;
 
