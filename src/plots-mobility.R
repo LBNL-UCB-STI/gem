@@ -55,6 +55,13 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   generators <- merge(x=generators,y=fuels,by='FuelType',all.x=TRUE)
   generators$Simplified <- factor(generators$Simplified,levels=meritOrder)
 
+  # Key for matching regions to shapefile region names
+  region.key <- data.table(r=c('ENC','MAT-NL','MAT-NY','MTN','NENG','PAC-CA','PAC-NL','SAT-FL','SAT-NL','WNC','WSC-NL','WSC-TX','ESC'),NAME=c('East North Central','Middle Atlantic','New York','Mountain','New England','California','Pacific','Florida','South Atlantic','West North Central','West South Central','Texas','East South Central'))
+
+  # Map data
+  eia.regions <- st_read(file.path(pp(gem.raw.inputs,'census-division-plus-big-4/','census-division-plus-big-four.shp')))
+  states <- map_data('state')
+
   # Run by Run Plots
   run.i <- u(vehs$run)[1]
   # for(run.i in u(vehs$run)){
@@ -212,6 +219,43 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
       facet_wrap(~r,scale='free_y')+
       theme_bw()
     ggsave(pp(plots.dir,'/run-',run.i,'/_emissions-cnsq-total-by-region-fuel-line.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
+
+    toPlot <- merge(x=res[['g-t']],y=generators,by='g',all.x=TRUE)
+    toPlot.map <- merge(x=toPlot,y=region.key,by='r',all.x=TRUE)
+    toPlot.map <- toPlot.map[,list(Emissions.Total=sum(generationCO2*generation),Emissions.Conseq=sum(generationCO2*(generation-base.generation))),by=list(run,NAME)]
+    toPlot.map <- merge(x=toPlot.map[run==run.i],y=eia.regions,by='NAME')
+
+    p <- ggplot()+
+      geom_polygon(data=states,aes(x=long,y=lat,group=group),fill=NA,color='grey',size=0.2)+
+      geom_sf(data=toPlot.map,aes(fill=Emissions.Conseq/1000),color='black',lwd=0.2)+
+      coord_sf()+
+      xlim(-125,-68)+
+      ylim(25,50)+
+      scale_fill_gradient(name='Consequential\nCO2 Emissions (tons)',low='white',high='darkred')+
+      theme_bw()%+replace% theme(plot.background=element_blank(),panel.background=element_blank(),panel.border=element_blank(),axis.line=element_blank(),axis.text=element_blank(),axis.ticks=element_blank(),axis.title=element_blank())
+      ggsave(pp(plots.dir,'/run-',run.i,'/_map_emissions-cnsq-total-by-region.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
+    
+    p <- ggplot()+
+      geom_polygon(data=states,aes(x=long,y=lat,group=group),fill=NA,color='grey',size=0.2)+
+      geom_sf(data=toPlot.map,aes(fill=Emissions.Total/1000),color='black',lwd=0.2)+
+      coord_sf()+
+      xlim(-125,-68)+
+      ylim(25,50)+
+      scale_fill_gradient(name='Total CO2\nEmissions (tons)',low='white',high='darkred')+
+      theme_bw()%+replace% theme(plot.background=element_blank(),panel.background=element_blank(),panel.border=element_blank(),axis.line=element_blank(),axis.text=element_blank(),axis.ticks=element_blank(),axis.title=element_blank())
+      ggsave(pp(plots.dir,'/run-',run.i,'/_map_emissions-total-by-region.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
+
+    toPlot.pie <- toPlot[run==run.i,list(Generation=sum(generation),Generation.Conseq=sum(generation-base.generation)),by=list(Simplified,r)]
+    toPlot.pie <- toPlot.pie[complete.cases(toPlot.pie)]
+    toPlot.pie[,Proportion:=Generation/sum(Generation),by=list(r)]
+    toPlot.pie[,Proportion.Conseq:=Generation.Conseq/sum(Generation.Conseq),by=list(r)]
+
+    p <- ggplot(data=toPlot.pie,aes(x='',y=Proportion.Conseq,fill=Simplified))+
+      geom_bar(stat='identity')+
+      coord_polar(theta='y',start=0)+
+      theme_void()+
+      facet_wrap(~r)
+    ggsave(pp(plots.dir,'/run-',run.i,'/_pie_generation_byfuel.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
   }
   
   # tr <- rbindlist(list(melt(res[['rmob-t']],id.vars=c('t','rmob','run')),melt(en[,.(en.mob=sum(en.mob),en.ch=sum(en.ch)),by=c('rmob','t','run')],id.vars=c('t','rmob','run'))))
