@@ -143,3 +143,5 @@ print.lst.status <- function(file) {
   print(grep('SOLVER STATUS',lst.file,value=TRUE))
   print(grep('MODEL STATUS',lst.file,value=TRUE))
 }
+
+my.cat <- function (message, ...){ cat(paste(message, "\n", sep = ""), ...) }

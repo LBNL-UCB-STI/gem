@@ -357,7 +357,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   the.cols <- all$col
   names(the.cols) <- all$variable
   make.2d.metric.plot <- function(all.sub,code,freeCols){
-    all.sub <- join.on(all.sub,all.sub[,.(val=sum(value)),by=c('run','metric')][,.(max.value=max(val)),by=c('metric')],'metric','metric')
+    all.sub <- join.on(all.sub,all.sub[,.(val=sum(value,na.rm=T)),by=c('run','metric')][,.(max.value=max(val,na.rm=T)),by=c('metric')],'metric','metric')
     all.sub[,scaled:=value/max.value]
     p <- ggplot(all.sub,aes(x=metric,y=scaled*100,fill=variable))+geom_bar(stat='identity')+scale_fill_manual(values = the.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x="",y="% of Reference Scenario",fill='')+theme_bw()
     p <- p + streval(pp('facet_grid(',freeCols[1],'~',freeCols[2],')'))

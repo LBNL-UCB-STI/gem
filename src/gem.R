@@ -52,7 +52,8 @@ if(interactive()){
   args <- pp('--experiment=',args)
 args <- c(args,'-t') # don't add timestamp
 args <- c(args,'-p') # only plots
-#args <- c(args,'--runsubset=8,25,30') # only plots
+#args <- c(args,'--runsubset=16,17,18,19,20,21,22,23,24,25,26,27,28,29,30') # only plots
+#args <- c(args,'--runsubset=23') # only plots
   args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=F,args=args)
 }else{
   args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=F)

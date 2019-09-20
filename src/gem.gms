@@ -243,6 +243,10 @@ options
 
 $onecho > cplex.opt
 threads = 16
+barepcomp = 1e-005
+barqcpepcomp = 1e-004
+* baralg = 1
+* scaind = -1
 $offecho
 combinedModel.optFile = 1;
 combinedModel.holdfixed = 1;
