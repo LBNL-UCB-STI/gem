@@ -6,12 +6,12 @@ library('optparse')
 library('yaml')
 library('reshape')
 library('grid')
-library('yaml')
 library('gdxtools')
 library('lubridate')
 library('RColorBrewer')
 library('forcats')
 library('gtools')
+library('sf')
 
 gdx.to.data.tables <- function(mygdx){
   keys <- all_items(mygdx)$set
