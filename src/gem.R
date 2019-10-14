@@ -19,7 +19,7 @@ if(!exists('gem.project.directory')){
 }
 setwd(gem.project.directory)
 source('src/includes.R')
-igdx(gams.executable.location)
+gdx(gams.executable.location)
 source('src/load-experiment.R')
 source('src/prep-inputs-static.R')
 source('src/prep-inputs-common.R')

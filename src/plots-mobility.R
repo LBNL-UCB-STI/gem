@@ -51,9 +51,10 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   by.r$var.clean <- factor(by.r$var.clean,levels=unique(by.r$var.clean)[mixedorder(unique(by.r$var.clean))])
 
   # Merit order
-  generators$g <- as.character(generators$g)
-  generators <- merge(x=generators,y=fuels,by='FuelType',all.x=TRUE)
-  generators$Simplified <- factor(generators$Simplified,levels=meritOrder)
+  geners <- copy(generators)
+  geners$g <- as.character(geners$g)
+  geners <- merge(x=geners,y=fuels,by='FuelType',all.x=TRUE)
+  geners$Simplified <- factor(geners$Simplified,levels=meritOrder)
 
   # Key for matching regions to shapefile region names
   region.key <- data.table(r=c('ENC','MAT-NL','MAT-NY','MTN','NENG','PAC-CA','PAC-NL','SAT-FL','SAT-NL','WNC','WSC-NL','WSC-TX','ESC'),NAME=c('East North Central','Middle Atlantic','New York','Mountain','New England','California','Pacific','Florida','South Atlantic','West North Central','West South Central','Texas','East South Central'))
@@ -167,7 +168,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     # ggsave(pp(plots.dir,'/run-',run.i,'/_urban-form-factor-by-region.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
 
     # Generation
-    to.plot <- merge(x=res[['g-t']][run==run.i],y=generators,by='g',all.x=TRUE)
+    to.plot <- merge(x=res[['g-t']][run==run.i],y=geners,by='g',all.x=TRUE)
     to.plot <- to.plot[,list(generation=sum(generation),base.generation=sum(base.generation)),by=list(r,Simplified,t)]
     to.plot[,consq.generation:=generation-base.generation]
     to.plot <- to.plot[complete.cases(to.plot),]
@@ -189,7 +190,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
       theme_bw()
     ggsave(pp(plots.dir,'/run-',run.i,'/_generation-cnsq-total-by-region-fuel.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
 
-    to.plot <- merge(x=res[['g-t']][run==run.i],y=generators,by='g',all.x=TRUE)
+    to.plot <- merge(x=res[['g-t']][run==run.i],y=geners,by='g',all.x=TRUE)
     to.plot <- to.plot[,list(emissions=sum(generationCO2*generation),base.emissions=sum(generationCO2*base.generation)),by=list(r,Simplified,t)]
     to.plot[,consq.emissions:=emissions-base.emissions]
     to.plot <- to.plot[complete.cases(to.plot),]
@@ -220,7 +221,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
       theme_bw()
     ggsave(pp(plots.dir,'/run-',run.i,'/_emissions-cnsq-total-by-region-fuel-line.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
 
-    toPlot <- merge(x=res[['g-t']],y=generators,by='g',all.x=TRUE)
+    toPlot <- merge(x=res[['g-t']],y=geners,by='g',all.x=TRUE)
     toPlot.map <- merge(x=toPlot,y=region.key,by='r',all.x=TRUE)
     toPlot.map <- toPlot.map[,list(Emissions.Total=sum(generationCO2*generation),Emissions.Conseq=sum(generationCO2*(generation-base.generation))),by=list(run,NAME)]
     toPlot.map <- merge(x=toPlot.map[run==run.i],y=eia.regions,by='NAME')
@@ -265,14 +266,14 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   # p <- ggplot(tr,aes(x=t,y=value,colour=variable))+geom_line()+facet_grid(group~rmob,scales='free_y') # geom_bar(stat='identity',position='dodge')
   # ggsave(pp(plots.dir,'_energy-vs-price.pdf'),p,width=12*pdf.scale,height=8*pdf.scale,units='in')
   
-  generators[,g:=as.numeric(g)]
+  geners[,g:=as.numeric(g)]
   res[['g-t']][,g:=as.numeric(g)]
-  generation <- merge(x=res[['g-t']],y=generators,by='g',all.x=TRUE)
+  generation <- merge(x=res[['g-t']],y=geners,by='g',all.x=TRUE)
   generation <- generation[,list(generation=sum(generation),base.generation=sum(base.generation)),by=list(run,r,Simplified,t)]
   generation[,consq.generation:=generation-base.generation]
   generation <- generation[complete.cases(generation),]
   
-  gen.cost <- merge(x=res[['g-t']],y=generators,by='g',all.x=TRUE)
+  gen.cost <- merge(x=res[['g-t']],y=geners,by='g',all.x=TRUE)
   gen.cost <- gen.cost[,list(energyCost=sum(generationCosts*(generation-base.generation))),by=list(r,run)]
   
   #gen.cost <- join.on(join.on(res[['g-t']],res[['g']],c('g','run'),c('g','run'))[,g:=as.numeric(g)],inputs$sets$gtor,'g','g')
@@ -314,9 +315,10 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   # Overall Metrics: # vehicles, peak demand, # chargers, emissions, costs
   # (We also need a counterfactual case (all gasoline vehicles) to provide electricity demand, CO2 emissions and costs to compare with. )
   # Add a plot for utilization of chargers
-    
+  personal.ev.conversion.eff <- 0.325
   personal.evs <- rbindlist(lapply(1:length(all.inputs),function(i){ all.inputs[[i]]$parameters$personalEVFleetSize[,.(value=sum(value),run=i),by='type'] }))[,.(run,b=pp("Private_",type),value)]
   personal.evs <- join.on(personal.evs,run.params,'run','run')
+  personal.evs[,batt.kwh:=unlist(lapply(str_split(b,"EV"),function(ll){ as.numeric(ll[2])}))*personal.ev.conversion.eff]
   
   to.plot.fleet <- rbindlist(list(by.r[group=='Fleet',.(value=sum(fleetSize),bplus=pp('SAEV_BEV',substr(b,2,nchar(b)))),by=c('run',param.names,'b')],personal.evs),fill=T)
   not.needed <- to.plot.fleet[,sum(value),by='b'][V1<=1]$b
@@ -324,6 +326,8 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   to.plot.fleet[,variable:=ifelse(is.na(bplus),b,bplus)]
   to.plot.fleet[,metric:='Fleet Size']
   to.plot.fleet[,col:=getPalette(b)[match(to.plot.fleet$b,u(to.plot.fleet$b))]]
+  to.plot.fleet <- join.on(to.plot.fleet,res[['b']],c('run','b'),c('run','b'))
+  to.plot.fleet[is.na(batteryCapacity),':='(batteryCapacity=batt.kwh,conversionEfficiency=personal.ev.conversion.eff)]
   
   personal.chargers <- rbindlist(lapply(1:length(all.inputs),function(i){ all.inputs[[i]]$parameters$personalEVChargers[,.(value=sum(value),run=i),by=c('type','level')] }))[,.(run,type,level,value)]
   personal.chargers[,variable:=pp(type,'_Chgr')]
@@ -349,22 +353,10 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   to.plot.peak.ch[,l.ordered:=ifelse(substr(l,1,1)=='L',pp('a',l),l)]
   to.plot.peak.ch[,col:=getPalette(l)[match(l.ordered,u(l.ordered))]]
   
-  if(is.character(res[['g-t']]$g[1]))res[['g-t']][,g:=as.numeric(g)]
-  if(is.character(generators$g[1]))generators[,g:=as.numeric(g)]
-  to.plot.em <- join.on(res[['g-t']],generators,'g','g')[!Simplified%in%c('Solar','Wind','Hydro','Pumps','Nuclear','Geothermal')]
-  to.plot.em[Simplified=='Biomass',Simplified:='Other']
-  to.plot.em <- to.plot.em[,list(emissions=sum(generationCO2*generation),base.emissions=sum(generationCO2*base.generation)),by=c('run','Simplified')]
-  to.plot.em[,value:=emissions-base.emissions]
-  to.plot.em<- to.plot.em[complete.cases(to.plot.em),]
-  to.plot.em[,metric:='Emissions']
-  to.plot.em[,variable:=factor(as.character(Simplified))]
-  to.plot.em <- join.on(to.plot.em,run.params,'run','run')
-  to.plot.em[,col:=getPalette(variable)[match(variable,u(variable))]]
-  
   #private ev costs
   privateChargerLifetime <- inputs$parameters$chargerLifetime$value[1]*365
   privateVehicleLifetime <- 11*365
-  meanBattLifetime <- mean(inputs$parameters$batteryLifetime$value)*365
+  privateBatteryLifetime <- privateVehicleLifetime
   dailyDiscount <- discountRate/365
   vehCapCost <- 30e3
   vehPerDayCost <- 600 / 365
@@ -374,13 +366,13 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   infra.cost[level=='L1',cost.per.kw:=50]
   infra.cost[,cost:=cost.per.kw*level.kw*value]
   infra.cost <- infra.cost[,.(privateInfrastructureCost=(sum(cost)*dailyDiscount*(1+dailyDiscount)^privateChargerLifetime)/((1+dailyDiscount)^privateChargerLifetime-1)),by='run']
-  personal.evs[,batt.kwh:=unlist(lapply(str_split(b,"EV"),function(ll){ as.numeric(ll[2])}))]
   veh.amort.ratio <- dailyDiscount*(1+dailyDiscount)^privateVehicleLifetime / ((1+dailyDiscount)^privateVehicleLifetime - 1)
-  batt.amort.ratio <- dailyDiscount*(1+dailyDiscount)^meanBattLifetime / ((1+dailyDiscount)^meanBattLifetime - 1)
-  veh.cost <- personal.evs[,.(n=sum(value)),by=c('run','batt.kwh')][,.(privateFleetCost=sum(n*(vehPerDayCost + vehCapCost*veh.amort.ratio + batt.kwh*inputs$parameters$batteryCapitalCost$value*batt.amort.ratio))),by='run']
+  batt.amort.ratio <- dailyDiscount*(1+dailyDiscount)^privateBatteryLifetime / ((1+dailyDiscount)^privateBatteryLifetime - 1)
+  veh.cost <- personal.evs[,.(n=sum(value)),by=c('run','batt.kwh')][,.(privateFleetCost=sum(n*(vehPerDayCost + vehCapCost*veh.amort.ratio + batt.kwh*inputs$parameters$batteryCapitalCost$value*batt.amort.ratio + vehPerMileCosts*12e3/365))),by='run']
   
-  costs[,totalFleetCost:=vehicleMaintCost+fleetCost]
-  costs[,totalEnergyCost:=demandChargeCost+energyCost]
+  n.days.in.run <- length(inputs$set$t)/24
+  costs[,totalFleetCost:=vehicleMaintCost/n.days.in.run+fleetCost]
+  costs[,totalEnergyCost:=demandChargeCost/n.days.in.run+energyCost/n.days.in.run]
   to.plot.cost <- melt(costs,measure.vars=c('totalEnergyCost','totalFleetCost','infrastructureCost'),id.vars=c('run',param.names))[,.(value=sum(value)),by=c('variable','run',param.names)]
   to.plot.cost <- rbindlist(list(to.plot.cost,melt(join.on(join.on(infra.cost,veh.cost,'run','run'),run.params,'run','run'),measure.vars=c('privateInfrastructureCost','privateFleetCost'),id.vars=c('run',param.names))),fill=T)
   to.plot.cost[,max.value:=max(to.plot.cost[,.(val=sum(value)),by='run']$val)]
@@ -391,10 +383,32 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   to.plot.cost[,variable:=pp('Cost: ',cost.key)]
   to.plot.cost[,col:=getPalette(variable.short)[match(variable.short,u(variable.short))]]
   
+  # Emissions
+  saev.lifetimes <- vmt.by.region[,.(vehicleLifetime=vehicleLifetime[1],batteryLifetime=batteryLifetime[1]),by=c('run','b')]
+  saev.lifetimes[,veh.amort.ratio:=dailyDiscount*(1+dailyDiscount)^(vehicleLifetime*365) / ((1+dailyDiscount)^(vehicleLifetime*365) - 1)]
+  saev.lifetimes[,batt.amort.ratio:=dailyDiscount*(1+dailyDiscount)^(batteryLifetime*365) / ((1+dailyDiscount)^(batteryLifetime*365) - 1)]
+  if(is.character(res[['g-t']]$g[1]))res[['g-t']][,g:=as.numeric(g)]
+  if(is.character(geners$g[1]))geners[,g:=as.numeric(g)]
+  to.plot.em <- join.on(res[['g-t']],geners,'g','g')[!Simplified%in%c('Solar','Wind','Hydro','Pumps','Nuclear','Geothermal')]
+  to.plot.em[is.na(Simplified) | Simplified=='Biomass',Simplified:='Other']
+  to.plot.em <- to.plot.em[,list(emissions=sum(generationCO2*generation),base.emissions=sum(generationCO2*base.generation)),by=c('run','Simplified')]
+  to.plot.em[,value:=emissions-base.emissions]
+  veh.manuf.em <- to.plot.fleet[,.(n=sum(value),batteryCapacity=batteryCapacity[1]),by=c('run','b')]
+  veh.manuf.em <- join.on(veh.manuf.em,saev.lifetimes,c('run','b'),c('run','b'))
+  veh.manuf.em[is.na(vehicleLifetime),':='(vehicleLifetime=privateVehicleLifetime/365,batteryLifetime=privateBatteryLifetime/365,veh.amort.ratio=dailyDiscount*(1+dailyDiscount)^(privateVehicleLifetime) / ((1+dailyDiscount)^(privateVehicleLifetime) - 1),batt.amort.ratio=dailyDiscount*(1+dailyDiscount)^(privateBatteryLifetime) / ((1+dailyDiscount)^(privateBatteryLifetime) - 1))]
+  veh.manuf.em[,value:=n*7.1*veh.amort.ratio+n*0.11*batteryCapacity*batt.amort.ratio]
+  veh.manuf.em[,Simplified:='Vehicle Manufacture']
+  to.plot.em <- rbindlist(list(to.plot.em,veh.manuf.em[,.(value=sum(value)),by=c('Simplified','run')]),use.names=T,fill=T)
+  #to.plot.em<- to.plot.em[complete.cases(to.plot.em),]
+  to.plot.em[,metric:='Emissions']
+  to.plot.em[,variable:=factor(as.character(Simplified))]
+  to.plot.em <- join.on(to.plot.em,run.params,'run','run')
+  to.plot.em[,col:=getPalette(variable)[match(variable,u(variable))]]
+  
   metric.units <- data.table(metric=c('Fleet Size','# Chargers','Peak Load','Emissions','Cost'),
                              scale.factor=c(1e6,1e6,1,1e6,1e9),
-                             label=c('Millions of Vehicles','Millions of Chargers','Peak Load (GW)','Emissions (Million Tonnes CO2eq)','Cost (Billions of $)')
-                             )
+                             label=c('Millions of Vehicles','Millions of Chargers','Peak Load (GW)','Emissions (Million Tonnes CO2eq)','Cost (Billions of $)'))
+  factor.labels <- c('fractionSAEVs'='Fraction SAEVs in Fleet','fractionSmartCharging'='Fraction Smart Charging in Private Fleet','renewableScalingFactor'='Solar & Wind Capacity Scaling Factor')
   
   all <- rbindlist(list(to.plot.fleet,to.plot.chargers,to.plot.peak.ch,to.plot.em,to.plot.cost),fill=T)
   all[,metric:=factor(metric,levels = c('Fleet Size','# Chargers','Peak Load','Cost','Emissions'))]
@@ -429,9 +443,18 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   make.1d.metric.plot <- function(all.sub,code,freeCol,sub.dir){
     make.dir(sub.dir)
     for(the.metric in u(all.sub$metric)){
-        p <- ggplot(all.sub[metric==the.metric],aes(x=factor(streval(freeCol)),y=value/metric.units[metric==the.metric]$scale.factor,fill=variable))+geom_bar(stat='identity',colour='black')+scale_fill_manual(values = the.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x=freeCol,y=metric.units[metric==the.metric]$label,title=pp(the.metric,ifelse(code=='','',' when '),code),fill='')+theme_bw()
+        p <- ggplot(all.sub[metric==the.metric],aes(x=factor(streval(freeCol)),y=value/metric.units[metric==the.metric]$scale.factor,fill=variable))+geom_bar(stat='identity',colour='black')+scale_fill_manual(values = the.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x=factor.labels[freeCol],y=metric.units[metric==the.metric]$label,title=pp(the.metric,ifelse(code=='','',' when '),code),fill='')+theme_bw()
         pdf.scale <- 1
-        ggsave(pp(sub.dir,'/metric_',the.metric,'_',code,'.pdf'),p,width=8*pdf.scale,height=6*pdf.scale,units='in')
+        ggsave(pp(sub.dir,'/metric_',the.metric,'_',code,'.pdf'),p,width=6*pdf.scale,height=4*pdf.scale,units='in')
+        if(the.metric=='Emissions'){
+          p <- ggplot(all.sub[metric==the.metric],aes(x=factor(streval(freeCol)),y=value/metric.units[metric==the.metric]$scale.factor,fill=variable))+geom_bar(stat='identity',colour='black')+scale_fill_manual(values = the.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x=factor.labels[freeCol],y=metric.units[metric==the.metric]$label,title=pp(the.metric,ifelse(code=='','',' when '),code),fill='')+theme_bw()+scale_y_continuous(limits = c(0,11.5))
+          pdf.scale <- 1
+          ggsave(pp(sub.dir,'/metric_',the.metric,'_',code,'_scaledTo11.pdf'),p,width=6*pdf.scale,height=4*pdf.scale,units='in')
+        }else if(the.metric=='Cost'){
+          p <- ggplot(all.sub[metric==the.metric & variable=='Cost: Energy'],aes(x=factor(streval(freeCol)),y=value/metric.units[metric==the.metric]$scale.factor,fill=variable))+geom_bar(stat='identity',colour='black')+scale_fill_manual(values = the.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x=factor.labels[freeCol],y=metric.units[metric==the.metric]$label,title=pp(the.metric,ifelse(code=='','',' when '),code),fill='')+theme_bw()
+          pdf.scale <- 1
+          ggsave(pp(sub.dir,'/metric_',the.metric,'_',code,'_energyInset.pdf'),p,width=6*pdf.scale,height=4*pdf.scale,units='in')
+        }
     }
   }
   make.dir(pp(plots.dir,'/_metrics_1d'))
