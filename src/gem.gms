@@ -243,9 +243,9 @@ options
 
 $onecho > cplex.opt
 threads = 16
-*barepcomp = 1e-005
-*barqcpepcomp = 1e-004
-baralg = 1
+barepcomp = 1e-002
+barqcpepcomp = 1e-001
+* baralg = 1
 * scaind = -1
 $offecho
 combinedModel.optFile = 1;

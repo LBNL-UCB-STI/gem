@@ -19,7 +19,7 @@ if(!exists('gem.project.directory')){
 }
 setwd(gem.project.directory)
 source('src/includes.R')
-gdx(gams.executable.location)
+igdx(gams.executable.location)
 source('src/load-experiment.R')
 source('src/prep-inputs-static.R')
 source('src/prep-inputs-common.R')
@@ -34,6 +34,7 @@ source('input/defaults.R')
 #####################################################################################
 option_list <- list(make_option(c("-p", "--plots"), action="store_true", default=F,help="Only run code that produces plots, requires results to be already present in outputs [default %default]"),
                     make_option(c("-t", "--notimestamp"), action="store_true", default=F,help="Don't add timestamp to outputs directory [default %default]"),
+                    make_option(c("-d", "--trimdays"), action="store_true", default=F,help="Trim a day off beginning and end of simulation results to avoid edge effects [default %default]"),
                     make_option(c("-e", "--experiment"), type="character", default='input/experiments/base.yaml',help="Path to experiment file [default %default]",metavar="exp"),
                     make_option(c("-r", "--runsubset"), type="character", default='',help="Comma separate list of runs to execute [default %default]"))
 if(interactive()){
@@ -44,16 +45,17 @@ if(interactive()){
   args<-'input/experiments/carbonTax.yaml'
   args<-'input/experiments/renewableScalingFactor.yaml'
   args<-'input/experiments/fractionSAEVs.yaml'
-  args<-'input/experiments/fractionSmartCharging.yaml'
+  args<-'input/experiments/fractionSAEVsAndSmartCharging.yaml'
 #  args<-'input/experiments/base.yaml'
-  args<-'input/experiments/fractionSAEVsAndSmartChargingAndRE.yaml'
+#  args<-'input/experiments/fractionSAEVsAndSmartChargingAndRE.yaml'
 #  args<-'input/experiments/batteryLifetime.yaml'
 #  args<-'input/experiments/vehicleLifetime.yaml'
   args <- pp('--experiment=',args)
 args <- c(args,'-t') # don't add timestamp
 args <- c(args,'-p') # only plots
-#args <- c(args,'--runsubset=16,17,18,19,20,21,22,23,24,25,26,27,28,29,30') # only plots
-#args <- c(args,'--runsubset=23') # only plots
+args <- c(args,'-d') # trim one day off beginning and end of results
+#args <- c(args,'--runsubset=16,17,18,19')
+#args <- c(args,'--runsubset=4') 
   args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=F,args=args)
 }else{
   args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=F)
@@ -140,6 +142,11 @@ for(i in 1:nrow(exper$runs)) {
   result <- merge.baseGen(result,result.baseGen)
   for(key in names(result)){
     result[[key]][,run:=i]
+    if('t'%in%names(result[[key]]) & args$trimdays){
+      max.t <- max(result[[key]]$t)
+      result[[key]] <- result[[key]][t>24 & t<=max.t-24]
+      result[[key]][,t:=t-24]
+    }
     if(i==1)results[[key]] <- list()
     results[[key]][[length(results[[key]])+1]] <- result[[key]]
   }

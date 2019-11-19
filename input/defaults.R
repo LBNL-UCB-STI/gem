@@ -5,10 +5,10 @@
 #days <- c(74:81,147:154,260:267,351:358) # 8 per week
 #days <- c(74:80,147:153,260:266,351:357) # 7 per week
 #days <- c(74:77,79,148:152,260:264,351:355) # 5 per week, 4 weekday, 1 weekend
-#days <- c(75:77,148:150,260:262,351:353) # 3 per week, 2 weekday, 1 weekend
+days <- c(74:77,148:150,260:262,351:354) # 3 per week, 2 weekday, 1 weekend plus 2 for buffer on ends
 
 # DEFAULT TIME PERIOD FOR PAPERS / FINAL ANALYSIS
-days <- c(75:76,149:150,261:262,352:353) # 2 per week, 2 weekday
+#days <- c(75:76,149:150,261:262,352:353) # 2 per week, 2 weekday
 
 #days <- c(75,149,261,352) # 1 per week, 1 weekday
 #days <- c(75,149,261) # 1 per week, 1 weekday
@@ -37,11 +37,16 @@ privateFleetWeights <- "fleet_weights_base" # name (without extension) of file i
 congestion <- 'Freeflow'
 l10ChargerCost <- 500 # $/kW
 chargerCostSuperlinear <- 3 # rate of increase beyond linear from low to high power chargers
+# Following is based on NHTS demand without transit and assumes 10 holidays per year and splits difference in remainder
+weekday.to.year.factor <- 250.5 + 114.5*(19861098473/22232870872) # N_weekdays + N_weekends*(Demand_weekends/Demand_weekdays)
+# Following is based on above but adjusted to account for runs with 2 weekdays + 1 weekend
+weekday.to.year.factor <- 250.5 + 114.5*(19861098473/22232870872) # N_weekdays + N_weekends*(Demand_weekends/Demand_weekdays)
 
 #### Grid ####
 generators <- data.table(read.csv(pp(gem.raw.inputs,'gem_gridInputs_generators.csv')))
 load <- data.table(read.csv(pp(gem.raw.inputs,'gem_gridInputs_load.csv')))
 transmission <- data.table(read.csv(pp(gem.raw.inputs,'gem_gridInputs_transmission.csv')))
+transmissionScalingFactor <- 1.0
 renewableCF <- data.table(read.csv(pp(gem.raw.inputs,'gem_gridInputs_renewableCF.csv')))
 
 fuels <- data.frame('FuelType'=c('Wind','Waste Coal','Tire','Solar','Pumps','Pet. Coke','Oil','Nuclear','None','Non-Fossil','NaturalGas','MSW','LF Gas','Hydro','Geothermal','Fwaste','Coal','Biomass'),'Simplified'=c('Wind','Coal','Other','Solar','Pumps','Other','Other','Nuclear','Other','Other','NaturalGas','Biomass','NaturalGas','Hydro','Geothermal','Biomass','Coal','Biomass'))

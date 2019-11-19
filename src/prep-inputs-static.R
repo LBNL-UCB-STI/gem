@@ -35,12 +35,7 @@ prep.inputs.static <- function(){
   demandLoad[,t:=inputs.sets$t,by='r']
   demandLoad <- demandLoad[,list(r,t,value)]
 
-  transCap <- transmission[,list(r1,r2,transCap)]
-  names(transCap) <- c('r','o','value')
-  transCost <- transmission[,list(r1,r2,transCost)]
-  names(transCost) <- c('r','o','value')
-
-  inputs.parameters <- list(demandLoad=demandLoad,transCap=transCap,transCost=transCost)
+  inputs.parameters <- list(demandLoad=demandLoad)
 
   inputs <- list(sets=inputs.sets,parameters=inputs.parameters)
 

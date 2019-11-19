@@ -124,6 +124,7 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
     # We assume 4.17 trips per person, this is based on NHTS overall trips per person 3.46 but then rescaled by 1/0.83 to account for the people who take no trips (which we effectively remove)
     fleet.sizes <- inputs.mobility$parameters$demandUnscaled[,list(n.vehs=round(sum(value)/length(days)/4.17*(1-fractionSAEVs),0)),by='rmob']
     all.all.energy.constraints <- list()
+    all.unmanaged.loads <- list()
     all.fleets <- list()
     all.chargers <- list()
     the.region <- common.inputs$sets$rmob[1]
@@ -180,12 +181,17 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
             # Collect data on charging infrastructure requirements
             n.home <- fleet_weights$home_weights[,.(dest_type='Home',dest_chg_level=ifelse(name=='HomeL1','L1',ifelse(name=='HomeL2','L2',NA)),req=weight*50e3)][!is.na(dest_chg_level)]
             evi_fleet[,row:=1:nrow(evi_fleet)]
-            occupied <- evi_fleet[dest_type!='Home',.(t=seq(start_time,end_time_prk,by=.25)),by=c('row','dest_type','dest_chg_level')]
+            occupied <- evi_fleet[dest_type!='Home',.(t=24*seq(start_time,end_time_prk,by=.25)),by=c('row','dest_type','dest_chg_level')]
             occupied[,t15:=round(t*4,0)/4]
             n.non.home <- occupied[,.(n=.N * 1.5 ),by=c('dest_type','t15','dest_chg_level')][,.(req=max(n)),by=c('dest_type','dest_chg_level')]
             unscaled.ch.requirements <- rbindlist(list(n.non.home,n.home))
             the.weights <- measureFleetWeights(evi_fleet)
             private.fleet <- rbindlist(list(the.weights$weekend$pev_weights[,days:=2],the.weights$weekday$pev_weights[,days:=5]))[,.(share=weighted.mean(weight,days)),by='name']
+            unmanaged.load.by.ch <- evi_fleet[!is.na(start_time) & !is.na(end_time_chg),.(t=24*seq(start_time,end_time_chg,by=.25)),by=c('row','dest_chg_level','avg_kw')]
+            unmanaged.load.by.ch[,hr:=floor(t)%%24]
+            unmanaged.load.by.ch <- unmanaged.load.by.ch[,.(power=sum(.N * avg_kw / 4)),by=c('hr','dest_chg_level')]
+            unmanaged.load.by.ch <- join.on(data.table(expand.grid(list(hr=0:23,l=u(unmanaged.load.by.ch$dest_chg_level)))),unmanaged.load.by.ch,c('hr','l'),c('hr','dest_chg_level'))
+            unmanaged.load.by.ch[is.na(power),power:=0]
       
             #-----Generate 48-hour Fleet Load Profile----------
             
@@ -245,6 +251,7 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
             energy.and.power.constraints[[season]][[weekday.type]][[transit.type]][['power']] <- power.constraints
             energy.and.power.constraints[[season]][[weekday.type]][[transit.type]][['unscaled.charger.reqs']] <- unscaled.ch.requirements
             energy.and.power.constraints[[season]][[weekday.type]][[transit.type]][['private.fleet.share']] <- private.fleet
+            energy.and.power.constraints[[season]][[weekday.type]][[transit.type]][['unmanaged.load.by.ch']] <- unmanaged.load.by.ch
             energy.and.power.constraints.cache <- copy(energy.and.power.constraints)
             save(energy.and.power.constraints.cache,file=cache.file)
           }
@@ -252,6 +259,7 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
       }
   
       fleets <- list()
+      unmanaged.loads <- list()
       chargers <- list()
       cumul.energy.constraints <- list()
       for(i in 1:length(days)){
@@ -288,10 +296,12 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
         cumul.energy.constraints[[length(cumul.energy.constraints)+1]] <- df
         chargers[[length(chargers)+1]] <- energy.and.power.constraints[[season]][[weekday.type]][[transit.type]][['unscaled.charger.reqs']][,.(dest_type,dest_chg_level,n.ch=req*scaling.factor,day=i)]
         fleets[[length(fleets)+1]] <- energy.and.power.constraints[[season]][[weekday.type]][[transit.type]][['private.fleet.share']][,.(name,n.veh=share*fleet_size,day=i)]
+        unmanaged.loads[[length(unmanaged.loads)+1]] <- energy.and.power.constraints[[season]][[weekday.type]][[transit.type]][['unmanaged.load.by.ch']][,.(power,hr,l,day=i)]
       }
       cumul.energy.constraints <- rbindlist(cumul.energy.constraints)
       chargers <- rbindlist(chargers)[,.(n.ch=max(n.ch)),by=c('dest_type','dest_chg_level')]
       fleets <- rbindlist(fleets)[,.(n.veh=mean(n.veh)),by=c('name')]
+      unmanaged.loads <- rbindlist(unmanaged.loads)
 
       #p <- ggplot(cumul.energy.constraints,aes(x=t,y=min.energy,colour=day_of_week))+geom_line()+geom_line(aes(y=max.energy))
       #ggsave(pp(substr(cache.file,1,nchar(cache.file)-6),'.pdf'),p,width=10,height=8,units='in')
@@ -301,12 +311,14 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
       chargers[,rmob:=the.region]
       fleets[,rmob:=the.region]
       all.chargers[[length(all.chargers)+1]] <- chargers
+      all.unmanaged.loads[[length(all.unmanaged.loads)+1]] <- unmanaged.loads
       all.fleets[[length(all.fleets)+1]] <- fleets
       all.all.energy.constraints[[length(all.all.energy.constraints)+1]] <- copy(cumul.energy.constraints)
     }
     all.all.energy.constraints <- rbindlist(all.all.energy.constraints)
     all.chargers <- rbindlist(all.chargers)
     all.fleets <- rbindlist(all.fleets)
+    all.unmanaged.loads <- rbindlist(all.unmanaged.loads)
     inputs <- list()
     inputs$sets <- list()
     inputs$parameters <- list()
@@ -315,6 +327,7 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
     inputs$parameters$personalEVChargePowerUB <- all.all.energy.constraints[,list(t,rmob,value=max.power)]
     inputs$parameters$personalEVChargePowerLB <- all.all.energy.constraints[,list(t,rmob,value=min.power)]
     inputs$parameters$personalEVFleetSize <- all.fleets[,.(rmob,value=n.veh,type=name)]
+    inputs$parameters$personalEVUnmanagedLoads <- all.unmanaged.loads[,.(l,t=hr,value=power)]
     inputs$parameters$personalEVChargers <- all.chargers[,.(rmob,value=n.ch,type=dest_type,level=dest_chg_level)]
   }else{
     zero <- data.table(expand.grid(t=common.inputs$sets$t,rmob=common.inputs$sets$rmob,value=0)) 

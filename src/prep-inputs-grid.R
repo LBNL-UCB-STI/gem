@@ -13,6 +13,20 @@ prep.inputs.grid <- function(exper.row,common.inputs){
   inputs <- list()
   inputs$sets <- list()
   inputs$parameters <- list()
+  
+  ##### TRANSMISSION CAPACITIES / COSTS #####
+  trans <- copy(transmission)
+  names(trans) <- c('r1','r2','transCap','transCost')
+  if('transmissionScalingFactor'%in%param.names){
+    transmissionScalingFactor <- exper.row$transmissionScalingFactor
+  }
+  trans[,transCap:=transCap*transmissionScalingFactor]
+  transCap <- trans[,list(r1,r2,transCap)]
+  names(transCap) <- c('r','o','value')
+  transCost <- trans[,list(r1,r2,transCost)]
+  names(transCost) <- c('r','o','value')
+  inputs$parameters$transCap <- transCap
+  inputs$parameters$transCost <- transCost
 
   ##### GENERATION CAPACITIES #####
   generators.Cap <- generators 
