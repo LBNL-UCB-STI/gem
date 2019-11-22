@@ -65,6 +65,10 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
 
   # Map data
   eia.regions <- st_read(file.path(pp(gem.raw.inputs,'census-division-plus-big-4/','census-division-plus-big-four.shp')))
+  centroids <- matrix(unlist(do.call(rbind,st_centroid(eia.regions))['geometry',]),nrow=2)
+  centroids <- data.table(NAME=eia.regions$NAME,long=centroids[1,],lat=centroids[2,])
+  centroids <- merge(x=centroids,y=region.key,by='NAME')
+
   states <- map_data('state')
 
   # Run by Run Plots
@@ -493,6 +497,84 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
         }
     }
   }
+  ### Notes for Colin: ###
+  # This uses the old "run==run[i]" where it looks like your new plot generation has
+  # an assignment based on the parameter name/value combo.  I couldn't quite figure out how
+  # to replicate this so I need your help to implement it (or explain to me so I can fix it)
+  # Also note, the pie chart layer is somewhat gimicky, we shouldn't touch the pdf size 
+  # because the scale will mess with the pie positioning (which I had to do manually).
+  make.1d.map <- function() {
+    pdf.scale <- 1
+    toPlot <- merge(x=res[['g-t']],y=geners,by='g',all.x=TRUE)
+    toPlot.map <- merge(x=toPlot,y=region.key,by='r',all.x=TRUE)
+    toPlot.map <- toPlot.map[,list(Emissions.Total=sum(generationCO2*generation),Emissions.Conseq=sum(generationCO2*(generation-base.generation))),by=list(run,NAME)]
+    toPlot.map$NAME <- factor(toPlot.map$NAME)
+    toPlot.map <- merge(x=eia.regions,y=toPlot.map[run==run.i,.(NAME,Emissions.Conseq)],by='NAME',all.x=TRUE)
+
+    toPlot.pie <- generation[run==run.i,.(consq.generation=sum(consq.generation,na.rm=TRUE)),by=.(Simplified,r)]
+    toPlot.pie <- toPlot.pie[complete.cases(toPlot.pie),]
+    toPlot.pie <- dcast(toPlot.pie,r~Simplified,value.var='consq.generation')
+    toPlot.pie[is.na(toPlot.pie)] <- 0
+    toPlot.pie <- melt(toPlot.pie,id='r',variable.name='Simplified',value.name='consq.generation')
+    toPlot.pie <- merge(x=toPlot.pie,y=centroids[,.(r,long,lat)],by='r')
+
+    make.pie <- function(pie,title=NA,legend.position=0) {
+      if(is.na(title)) {
+        title <- unique(pie$r)
+      }
+      ggplot()+
+        geom_bar(data=pie,aes(x='',y=consq.generation,fill=Simplified),color='black',stat='identity',width=1)+
+        coord_polar('y')+
+        ggtitle(title)+
+        scale_fill_discrete(name='Fuel Type')+
+        theme_void()+
+        theme(legend.position=legend.position,plot.title=element_text(hjust=0.5))
+    }
+
+    ENC <- make.pie(toPlot.pie[r=='ENC'])
+    ESC <- make.pie(toPlot.pie[r=='ESC'])
+    MATNL <- make.pie(toPlot.pie[r=='MAT-NL'])
+    MATNY <- make.pie(toPlot.pie[r=='MAT-NY'])
+    MTN <- make.pie(toPlot.pie[r=='MTN'])
+    NENG <- make.pie(toPlot.pie[r=='NENG'])
+    PACCA <- make.pie(toPlot.pie[r=='PAC-CA'])
+    PACNL <- make.pie(toPlot.pie[r=='PAC-NL'])
+    SATFL <- make.pie(toPlot.pie[r=='SAT-FL'])
+    SATNL <- make.pie(toPlot.pie[r=='SAT-NL'])
+    WNC <- make.pie(toPlot.pie[r=='WNC'])
+    WSCNL <- make.pie(toPlot.pie[r=='WSC-NL'])
+    WSCTX <- make.pie(toPlot.pie[r=='WSC-TX'])
+
+    leg <- get_legend(make.pie(toPlot.pie,'',legend.position='right'))
+
+    map.plot <- ggplot()+
+      geom_sf(data=toPlot.map,aes(fill=Emissions.Conseq/1000),color='black',lwd=0.2)+
+      coord_sf()+
+      xlim(-125,-68)+
+      ylim(25,50)+
+      scale_fill_gradient(name='Consequential\nCO2 Emissions (tons)',low='white',high='darkred')+
+      theme_bw()%+replace% theme(plot.background=element_blank(),panel.background=element_blank(),panel.border=element_blank(),axis.line=element_blank(),axis.text=element_blank(),axis.ticks=element_blank(),axis.title=element_blank())
+
+    all <- ggdraw(map.plot)+
+      draw_plot(ENC,x=.06,y=.65,height=.17)+
+      draw_plot(ESC,x=.05,y=.33,height=.17)+
+      draw_plot(MATNL,x=.15,y=.54,height=.17)+
+      draw_plot(MATNY,x=.21,y=.64,height=.17)+
+      draw_plot(MTN,x=-.25,y=.49,height=.17)+
+      draw_plot(NENG,x=.3,y=.68,height=.17)+
+      draw_plot(PACCA,x=-.42,y=.43,height=.17)+
+      draw_plot(PACNL,x=-.39,y=.64,height=.17)+
+      draw_plot(SATFL,x=.14,y=.13,height=.17)+
+      draw_plot(SATNL,x=.16,y=.34,height=.17)+
+      draw_plot(WNC,x=-.08,y=.58,height=.17)+
+      draw_plot(WSCNL,x=-.05,y=.38,height=.17)+
+      draw_plot(WSCTX,x=-.11,y=.24,height=.17)
+
+    final.map <- cowplot::plot_grid(leg,all,rel_widths=c(0.1,1.1))
+    ggsave(final.map,file='experiments/fracSAEVsAndSmartCharging/plots/testmap.pdf',width=12.5*pdf.scale,height=7*pdf.scale)
+  }
+  make.1d.map()
+
   make.dir(pp(plots.dir,'/_metrics_1d'))
   if(length(param.names)==1){
     make.1d.metric.plot(all,'',param.names[1],pp(plots.dir,'/_metrics_1d'))
