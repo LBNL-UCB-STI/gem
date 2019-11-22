@@ -5,9 +5,9 @@
 #days <- c(74:81,147:154,260:267,351:358) # 8 per week
 #days <- c(74:80,147:153,260:266,351:357) # 7 per week
 #days <- c(74:77,79,148:152,260:264,351:355) # 5 per week, 4 weekday, 1 weekend
+# DEFAULT TIME PERIOD FOR PAPERS / FINAL ANALYSIS
 days <- c(74:77,148:150,260:262,351:354) # 3 per week, 2 weekday, 1 weekend plus 2 for buffer on ends
 
-# DEFAULT TIME PERIOD FOR PAPERS / FINAL ANALYSIS
 #days <- c(75:76,149:150,261:262,352:353) # 2 per week, 2 weekday
 
 #days <- c(75,149,261,352) # 1 per week, 1 weekday
@@ -40,7 +40,7 @@ chargerCostSuperlinear <- 3 # rate of increase beyond linear from low to high po
 # Following is based on NHTS demand without transit and assumes 10 holidays per year and splits difference in remainder
 weekday.to.year.factor <- 250.5 + 114.5*(19861098473/22232870872) # N_weekdays + N_weekends*(Demand_weekends/Demand_weekdays)
 # Following is based on above but adjusted to account for runs with 2 weekdays + 1 weekend
-weekday.to.year.factor <- 250.5 + 114.5*(19861098473/22232870872) # N_weekdays + N_weekends*(Demand_weekends/Demand_weekdays)
+weekday.to.year.factor <- 250.5*(250.5/365/.66666) + 114.5*(114.5/365/.33333)*(19861098473/22232870872) 
 
 #### Grid ####
 generators <- data.table(read.csv(pp(gem.raw.inputs,'gem_gridInputs_generators.csv')))

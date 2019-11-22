@@ -33,7 +33,6 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   personal.ev.ch <- res[['rmob-t']][,.(t,rmob,gw.charging=personalEVPower/1e6,run)]
   personal.ev.ch[,l:='Private EVs']
   personal.ev.ch[,charger.level:='Private EVs']
-  inputs$parameters$personalEVUnmanagedLoads
   
   # Energy balance
   en <- join.on(join.on(res[['b-l-rmob-t']],res[['b-l-rmob']],c('l','rmob','b','run'),c('l','rmob','b','run'))[,.(en.ch=sum(energyCharged)),by=c('t','rmob','b','run')],res[['b-d-rmob-t']][,.(en.mob=sum(energyConsumed)),by=c('t','rmob','b','run')],c('b','rmob','t','run'),c('b','rmob','t','run'))
@@ -69,8 +68,9 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
 
   # Run by Run Plots
   run.i <- u(vehs$run)[1]
-  # for(run.i in u(vehs$run)){
-  if(F){
+  for(run.i in u(vehs$run)){
+    if(T){
+    day.axis.breaks <- seq(0,max(veh.ch$t),by=24)
     setkey(vehs,run,b,rmob,t)
     to.plot <- melt(vehs[run==run.i],id.vars=c('b','rmob','t'))
     to.plot[,vehicle.activity:=gsub('\\.L0|\\.L','(',gsub('vehiclesCharging','Charging ',variable))]
@@ -89,6 +89,20 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     pdf.scale <- 1
     ggsave(pp(plots.dir,'/run-',run.i,'/_num-vehs.pdf'),p,width=10*pdf.scale,height=8*pdf.scale,units='in')
     
+    to.plot[,variable.simp:=ifelse(grepl('vehiclesCharging',variable),'Charging',ifelse(variable=='vehiclesIdle',pp('Idle: SAEV ',substr(b,2,5),'mi'),pp('Moving: SAEV ',substr(b,2,5),'mi')))]
+    to.plot[,variable.simp:=factor(variable.simp,c(tail(sort(u(to.plot$variable.simp)),-1),'Charging'))]
+    to.remove <- to.plot[,sum(value)/sum(to.plot$value),by='variable.simp'][V1<1e-4]$variable.simp
+    to.plot <- to.plot[!variable.simp%in%to.remove]
+    setkey(to.plot,variable.simp)
+    p<-ggplot(to.plot[,.(value=sum(value)),by=c('t','variable.simp')],aes(x=t,y=value/1000,fill=variable.simp))+
+      geom_area()+
+      xlab('Hour')+
+      ylab('Number of vehicles (thousands)')+
+      scale_fill_manual(name = 'Vehicle activity',values = getPalette(to.plot$variable.simp),guide=guide_legend(reverse=F))+
+      scale_x_continuous(breaks=day.axis.breaks)+
+      theme_bw()
+    ggsave(pp(plots.dir,'/run-',run.i,'/_num-vehs-simple-2.pdf'),p,width=10*pdf.scale,height=5*pdf.scale,units='in')
+  
     to.plot[,variable.simp:=ifelse(grepl('vehiclesCharging',variable),'Charging',ifelse(variable=='vehiclesIdle','Idle','Moving'))]
     to.plot[,variable.simp:=factor(variable.simp,c('Idle','Moving','Charging'))]
     setkey(to.plot,variable.simp)
@@ -97,28 +111,43 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
       xlab('Hour')+
       ylab('Number of vehicles (thousands)')+
       facet_wrap(~rmob,scales='free_y')+
+      scale_x_continuous(breaks=day.axis.breaks)+
       scale_fill_manual(name = 'Vehicle activity',values = getPalette(to.plot$variable.simp),guide=guide_legend(reverse=F))+
       theme_bw()
     ggsave(pp(plots.dir,'/run-',run.i,'/_num-vehs-simple.pdf'),p,width=10*pdf.scale,height=8*pdf.scale,units='in')
   
     # Charging load
     p <- ggplot(veh.ch[run==run.i],aes(x=t,y=gw.charging,fill=fct_rev(charger.level)))+
-      geom_bar(stat='identity',position='stack')+
+      geom_area()+
       facet_wrap(~rmob,scales='free_y')+
-      scale_fill_manual(values = rev(getPalette(veh.ch$charger.level)),guide=guide_legend(reverse=F))+
+      scale_fill_manual(values = getPalette(veh.ch$charger.level),guide=guide_legend(reverse=F))+
       labs(x='Hour',y='Load (GW)',fill='Charger Level')+
       theme_bw()
     pdf.scale <- 1
     ggsave(pp(plots.dir,'/run-',run.i,'/_charging-saevs.pdf'),p,width=10*pdf.scale,height=8*pdf.scale,units='in')
     to.plot <- rbindlist(list(veh.ch,personal.ev.ch),fill=T,use.names=T)[run==run.i]
-    p <- ggplot(to.plot,aes(x=t,y=gw.charging,fill=fct_rev(charger.level)))+
-      geom_bar(stat='identity',position='stack')+
+    to.plot[,gwh:=gw.charging]
+    to.plot <- disag.the.private.load(to.plot,all.inputs[[run.i]]$parameters$personalEVUnmanagedLoads)
+    to.plot[,l.ordered:=ifelse(substr(l,1,1)=='L',pp('a',l),l)]
+    to.plot[,col:=getPalette(l)[match(l.ordered,u(l.ordered))]]
+    the.ch.cols <- to.plot$col
+    names(the.ch.cols) <- to.plot$charger.level
+    p <- ggplot(to.plot,aes(x=t,y=gwh,fill=charger.level))+
+      geom_area()+
       facet_wrap(~rmob,scales='free_y')+
-      scale_fill_manual(values = rev(getPalette(to.plot$charger.level)),guide=guide_legend(reverse=F))+
+      scale_fill_manual(values = the.ch.cols)+
       labs(x='Hour',y='Load (GW)',fill='Charger Level')+
       theme_bw()
     pdf.scale <- 1
     ggsave(pp(plots.dir,'/run-',run.i,'/_charging-all.pdf'),p,width=10*pdf.scale,height=8*pdf.scale,units='in')
+    p <- ggplot(to.plot[,.(gwh=sum(gwh)),by=c('t','charger.level')],aes(x=t,y=gwh,fill=charger.level))+
+      scale_x_continuous(breaks=day.axis.breaks)+
+      geom_area()+
+      scale_fill_manual(values = the.ch.cols)+
+      labs(x='Hour',y='Load (GW)',fill='Charger Level')+
+      theme_bw()
+    pdf.scale <- 1
+    ggsave(pp(plots.dir,'/run-',run.i,'/_charging-all-agg.pdf'),p,width=10*pdf.scale,height=5*pdf.scale,units='in')
     
     # Energy balance
     p <- ggplot(en[run==run.i],aes(x=t,y=soc/10^6,colour=fct_rev(battery.level)))+
@@ -262,7 +291,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
       facet_wrap(~r)
     ggsave(pp(plots.dir,'/run-',run.i,'/_pie_generation_byfuel.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
   }
-  
+  }
   # tr <- rbindlist(list(melt(res[['rmob-t']],id.vars=c('t','rmob','run')),melt(en[,.(en.mob=sum(en.mob),en.ch=sum(en.ch)),by=c('rmob','t','run')],id.vars=c('t','rmob','run'))))
   # tr[,group:=ifelse(variable=='price','Price',ifelse(str_sub(variable,1,3)=='en.','Energy','Cost'))]
   # tr <- tr[group!="Cost"]
@@ -420,29 +449,33 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   the.cols <- all$col
   names(the.cols) <- all$variable
   
+  disag.the.private.load <- function(df,personalEVUnmanagedLoads){
+    df[l!='Private EVs',charger.level:=pp('SAEV: ',charger.level)]
+    # Split private EV out by charger level
+    proportional.split <- personalEVUnmanagedLoads[,.(frac=sum(value)/sum(personalEVUnmanagedLoads$value)),by='l']
+    private.disag <- join.on(rbindlist(list(df[l=='Private EVs'][,ll:='L1'],df[l=='Private EVs'][,ll:='L2'],df[l=='Private EVs'][,ll:='L3'])),proportional.split,'ll','l')
+    private.disag[,gwh:=frac*gwh]
+    private.disag[,charger.level:=ifelse(ll=='L1','Private: 1.5kW',ifelse(ll=='L2','Private: 7kW','Private: 50kW'))]
+    private.disag[,l:=ifelse(ll=='L1','Private: 1.5kW',ifelse(ll=='L2','Private: 7kW','Private: 50kW'))]
+    rbindlist(list(df[l!='Private EVs'],private.disag),fill=T)
+  }
   # Charging profiles
-  to.plot.ch.agg <- to.plot.ch[t>=1&t<=72,.(gwh=sum(gw.charging,na.rm=T)),by=c('run',param.names,'charger.level','l','t')]
-  to.plot.ch.agg[l!='Private EVs',charger.level:=pp('SAEV: ',charger.level)]
-  # Split private EV out by charger level
-  proportional.split <- inputs$parameters$personalEVUnmanagedLoads[,.(frac=sum(value)/sum(inputs$parameters$personalEVUnmanagedLoads$value)),by='l']
-  private.disag <- join.on(rbindlist(list(to.plot.ch.agg[l=='Private EVs'][,ll:='L1'],to.plot.ch.agg[l=='Private EVs'][,ll:='L2'],to.plot.ch.agg[l=='Private EVs'][,ll:='L3'])),proportional.split,'ll','l')
-  private.disag[,gwh:=frac*gwh]
-  private.disag[,charger.level:=ifelse(ll=='L1','Private: 1.5kW',ifelse(ll=='L2','Private: 7kW','Private: 50kW'))]
-  private.disag[,l:=ifelse(ll=='L1','Private: 1.5kW',ifelse(ll=='L2','Private: 7kW','Private: 50kW'))]
-  to.plot.ch.agg <- rbindlist(list(to.plot.ch.agg[l!='Private EVs'],private.disag),fill=T)
+  to.plot.ch.agg <- to.plot.ch[,.(gwh=sum(gw.charging,na.rm=T)),by=c('run',param.names,'charger.level','l','t')]
+  to.plot.ch.agg <- disag.the.private.load(to.plot.ch.agg,inputs$parameters$personalEVUnmanagedLoads)
   to.plot.ch.agg[,l.ordered:=ifelse(substr(l,1,1)=='L',pp('a',l),l)]
   to.plot.ch.agg[,col:=getPalette(l)[match(l.ordered,u(l.ordered))]]
-  to.plot.ch.agg[,t:=t-24]
   the.ch.cols <- to.plot.ch.agg$col
   names(the.ch.cols) <- to.plot.ch.agg$charger.level
-  day.axis.breaks <- seq(0,48,by=12)
+  day.axis.breaks <- seq(0,72,by=12)
   make.1d.charging.plot <- function(ch.sub,code,freeCol,sub.dir){
-    p <- ggplot(ch.sub,aes(x=t,y=gwh,fill=charger.level))+geom_area(stat='identity')+facet_grid(.~streval(freeCol))+scale_x_continuous(breaks=day.axis.breaks)+scale_fill_manual(values = the.ch.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x='Hour',y='Charging Power (GW)',title=pp('Charging Power by ',factor.labels[freeCol],ifelse(code=='','',' when '),code),fill='')+theme_bw()
+    p <- ggplot(ch.sub[t>min(day.axis.breaks)&t<=max(day.axis.breaks)],aes(x=t,y=gwh,fill=charger.level))+geom_area(stat='identity')+facet_grid(.~streval(freeCol))+scale_x_continuous(breaks=day.axis.breaks)+scale_fill_manual(values = the.ch.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x='Hour',y='Charging Power (GW)',title=pp('Charging Power by ',factor.labels[freeCol],ifelse(code=='','',' when '),code),fill='')+theme_bw()
     pdf.scale <- 1
     ggsave(pp(sub.dir,'/charging_',code,'.pdf'),p,width=8*pdf.scale,height=4*pdf.scale,units='in')
+    p <- ggplot(ch.sub[t>min(day.axis.breaks)&t<=max(day.axis.breaks)],aes(x=t,y=gwh,fill=charger.level))+geom_area(stat='identity')+facet_grid(streval(freeCol)~.)+scale_x_continuous(breaks=day.axis.breaks)+scale_fill_manual(values = the.ch.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x='Hour',y='Charging Power (GW)',title=pp('Charging Power by ',factor.labels[freeCol],ifelse(code=='','',' when '),code),fill='')+theme_bw()
+    ggsave(pp(sub.dir,'/charging_',code,'_transpose.pdf'),p,width=6*pdf.scale,height=4*pdf.scale,units='in')
   }
   make.2d.charging.plot <- function(ch.sub,code,freeCols){
-    p <- ggplot(ch.sub,aes(x=t,y=gwh,fill=charger.level))+geom_area(stat='identity')+scale_x_continuous(breaks=day.axis.breaks)+scale_fill_manual(values = the.ch.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x='Hour',y='Charging Power (GW)',title=pp('Charging Power',ifelse(code=='','',' when '),code),fill='')+theme_bw()
+    p <- ggplot(ch.sub[t>min(day.axis.breaks)&t<=max(day.axis.breaks)],aes(x=t,y=gwh,fill=charger.level))+geom_area(stat='identity')+scale_x_continuous(breaks=day.axis.breaks)+scale_fill_manual(values = the.ch.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x='Hour',y='Charging Power (GW)',title=pp('Charging Power',ifelse(code=='','',' when '),code),fill='')+theme_bw()
     p <- p + streval(pp('facet_grid(',freeCols[1],'~',freeCols[2],')'))
     pdf.scale <- 1
     ggsave(pp(plots.dir,'_charging_2d',ifelse(code=='','',pp('_',code)),'.pdf'),p,width=14*pdf.scale,height=8*pdf.scale,units='in')

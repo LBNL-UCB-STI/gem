@@ -136,8 +136,10 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
       ##############################################################################
       energy.and.power.constraints <- list()
       dates <- date.info(days,year)
+      season <- u(toupper(dates$seasons))[1]
       for(season in u(toupper(dates$seasons))){
         energy.and.power.constraints[[season]] <- list()
+        weekday.type <- u(dates$day.types)[1]
         for(weekday.type in u(dates$day.types)){
           energy.and.power.constraints[[season]][[weekday.type]] <- list()
   
@@ -181,13 +183,16 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
             # Collect data on charging infrastructure requirements
             n.home <- fleet_weights$home_weights[,.(dest_type='Home',dest_chg_level=ifelse(name=='HomeL1','L1',ifelse(name=='HomeL2','L2',NA)),req=weight*50e3)][!is.na(dest_chg_level)]
             evi_fleet[,row:=1:nrow(evi_fleet)]
-            occupied <- evi_fleet[dest_type!='Home',.(t=24*seq(start_time,end_time_prk,by=.25)),by=c('row','dest_type','dest_chg_level')]
+            evi_fleet[,start_time_hr:=start_time*24]
+            evi_fleet[,end_time_prk_hr:=end_time_prk*24]
+            evi_fleet[,end_time_chg_hr:=end_time_chg*24]
+            occupied <- evi_fleet[dest_type!='Home',.(t=seq(start_time_hr,end_time_prk_hr,by=.25)),by=c('row','dest_type','dest_chg_level')]
             occupied[,t15:=round(t*4,0)/4]
             n.non.home <- occupied[,.(n=.N * 1.5 ),by=c('dest_type','t15','dest_chg_level')][,.(req=max(n)),by=c('dest_type','dest_chg_level')]
             unscaled.ch.requirements <- rbindlist(list(n.non.home,n.home))
             the.weights <- measureFleetWeights(evi_fleet)
             private.fleet <- rbindlist(list(the.weights$weekend$pev_weights[,days:=2],the.weights$weekday$pev_weights[,days:=5]))[,.(share=weighted.mean(weight,days)),by='name']
-            unmanaged.load.by.ch <- evi_fleet[!is.na(start_time) & !is.na(end_time_chg),.(t=24*seq(start_time,end_time_chg,by=.25)),by=c('row','dest_chg_level','avg_kw')]
+            unmanaged.load.by.ch <- evi_fleet[!is.na(start_time) & !is.na(end_time_chg),.(t=seq(start_time_hr,end_time_chg_hr,by=.25)),by=c('row','dest_chg_level','avg_kw')]
             unmanaged.load.by.ch[,hr:=floor(t)%%24]
             unmanaged.load.by.ch <- unmanaged.load.by.ch[,.(power=sum(.N * avg_kw / 4)),by=c('hr','dest_chg_level')]
             unmanaged.load.by.ch <- join.on(data.table(expand.grid(list(hr=0:23,l=u(unmanaged.load.by.ch$dest_chg_level)))),unmanaged.load.by.ch,c('hr','l'),c('hr','dest_chg_level'))
