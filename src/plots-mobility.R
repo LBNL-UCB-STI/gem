@@ -555,16 +555,6 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   the.cols <- all$col
   names(the.cols) <- all$variable
   
-  disag.the.private.load <- function(df,personalEVUnmanagedLoads){
-    df[l!='Private EVs',charger.level:=pp('SAEV: ',charger.level)]
-    # Split private EV out by charger level
-    proportional.split <- personalEVUnmanagedLoads[,.(frac=sum(value)/sum(personalEVUnmanagedLoads$value)),by='l']
-    private.disag <- join.on(rbindlist(list(df[l=='Private EVs'][,ll:='L1'],df[l=='Private EVs'][,ll:='L2'],df[l=='Private EVs'][,ll:='L3'])),proportional.split,'ll','l')
-    private.disag[,gwh:=frac*gwh]
-    private.disag[,charger.level:=ifelse(ll=='L1','Private: 1.5kW',ifelse(ll=='L2','Private: 7kW','Private: 50kW'))]
-    private.disag[,l:=ifelse(ll=='L1','Private: 1.5kW',ifelse(ll=='L2','Private: 7kW','Private: 50kW'))]
-    rbindlist(list(df[l!='Private EVs'],private.disag),fill=T)
-  }
   # 1d # Fleet and Chargers
   make.1d.fleet.and.chargers.plot <- function(sub,code,freeCol,sub.dir){
     to.plot <- sub[,.(value=value,percent=value/sum(value)*100,variable=var.clean),by=c('rmob','group',freeCol)]
@@ -681,6 +671,8 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
         ch.sub <- streval(pp('to.plot.ch.agg[',pp(param.names[the.param.inds],'==',unlist(param.combs[comb.i]),collapse=' & '),']'))
         make.1d.charging.plot(ch.sub,code,the.free.col,pp(plots.dir,'/_metrics_1d/',code))
         make.1d.generation.plot(param.names[the.param.inds],param.combs[comb.i,get(param.names[the.param.inds])],code,the.free.col,pp(plots.dir,'/_metrics_1d/',code))
+        by.r.sub <- streval(pp('by.r[',pp(param.names[the.param.inds],'==',unlist(param.combs[comb.i]),collapse=' & '),']'))
+        if(sum(by.r.sub$value)>0)make.1d.fleet.and.chargers.plot(by.r.sub,code,the.free.col,pp(plots.dir,'/_metrics_1d/',code))
       }
     }
   }
