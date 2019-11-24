@@ -23,6 +23,13 @@
         rev(colorRampPalette(brewer.pal(nmoving, "Blues"))(nmoving)),
         '#666666'
         )
+    }else if(any(substr(u(vals),1,4)=='Chgr',na.rm=TRUE)){
+      ncharger <- sum(substr(u(vals),1,4)=='Chgr')
+      nbat <- ncol-ncharger
+      c(
+        rev(colorRampPalette(brewer.pal(nbat, "Blues"))(nbat)),
+        rev(colorRampPalette(brewer.pal(ncharger, "Reds"))(ncharger))
+       )
     }else{
       rev(colorRampPalette(brewer.pal(ncol, "Oranges"))(ncol))
     }

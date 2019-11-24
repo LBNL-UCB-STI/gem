@@ -182,7 +182,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
       scale_fill_manual(name='Charger/Battery Level',values = rev(getPalette(by.r$var.clean)),guide=guide_legend(reverse=F))
     ggsave(pp(plots.dir,'/run-',run.i,'/_fleet-size-and-type.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
     
-    to.plot <- by.r[run==run.i,.(percent=value/sum(value)*100,variable=var.clean),by=c('rmob','group')]
+    to.plot <- by.r[run==run.i,.(value=value,percent=value/sum(value)*100,variable=var.clean),by=c('rmob','group')]
     to.plot[,urb:=ifelse(grepl('RUR$',rmob),'Rural','Urban')]
     geo.ordered <- cbind(c(sapply(c('-RUR','-URB'),function(x){ pp(c('PAC-NL','PAC-CA','MTN','WNC','WSC-NL','WSC-TX','ENC','ESC','NENG','MAT-NL','MAT-NY','SAT-NL','SAT-FL'),x) })))[,1]
     to.plot[,rmob:=factor(rmob,geo.ordered)]
@@ -197,6 +197,16 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
       theme(axis.text.x = element_text(angle = 50, hjust = 1))+
       scale_fill_manual(name='Charger/Battery Level',values = rev(getPalette(to.plot$variable)),guide=guide_legend(reverse=F))
     ggsave(pp(plots.dir,'/run-',run.i,'/_fleet-size-and-type-percent.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
+    to.remove <- to.plot[,sum(value),by='variable'][V1==0]$variable
+    to.plot <- to.plot[!variable%in%to.remove,.(value=sum(value)/1e6,percent=value/sum(value)*100),by=c('group','variable','urb')]
+    p <- ggplot(to.plot,aes(x=urb,y=value,fill=variable))+
+      geom_bar(stat='identity')+
+      xlab('Regional Type')+
+      ylab('Count in Millions')+
+      facet_wrap(~group,scales='free_y')+ 
+      theme_bw()+
+      scale_fill_manual(name='Charger/Battery Level',values = getPalette(to.plot$variable),guide=guide_legend(reverse=F))
+    ggsave(pp(plots.dir,'/run-',run.i,'/_fleet-size-and-type-agg.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
     
     # to.plot <- res[['rmob']][,.(rmob,urbanFormFactor)]
     # to.plot[,urb:=ifelse(grepl('RUR$',rmob),'Rural','Urban')]
@@ -463,6 +473,21 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     private.disag[,l:=ifelse(ll=='L1','Private: 1.5kW',ifelse(ll=='L2','Private: 7kW','Private: 50kW'))]
     rbindlist(list(df[l!='Private EVs'],private.disag),fill=T)
   }
+  # 1d # Fleet and Chargers
+  make.1d.fleet.and.chargers.plot <- function(sub,code,freeCol,sub.dir){
+    to.plot <- sub[,.(value=value,percent=value/sum(value)*100,variable=var.clean),by=c('rmob','group',freeCol)]
+    to.plot[,urb:=ifelse(grepl('RUR$',rmob),'Rural','Urban')]
+    to.remove <- to.plot[,sum(value),by=c('variable')][V1==0]$variable
+    to.plot <- to.plot[!variable%in%to.remove,.(value=sum(value)/1e6),by=c('group','variable','urb',freeCol)]
+    p <- ggplot(to.plot,aes(x=urb,y=value,fill=variable))+
+      geom_bar(stat='identity')+
+      xlab('Regional Type')+
+      ylab('Count in Millions')+
+      facet_grid(group~streval(freeCol),scales='free_y')+ 
+      theme_bw()+
+      scale_fill_manual(name='Charger/Battery Level',values = getPalette(to.plot$variable),guide=guide_legend(reverse=F))
+    ggsave(pp(sub.dir,'/fleet_and_chargers_',code,'.pdf'),p,width=8*pdf.scale,height=4*pdf.scale,units='in')
+  }
   # Charging profiles
   to.plot.ch.agg <- to.plot.ch[,.(gwh=sum(gw.charging,na.rm=T)),by=c('run',param.names,'charger.level','l','t')]
   to.plot.ch.agg <- disag.the.private.load(to.plot.ch.agg,inputs$parameters$personalEVUnmanagedLoads)
@@ -626,6 +651,8 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
         make.1d.metric.plot(all.sub,code,the.free.col,pp(plots.dir,'/_metrics_1d/',code))
         ch.sub <- streval(pp('to.plot.ch.agg[',pp(param.names[the.param.inds],'==',unlist(param.combs[comb.i]),collapse=' & '),']'))
         make.1d.charging.plot(ch.sub,code,the.free.col,pp(plots.dir,'/_metrics_1d/',code))
+        by.r.sub <- streval(pp('by.r[',pp(param.names[the.param.inds],'==',unlist(param.combs[comb.i]),collapse=' & '),']'))
+        if(sum(by.r.sub$value)>0)make.1d.fleet.and.chargers.plot(by.r.sub,code,the.free.col,pp(plots.dir,'/_metrics_1d/',code))
       }
     }
   }
