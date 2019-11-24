@@ -56,6 +56,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   # Merit order
   geners <- copy(generators)
   geners$g <- as.character(geners$g)
+  geners$FuelType <- as.character(geners$FuelType)
   geners <- merge(x=geners,y=fuels,by='FuelType',all.x=TRUE)
   geners$Simplified <- factor(geners$Simplified,levels=meritOrder)
 
@@ -69,6 +70,27 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   centroids <- merge(x=centroids,y=region.key,by='NAME')
 
   states <- map_data('state')
+
+  disag.the.private.load <- function(df,personalEVUnmanagedLoads){
+    df[l!='Private EVs',charger.level:=pp('SAEV: ',charger.level)]
+    # Split private EV out by charger level
+    proportional.split <- personalEVUnmanagedLoads[,.(frac=sum(value)/sum(personalEVUnmanagedLoads$value)),by='l']
+    private.disag <- join.on(rbindlist(list(df[l=='Private EVs'][,ll:='L1'],df[l=='Private EVs'][,ll:='L2'],df[l=='Private EVs'][,ll:='L3'])),proportional.split,'ll','l')
+    private.disag[,gwh:=frac*gwh]
+    private.disag[,charger.level:=ifelse(ll=='L1','Private: 1.5kW',ifelse(ll=='L2','Private: 7kW','Private: 50kW'))]
+    private.disag[,l:=ifelse(ll=='L1','Private: 1.5kW',ifelse(ll=='L2','Private: 7kW','Private: 50kW'))]
+    rbindlist(list(df[l!='Private EVs'],private.disag),fill=T)
+  }
+
+  geners[,g:=as.numeric(g)]
+  res[['g-t']][,g:=as.numeric(g)]
+  generation <- merge(x=res[['g-t']],y=geners,by='g',all.x=TRUE)
+  generation <- generation[,list(generation=sum(generation),base.generation=sum(base.generation)),by=list(run,r,Simplified,t)]
+  generation[,consq.generation:=generation-base.generation]
+  generation <- generation[complete.cases(generation),]
+  
+  gen.cost <- merge(x=res[['g-t']],y=geners,by='g',all.x=TRUE)
+  gen.cost <- gen.cost[,list(energyCost=sum(generationCosts*(generation-base.generation))),by=list(r,run)]
 
   # Run by Run Plots
   run.i <- u(vehs$run)[1]
@@ -93,10 +115,10 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     pdf.scale <- 1
     ggsave(pp(plots.dir,'/run-',run.i,'/_num-vehs.pdf'),p,width=10*pdf.scale,height=8*pdf.scale,units='in')
     
-    to.plot[,variable.simp:=ifelse(grepl('vehiclesCharging',variable),'Charging',ifelse(variable=='vehiclesIdle',pp('Idle: SAEV ',substr(b,2,5),'mi'),pp('Moving: SAEV ',substr(b,2,5),'mi')))]
-    to.plot[,variable.simp:=factor(variable.simp,c(tail(sort(u(to.plot$variable.simp)),-1),'Charging'))]
+    to.plot[,variable.simp:=ifelse(grepl('vehiclesCharging',variable),pp('Charging: SAEV ',substr(b,2,5),'mi'),ifelse(variable=='vehiclesIdle',pp('Idle: SAEV ',substr(b,2,5),'mi'),pp('Moving: SAEV ',substr(b,2,5),'mi')))]
     to.remove <- to.plot[,sum(value)/sum(to.plot$value),by='variable.simp'][V1<1e-4]$variable.simp
     to.plot <- to.plot[!variable.simp%in%to.remove]
+    to.plot[,variable.simp:=factor(variable.simp,c(rev(u(to.plot$variable.simp))[c(4:6,1:3,7:9)]))]
     setkey(to.plot,variable.simp)
     p<-ggplot(to.plot[,.(value=sum(value)),by=c('t','variable.simp')],aes(x=t,y=value/1000,fill=variable.simp))+
       geom_area()+
@@ -105,6 +127,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
       scale_fill_manual(name = 'Vehicle activity',values = getPalette(to.plot$variable.simp),guide=guide_legend(reverse=F))+
       scale_x_continuous(breaks=day.axis.breaks)+
       theme_bw()
+    pdf.scale <- 1
     ggsave(pp(plots.dir,'/run-',run.i,'/_num-vehs-simple-2.pdf'),p,width=10*pdf.scale,height=5*pdf.scale,units='in')
   
     to.plot[,variable.simp:=ifelse(grepl('vehiclesCharging',variable),'Charging',ifelse(variable=='vehiclesIdle','Idle','Moving'))]
@@ -119,7 +142,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
       scale_fill_manual(name = 'Vehicle activity',values = getPalette(to.plot$variable.simp),guide=guide_legend(reverse=F))+
       theme_bw()
     ggsave(pp(plots.dir,'/run-',run.i,'/_num-vehs-simple.pdf'),p,width=10*pdf.scale,height=8*pdf.scale,units='in')
-  
+
     # Charging load
     p <- ggplot(veh.ch[run==run.i],aes(x=t,y=gw.charging,fill=fct_rev(charger.level)))+
       geom_area()+
@@ -152,7 +175,45 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
       theme_bw()
     pdf.scale <- 1
     ggsave(pp(plots.dir,'/run-',run.i,'/_charging-all-agg.pdf'),p,width=10*pdf.scale,height=5*pdf.scale,units='in')
-    
+
+    personal.evs.total <- all.inputs[[run.i]]$parameters$personalEVFleetSize
+    personal.evs.total <- personal.evs.total[rep(1:nrow(personal.evs.total),length(u(personal.ev.ch$t)))]
+    personal.evs.total[,t:=rep(1:length(u(personal.ev.ch$t)),each=nrow(personal.evs.total)/length(u(personal.ev.ch$t)))]
+    personal.evs.total <- personal.evs.total[,.(Total=sum(value)),by=.(t,rmob)]
+
+    chts.hours <- unlist(sapply(chts.trips$n,function(x) seq(chts.trips$start_hour[x],chts.trips$end_hour[x])))
+    chts.hours <- data.table(table(chts.hours))
+    names(chts.hours) <- c('Hour','Count')
+    chts.hours[,Probability:=Count/sum(Count)]
+    chts.hours[,Hour:=as.numeric(Hour)+1]
+    chts.hours <- chts.hours[rep(1:nrow(chts.hours),length(u(personal.ev.ch$t))/24),]
+    chts.hours[,t:=(1:length(u(personal.ev.ch$t)))]
+    chts.hours <- chts.hours[,.(t,Probability)]
+
+    personal.evs.total <- merge(x=personal.evs.total,y=chts.hours,by='t',all.x=TRUE)
+    personal.evs.total[,Moving:=Total*Probability]
+
+    personal.evs.ch.total <- to.plot[ll%in%c('L1','L2','L3'),.(gw.charging=sum(gw.charging)),by=.(ll,t,rmob)]
+    personal.evs.ch.total[,Charging:=ifelse(ll=='L1',gw.charging*10^6/1.5,ifelse(ll=='L2',gw.charging*10^6/6.7,gw.charging*10^6/50))]
+    personal.evs.ch.total <- personal.evs.ch.total[,.(Charging=sum(Charging)),by=.(t,rmob)]
+
+    personal.evs.total <- merge(x=personal.evs.total,y=personal.evs.ch.total,by=c('t','rmob'))
+    personal.evs.total[,Idle:=Total-Moving-Charging]
+    personal.evs.total <- personal.evs.total[,.(Moving=sum(Moving),Charging=sum(Charging),Idle=sum(Idle)),by=.(t)]
+    personal.evs.total[Idle<0,Idle:=0]
+    personal.evs.total <- melt(personal.evs.total,id='t',variable.name='Activity',value.name='Cars')
+
+    p<-ggplot(personal.evs.total,aes(x=t,y=Cars/1000,fill=Activity))+
+      geom_area()+
+      xlab('Hour')+
+      ylab('Number of vehicles (thousands)')+
+      #scale_fill_manual(name = 'Vehicle activity',values = getPalette(to.plot$variable.simp),guide=guide_legend(reverse=F))+
+      scale_x_continuous(breaks=day.axis.breaks)+
+      theme_bw()
+    pdf.scale <- 1
+    #ggsave(p,file='test.pdf',height=6,width=9)
+    #ggsave(pp(plots.dir,'/run-',run.i,'/_num-vehs-simple-2.pdf'),p,width=10*pdf.scale,height=5*pdf.scale,units='in')
+
     # Energy balance
     p <- ggplot(en[run==run.i],aes(x=t,y=soc/10^6,colour=fct_rev(battery.level)))+
       geom_line()+
@@ -208,21 +269,25 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     to.plot <- merge(x=res[['g-t']][run==run.i],y=geners,by='g',all.x=TRUE)
     to.plot <- to.plot[,list(generation=sum(generation),base.generation=sum(base.generation)),by=list(r,Simplified,t)]
     to.plot[,consq.generation:=generation-base.generation]
+    to.plot[,consq.generation.pos:=ifelse(consq.generation>=0,consq.generation,0)]
+    to.plot[,consq.generation.neg:=ifelse(consq.generation<0,consq.generation,-1)]
     to.plot <- to.plot[complete.cases(to.plot),]
+    cols <- c('Other'='#7fc97f','Coal'='gray27','Hydro'='#386cb0','Natural Gas'='gray73','Nuclear'='#fb9a99','Solar'='#ffff99','Wind'='lightskyblue')
     p <- ggplot(to.plot,aes(x=t,y=generation/1000,fill=Simplified))+
       geom_area()+
       xlab('Hour')+
       ylab('Generation (GW)')+
-      scale_fill_discrete(name='Fuel Type')+
+      scale_fill_manual(name='Fuel Type',values=cols)+
       facet_wrap(~r,scale='free_y')+
       theme_bw()
     ggsave(pp(plots.dir,'/run-',run.i,'/_generation-total-by-region-fuel.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
 
-    p <- ggplot(to.plot,aes(x=t,y=consq.generation/1000,fill=Simplified))+
-      geom_area()+
+    p <- ggplot(to.plot,aes(x=t,fill=Simplified))+
+      geom_area(aes(y=consq.generation.pos/1000))+
+      geom_area(aes(y=consq.generation.neg/1000))+
       xlab('Hour')+
       ylab('Generation (GW)')+
-      scale_fill_discrete(name='Fuel Type')+
+      scale_fill_manual(name='Fuel Type',values=cols)+
       facet_wrap(~r,scale='free_y')+
       theme_bw()
     ggsave(pp(plots.dir,'/run-',run.i,'/_generation-cnsq-total-by-region-fuel.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
@@ -258,42 +323,79 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
       theme_bw()
     ggsave(pp(plots.dir,'/run-',run.i,'/_emissions-cnsq-total-by-region-fuel-line.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
 
-    toPlot <- merge(x=res[['g-t']],y=geners,by='g',all.x=TRUE)
-    toPlot.map <- merge(x=toPlot,y=region.key,by='r',all.x=TRUE)
-    toPlot.map <- toPlot.map[,list(Emissions.Total=sum(generationCO2*generation),Emissions.Conseq=sum(generationCO2*(generation-base.generation))),by=list(run,NAME)]
-    toPlot.map <- merge(x=toPlot.map[run==run.i],y=eia.regions,by='NAME')
+    make.1d.map <- function() {
+      pdf.scale <- 1
+      toPlot <- merge(x=res[['g-t']],y=geners,by='g',all.x=TRUE)
+      toPlot.map <- merge(x=toPlot,y=region.key,by='r',all.x=TRUE)
+      toPlot.map <- toPlot.map[,list(Emissions.Total=sum(generationCO2*generation),Emissions.Conseq=sum(generationCO2*(generation-base.generation))),by=list(run,NAME)]
+      toPlot.map$NAME <- factor(toPlot.map$NAME)
+      toPlot.map <- merge(x=eia.regions,y=toPlot.map[run==run.i,.(NAME,Emissions.Conseq)],by='NAME',all.x=TRUE)
 
-    p <- ggplot()+
-      geom_polygon(data=states,aes(x=long,y=lat,group=group),fill=NA,color='grey',size=0.2)+
-      geom_sf(data=toPlot.map,aes(fill=Emissions.Conseq/1000),color='black',lwd=0.2)+
-      coord_sf()+
-      xlim(-125,-68)+
-      ylim(25,50)+
-      scale_fill_gradient(name='Consequential\nCO2 Emissions (tons)',low='white',high='darkred')+
-      theme_bw()%+replace% theme(plot.background=element_blank(),panel.background=element_blank(),panel.border=element_blank(),axis.line=element_blank(),axis.text=element_blank(),axis.ticks=element_blank(),axis.title=element_blank())
-      ggsave(pp(plots.dir,'/run-',run.i,'/_map_emissions-cnsq-total-by-region.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
-    
-    p <- ggplot()+
-      geom_polygon(data=states,aes(x=long,y=lat,group=group),fill=NA,color='grey',size=0.2)+
-      geom_sf(data=toPlot.map,aes(fill=Emissions.Total/1000),color='black',lwd=0.2)+
-      coord_sf()+
-      xlim(-125,-68)+
-      ylim(25,50)+
-      scale_fill_gradient(name='Total CO2\nEmissions (tons)',low='white',high='darkred')+
-      theme_bw()%+replace% theme(plot.background=element_blank(),panel.background=element_blank(),panel.border=element_blank(),axis.line=element_blank(),axis.text=element_blank(),axis.ticks=element_blank(),axis.title=element_blank())
-      ggsave(pp(plots.dir,'/run-',run.i,'/_map_emissions-total-by-region.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
+      toPlot.pie <- generation[run==run.i,.(consq.generation=sum(consq.generation,na.rm=TRUE)),by=.(Simplified,r)]
+      toPlot.pie <- toPlot.pie[complete.cases(toPlot.pie),]
+      toPlot.pie <- dcast(toPlot.pie,r~Simplified,value.var='consq.generation')
+      toPlot.pie[is.na(toPlot.pie)] <- 0
+      toPlot.pie <- melt(toPlot.pie,id='r',variable.name='Simplified',value.name='consq.generation')
+      toPlot.pie <- merge(x=toPlot.pie,y=region.key,by='r')
+      toPlot.pie[,NAME:=gsub(' ','\n',NAME)]
 
-    toPlot.pie <- toPlot[run==run.i,list(Generation=sum(generation),Generation.Conseq=sum(generation-base.generation)),by=list(Simplified,r)]
-    toPlot.pie <- toPlot.pie[complete.cases(toPlot.pie)]
-    toPlot.pie[,Proportion:=Generation/sum(Generation),by=list(r)]
-    toPlot.pie[,Proportion.Conseq:=Generation.Conseq/sum(Generation.Conseq),by=list(r)]
+      make.pie <- function(pie,title=NA,legend.position=0) {
+        if(is.na(title)) {
+          title <- unique(pie$NAME)
+        }
+        cols <- c('Other'='#7fc97f','Coal'='gray27','Hydro'='#386cb0','Natural Gas'='gray73','Nuclear'='#fb9a99','Solar'='#ffff99','Wind'='lightskyblue')
+        ggplot()+
+          geom_bar(data=pie,aes(x='',y=consq.generation,fill=Simplified),color='black',stat='identity',width=1)+
+          coord_polar('y')+
+          ggtitle(title)+
+          scale_fill_manual(name='Fuel Type',values=cols)+
+          theme_void()+
+          theme(legend.position=legend.position,plot.title=element_text(hjust=0.5))
+      }
 
-    p <- ggplot(data=toPlot.pie,aes(x='',y=Proportion.Conseq,fill=Simplified))+
-      geom_bar(stat='identity')+
-      coord_polar(theta='y',start=0)+
-      theme_void()+
-      facet_wrap(~r)
-    ggsave(pp(plots.dir,'/run-',run.i,'/_pie_generation_byfuel.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
+      ENC <- make.pie(toPlot.pie[r=='ENC'])
+      ESC <- make.pie(toPlot.pie[r=='ESC'])
+      MATNL <- make.pie(toPlot.pie[r=='MAT-NL'])
+      MATNY <- make.pie(toPlot.pie[r=='MAT-NY'])
+      MTN <- make.pie(toPlot.pie[r=='MTN'])
+      NENG <- make.pie(toPlot.pie[r=='NENG'])
+      PACCA <- make.pie(toPlot.pie[r=='PAC-CA'])
+      PACNL <- make.pie(toPlot.pie[r=='PAC-NL'])
+      SATFL <- make.pie(toPlot.pie[r=='SAT-FL'])
+      SATNL <- make.pie(toPlot.pie[r=='SAT-NL'])
+      WNC <- make.pie(toPlot.pie[r=='WNC'])
+      WSCNL <- make.pie(toPlot.pie[r=='WSC-NL'])
+      WSCTX <- make.pie(toPlot.pie[r=='WSC-TX'])
+
+      leg <- get_legend(make.pie(toPlot.pie,'',legend.position='right'))
+
+      map.plot <- ggplot()+
+        geom_sf(data=toPlot.map,aes(fill=Emissions.Conseq/1000),color='black',lwd=0.2)+
+        coord_sf()+
+        xlim(-125,-68)+
+        ylim(25,50)+
+        scale_fill_gradient(name='Consequential\nCO2 Emissions (tons)',low='white',high='darkred')+
+        theme_bw()%+replace% theme(plot.background=element_blank(),panel.background=element_blank(),panel.border=element_blank(),axis.line=element_blank(),axis.text=element_blank(),axis.ticks=element_blank(),axis.title=element_blank())
+
+      all <- ggdraw(map.plot)+
+        draw_plot(ENC,x=.06,y=.65,height=.23)+
+        draw_plot(ESC,x=.05,y=.33,height=.23)+
+        draw_plot(MATNL,x=.15,y=.54,height=.2)+
+        draw_plot(MATNY,x=.21,y=.64,height=.2)+
+        draw_plot(MTN,x=-.25,y=.49,height=.17)+
+        draw_plot(NENG,x=.3,y=.68,height=.2)+
+        draw_plot(PACCA,x=-.42,y=.43,height=.17)+
+        draw_plot(PACNL,x=-.39,y=.64,height=.17)+
+        draw_plot(SATFL,x=.14,y=.13,height=.17)+
+        draw_plot(SATNL,x=.16,y=.34,height=.2)+
+        draw_plot(WNC,x=-.08,y=.58,height=.23)+
+        draw_plot(WSCNL,x=-.05,y=.38,height=.23)+
+        draw_plot(WSCTX,x=-.11,y=.24,height=.17)
+
+      final.map <- cowplot::plot_grid(leg,all,rel_widths=c(0.1,1.1))
+      ggsave(final.map,file=pp(plots.dir,'/run-',run.i,'/_map_conseqEmissions-pie-region.pdf'),width=12.5*pdf.scale,height=7*pdf.scale)
+    }
+  make.1d.map()
   }
   }
   # tr <- rbindlist(list(melt(res[['rmob-t']],id.vars=c('t','rmob','run')),melt(en[,.(en.mob=sum(en.mob),en.ch=sum(en.ch)),by=c('rmob','t','run')],id.vars=c('t','rmob','run'))))
@@ -302,16 +404,6 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   # prices <- tr[variable=='price']
   # p <- ggplot(tr,aes(x=t,y=value,colour=variable))+geom_line()+facet_grid(group~rmob,scales='free_y') # geom_bar(stat='identity',position='dodge')
   # ggsave(pp(plots.dir,'_energy-vs-price.pdf'),p,width=12*pdf.scale,height=8*pdf.scale,units='in')
-  
-  geners[,g:=as.numeric(g)]
-  res[['g-t']][,g:=as.numeric(g)]
-  generation <- merge(x=res[['g-t']],y=geners,by='g',all.x=TRUE)
-  generation <- generation[,list(generation=sum(generation),base.generation=sum(base.generation)),by=list(run,r,Simplified,t)]
-  generation[,consq.generation:=generation-base.generation]
-  generation <- generation[complete.cases(generation),]
-  
-  gen.cost <- merge(x=res[['g-t']],y=geners,by='g',all.x=TRUE)
-  gen.cost <- gen.cost[,list(energyCost=sum(generationCosts*(generation-base.generation))),by=list(r,run)]
   
   #gen.cost <- join.on(join.on(res[['g-t']],res[['g']],c('g','run'),c('g','run'))[,g:=as.numeric(g)],inputs$sets$gtor,'g','g')
   #gen.cost <- gen.cost[,.(energyCost=sum(genCost*generation)),by=c('run','r')]
@@ -453,16 +545,6 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   the.cols <- all$col
   names(the.cols) <- all$variable
   
-  disag.the.private.load <- function(df,personalEVUnmanagedLoads){
-    df[l!='Private EVs',charger.level:=pp('SAEV: ',charger.level)]
-    # Split private EV out by charger level
-    proportional.split <- personalEVUnmanagedLoads[,.(frac=sum(value)/sum(personalEVUnmanagedLoads$value)),by='l']
-    private.disag <- join.on(rbindlist(list(df[l=='Private EVs'][,ll:='L1'],df[l=='Private EVs'][,ll:='L2'],df[l=='Private EVs'][,ll:='L3'])),proportional.split,'ll','l')
-    private.disag[,gwh:=frac*gwh]
-    private.disag[,charger.level:=ifelse(ll=='L1','Private: 1.5kW',ifelse(ll=='L2','Private: 7kW','Private: 50kW'))]
-    private.disag[,l:=ifelse(ll=='L1','Private: 1.5kW',ifelse(ll=='L2','Private: 7kW','Private: 50kW'))]
-    rbindlist(list(df[l!='Private EVs'],private.disag),fill=T)
-  }
   # Charging profiles
   to.plot.ch.agg <- to.plot.ch[,.(gwh=sum(gw.charging,na.rm=T)),by=c('run',param.names,'charger.level','l','t')]
   to.plot.ch.agg <- disag.the.private.load(to.plot.ch.agg,inputs$parameters$personalEVUnmanagedLoads)
@@ -477,6 +559,21 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     ggsave(pp(sub.dir,'/charging_',code,'.pdf'),p,width=8*pdf.scale,height=4*pdf.scale,units='in')
     p <- ggplot(ch.sub[t>min(day.axis.breaks)&t<=max(day.axis.breaks)],aes(x=t,y=gwh,fill=charger.level))+geom_area(stat='identity')+facet_grid(streval(freeCol)~.)+scale_x_continuous(breaks=day.axis.breaks)+scale_fill_manual(values = the.ch.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x='Hour',y='Charging Power (GW)',title=pp('Charging Power by ',factor.labels[freeCol],ifelse(code=='','',' when '),code),fill='')+theme_bw()
     ggsave(pp(sub.dir,'/charging_',code,'_transpose.pdf'),p,width=6*pdf.scale,height=4*pdf.scale,units='in')
+  }
+  make.1d.generation.plot <- function(param,param.ind,code,the.free.col,sub.dir) {
+    cols <- c('Other'='#7fc97f','Coal'='gray27','Hydro'='#386cb0','Natural Gas'='gray73','Nuclear'='#fb9a99','Solar'='#ffff99','Wind'='lightskyblue')
+    regions <- c('NENG','SAT-FL','ESC')
+    pdf.scale <- 1
+    forPlot <- merge(x=generation[get(param)==param.ind,],y=region.key,by='r')
+    p <- ggplot(data=forPlot[r%in%regions],aes(x=t,y=generation/1000,fill=Simplified))+
+      geom_area()+
+      xlab('Hour')+
+      ylab('Generation (GW)')+
+      xlim(0,144)+
+      scale_fill_manual(name='Fuel Type',values=cols)+
+      theme_bw()+
+      facet_grid(NAME~streval(the.free.col),scales='free_y')
+    ggsave(pp(sub.dir,'/generation_',code,'.pdf'),p,width=8*pdf.scale,height=6*pdf.scale,units='in')
   }
   make.2d.charging.plot <- function(ch.sub,code,freeCols){
     p <- ggplot(ch.sub[t>min(day.axis.breaks)&t<=max(day.axis.breaks)],aes(x=t,y=gwh,fill=charger.level))+geom_area(stat='identity')+scale_x_continuous(breaks=day.axis.breaks)+scale_fill_manual(values = the.ch.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x='Hour',y='Charging Power (GW)',title=pp('Charging Power',ifelse(code=='','',' when '),code),fill='')+theme_bw()
@@ -530,84 +627,6 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
         }
     }
   }
-  ### Notes for Colin: ###
-  # This uses the old "run==run[i]" where it looks like your new plot generation has
-  # an assignment based on the parameter name/value combo.  I couldn't quite figure out how
-  # to replicate this so I need your help to implement it (or explain to me so I can fix it)
-  # Also note, the pie chart layer is somewhat gimicky, we shouldn't touch the pdf size 
-  # because the scale will mess with the pie positioning (which I had to do manually).
-  make.1d.map <- function() {
-    pdf.scale <- 1
-    toPlot <- merge(x=res[['g-t']],y=geners,by='g',all.x=TRUE)
-    toPlot.map <- merge(x=toPlot,y=region.key,by='r',all.x=TRUE)
-    toPlot.map <- toPlot.map[,list(Emissions.Total=sum(generationCO2*generation),Emissions.Conseq=sum(generationCO2*(generation-base.generation))),by=list(run,NAME)]
-    toPlot.map$NAME <- factor(toPlot.map$NAME)
-    toPlot.map <- merge(x=eia.regions,y=toPlot.map[run==run.i,.(NAME,Emissions.Conseq)],by='NAME',all.x=TRUE)
-
-    toPlot.pie <- generation[run==run.i,.(consq.generation=sum(consq.generation,na.rm=TRUE)),by=.(Simplified,r)]
-    toPlot.pie <- toPlot.pie[complete.cases(toPlot.pie),]
-    toPlot.pie <- dcast(toPlot.pie,r~Simplified,value.var='consq.generation')
-    toPlot.pie[is.na(toPlot.pie)] <- 0
-    toPlot.pie <- melt(toPlot.pie,id='r',variable.name='Simplified',value.name='consq.generation')
-    toPlot.pie <- merge(x=toPlot.pie,y=centroids[,.(r,long,lat)],by='r')
-
-    make.pie <- function(pie,title=NA,legend.position=0) {
-      if(is.na(title)) {
-        title <- unique(pie$r)
-      }
-      ggplot()+
-        geom_bar(data=pie,aes(x='',y=consq.generation,fill=Simplified),color='black',stat='identity',width=1)+
-        coord_polar('y')+
-        ggtitle(title)+
-        scale_fill_discrete(name='Fuel Type')+
-        theme_void()+
-        theme(legend.position=legend.position,plot.title=element_text(hjust=0.5))
-    }
-
-    ENC <- make.pie(toPlot.pie[r=='ENC'])
-    ESC <- make.pie(toPlot.pie[r=='ESC'])
-    MATNL <- make.pie(toPlot.pie[r=='MAT-NL'])
-    MATNY <- make.pie(toPlot.pie[r=='MAT-NY'])
-    MTN <- make.pie(toPlot.pie[r=='MTN'])
-    NENG <- make.pie(toPlot.pie[r=='NENG'])
-    PACCA <- make.pie(toPlot.pie[r=='PAC-CA'])
-    PACNL <- make.pie(toPlot.pie[r=='PAC-NL'])
-    SATFL <- make.pie(toPlot.pie[r=='SAT-FL'])
-    SATNL <- make.pie(toPlot.pie[r=='SAT-NL'])
-    WNC <- make.pie(toPlot.pie[r=='WNC'])
-    WSCNL <- make.pie(toPlot.pie[r=='WSC-NL'])
-    WSCTX <- make.pie(toPlot.pie[r=='WSC-TX'])
-
-    leg <- get_legend(make.pie(toPlot.pie,'',legend.position='right'))
-
-    map.plot <- ggplot()+
-      geom_sf(data=toPlot.map,aes(fill=Emissions.Conseq/1000),color='black',lwd=0.2)+
-      coord_sf()+
-      xlim(-125,-68)+
-      ylim(25,50)+
-      scale_fill_gradient(name='Consequential\nCO2 Emissions (tons)',low='white',high='darkred')+
-      theme_bw()%+replace% theme(plot.background=element_blank(),panel.background=element_blank(),panel.border=element_blank(),axis.line=element_blank(),axis.text=element_blank(),axis.ticks=element_blank(),axis.title=element_blank())
-
-    all <- ggdraw(map.plot)+
-      draw_plot(ENC,x=.06,y=.65,height=.17)+
-      draw_plot(ESC,x=.05,y=.33,height=.17)+
-      draw_plot(MATNL,x=.15,y=.54,height=.17)+
-      draw_plot(MATNY,x=.21,y=.64,height=.17)+
-      draw_plot(MTN,x=-.25,y=.49,height=.17)+
-      draw_plot(NENG,x=.3,y=.68,height=.17)+
-      draw_plot(PACCA,x=-.42,y=.43,height=.17)+
-      draw_plot(PACNL,x=-.39,y=.64,height=.17)+
-      draw_plot(SATFL,x=.14,y=.13,height=.17)+
-      draw_plot(SATNL,x=.16,y=.34,height=.17)+
-      draw_plot(WNC,x=-.08,y=.58,height=.17)+
-      draw_plot(WSCNL,x=-.05,y=.38,height=.17)+
-      draw_plot(WSCTX,x=-.11,y=.24,height=.17)
-
-    final.map <- cowplot::plot_grid(leg,all,rel_widths=c(0.1,1.1))
-    ggsave(final.map,file='experiments/fracSAEVsAndSmartCharging/plots/testmap.pdf',width=12.5*pdf.scale,height=7*pdf.scale)
-  }
-  make.1d.map()
-
   make.dir(pp(plots.dir,'/_metrics_1d'))
   if(length(param.names)==1){
     make.1d.metric.plot(all,'',param.names[1],pp(plots.dir,'/_metrics_1d'))
@@ -626,10 +645,10 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
         make.1d.metric.plot(all.sub,code,the.free.col,pp(plots.dir,'/_metrics_1d/',code))
         ch.sub <- streval(pp('to.plot.ch.agg[',pp(param.names[the.param.inds],'==',unlist(param.combs[comb.i]),collapse=' & '),']'))
         make.1d.charging.plot(ch.sub,code,the.free.col,pp(plots.dir,'/_metrics_1d/',code))
+        make.1d.generation.plot(param.names[the.param.inds],param.combs[comb.i,get(param.names[the.param.inds])],code,the.free.col,pp(plots.dir,'/_metrics_1d/',code))
       }
     }
   }
-  
   
   if(length(param.names)==1){
     # Vehicle allocations

@@ -42,12 +42,15 @@ weekday.to.year.factor <- 250.5 + 114.5*(19861098473/22232870872) # N_weekdays +
 # Following is based on above but adjusted to account for runs with 2 weekdays + 1 weekend
 weekday.to.year.factor <- 250.5*(250.5/365/.66666) + 114.5*(114.5/365/.33333)*(19861098473/22232870872) 
 
-#### Grid ####
-generators <- data.table(read.csv(pp(gem.raw.inputs,'gem_gridInputs_generators.csv')))
-load <- data.table(read.csv(pp(gem.raw.inputs,'gem_gridInputs_load.csv')))
-transmission <- data.table(read.csv(pp(gem.raw.inputs,'gem_gridInputs_transmission.csv')))
-transmissionScalingFactor <- 1.0
-renewableCF <- data.table(read.csv(pp(gem.raw.inputs,'gem_gridInputs_renewableCF.csv')))
+chts.trips <- fread(pp(gem.raw.inputs,'chts_triptimes.csv'))
 
-fuels <- data.frame('FuelType'=c('Wind','Waste Coal','Tire','Solar','Pumps','Pet. Coke','Oil','Nuclear','None','Non-Fossil','NaturalGas','MSW','LF Gas','Hydro','Geothermal','Fwaste','Coal','Biomass'),'Simplified'=c('Wind','Coal','Other','Solar','Pumps','Other','Other','Nuclear','Other','Other','NaturalGas','Biomass','NaturalGas','Hydro','Geothermal','Biomass','Coal','Biomass'))
-meritOrder <- c('Solar','Wind','Geothermal','Other','Hydro','NaturalGas','Pumps','Biomass','Coal','Nuclear')
+#### Grid ####
+generators <- fread(pp(gem.raw.inputs,'gem_gridInputs_generators.csv'))
+load <- fread(pp(gem.raw.inputs,'gem_gridInputs_load.csv'))
+transmission <- fread(pp(gem.raw.inputs,'gem_gridInputs_transmission.csv'))
+transmissionScalingFactor <- 1.0
+renewableCF <- fread(pp(gem.raw.inputs,'gem_gridInputs_renewableCF.csv'))
+
+fuels <- data.frame('FuelType'=c('Wind','Waste Coal','Tire','Solar','Pumps','Pet. Coke','Oil','Nuclear','None','Non-Fossil','NaturalGas','MSW','LF Gas','Hydro','Geothermal','Fwaste','Coal','Biomass','Tires'),'Simplified'=c('Wind','Coal','Other','Solar','Other','Other','Other','Nuclear','Other','Other','Natural Gas','Other','Natural Gas','Hydro','Other','Other','Coal','Other','Other'))
+meritOrder <- c('Solar','Wind','Hydro','Other','Natural Gas','Coal','Nuclear')
+
