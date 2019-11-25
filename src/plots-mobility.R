@@ -93,55 +93,59 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   gen.cost <- gen.cost[,list(energyCost=sum(generationCosts*(generation-base.generation))),by=list(r,run)]
 
   # Run by Run Plots
-  run.i <- u(vehs$run)[1]
+  run.i <- u(vehs$run)[3]
   for(run.i in u(vehs$run)){
     if(T){
     day.axis.breaks <- seq(0,max(veh.ch$t),by=24)
     setkey(vehs,run,b,rmob,t)
-    to.plot <- melt(vehs[run==run.i],id.vars=c('b','rmob','t'))
-    to.plot[,vehicle.activity:=gsub('\\.L0|\\.L','(',gsub('vehiclesCharging','Charging ',variable))]
-    to.plot[,vehicle.activity:=ifelse(grepl('Charging',vehicle.activity),paste(vehicle.activity,'kW)'),vehicle.activity)]
-    to.plot[,vehicle.activity:=gsub('\\.','-',gsub('\\.d','(',gsub('vehiclesMoving','Driving ',vehicle.activity)))]
-    to.plot[,vehicle.activity:=ifelse(grepl('Driving',vehicle.activity),paste(vehicle.activity,' mi)'),vehicle.activity)]
-    to.plot[,vehicle.activity:=ifelse(grepl('run',vehicle.activity),'Driving (private)',ifelse(grepl('vehiclesIdle',vehicle.activity),'Idling',vehicle.activity))]
-    to.plot$vehicle.activity <- factor(to.plot$vehicle.activity,levels=unique(to.plot$vehicle.activity)[unique(mixedorder(to.plot$vehicle.activity))])
-    p <- ggplot(to.plot,aes(x=t,y=value/1000,fill=vehicle.activity))+
-      geom_bar(stat='identity',position='stack')+
-      xlab('Hour')+
-      ylab('Number of vehicles (thousands)')+
-      facet_wrap(~rmob,scales='free_y')+
-      theme_bw()+
-      scale_fill_manual(name = 'Vehicle activity',values = getPalette(to.plot$vehicle.activity))
-    pdf.scale <- 1
-    ggsave(pp(plots.dir,'/run-',run.i,'/_num-vehs.pdf'),p,width=10*pdf.scale,height=8*pdf.scale,units='in')
+    # to.plot <- melt(vehs[run==run.i],id.vars=c('b','rmob','t'))
+    # to.plot[,vehicle.activity:=gsub('\\.L0|\\.L','(',gsub('vehiclesCharging','Charging ',variable))]
+    # to.plot[,vehicle.activity:=ifelse(grepl('Charging',vehicle.activity),paste(vehicle.activity,'kW)'),vehicle.activity)]
+    # to.plot[,vehicle.activity:=gsub('\\.','-',gsub('\\.d','(',gsub('vehiclesMoving','Moving ',vehicle.activity)))]
+    # to.plot[,vehicle.activity:=ifelse(grepl('Moving',vehicle.activity),paste(vehicle.activity,' mi)'),vehicle.activity)]
+    # to.plot[,vehicle.activity:=ifelse(grepl('run',vehicle.activity),'Moving (private)',ifelse(grepl('vehiclesIdle',vehicle.activity),'Idling',vehicle.activity))]
+    # to.plot$vehicle.activity <- factor(to.plot$vehicle.activity,levels=unique(to.plot$vehicle.activity)[unique(mixedorder(to.plot$vehicle.activity))])
+    # p <- ggplot(to.plot,aes(x=t,y=value/1000,fill=vehicle.activity))+
+    #   geom_bar(stat='identity',position='stack')+
+    #   xlab('Hour')+
+    #   ylab('Number of vehicles (thousands)')+
+    #   facet_wrap(~rmob,scales='free_y')+
+    #   theme_bw()+
+    #   scale_fill_manual(name = 'Vehicle activity',values = getPalette(to.plot$vehicle.activity))
+    # pdf.scale <- 1
+    # ggsave(pp(plots.dir,'/run-',run.i,'/_num-vehs.pdf'),p,width=10*pdf.scale,height=8*pdf.scale,units='in')
     
+    to.plot <- melt(vehs[run==run.i],id.vars=c('b','t','rmob','run'))
     to.plot[,variable.simp:=ifelse(grepl('vehiclesCharging',variable),pp('Charging: SAEV ',substr(b,2,5),'mi'),ifelse(variable=='vehiclesIdle',pp('Idle: SAEV ',substr(b,2,5),'mi'),pp('Moving: SAEV ',substr(b,2,5),'mi')))]
-    to.remove <- to.plot[,sum(value)/sum(to.plot$value),by='variable.simp'][V1<1e-4]$variable.simp
+    to.remove <- to.plot[,sum(value),by='variable.simp'][V1<1e-4]$variable.simp
     to.plot <- to.plot[!variable.simp%in%to.remove]
-    to.plot[,variable.simp:=factor(variable.simp,c(rev(u(to.plot$variable.simp))[c(4:6,1:3,7:9)]))]
-    setkey(to.plot,variable.simp)
-    p<-ggplot(to.plot[,.(value=sum(value)),by=c('t','variable.simp')],aes(x=t,y=value/1000,fill=variable.simp))+
-      geom_area()+
-      xlab('Hour')+
-      ylab('Number of vehicles (thousands)')+
-      scale_fill_manual(name = 'Vehicle activity',values = getPalette(to.plot$variable.simp),guide=guide_legend(reverse=F))+
-      scale_x_continuous(breaks=day.axis.breaks)+
-      theme_bw()
-    pdf.scale <- 1
-    ggsave(pp(plots.dir,'/run-',run.i,'/_num-vehs-simple-2.pdf'),p,width=10*pdf.scale,height=5*pdf.scale,units='in')
+    to.plot[,variable.simp:=factor(variable.simp,c(rev(u(to.plot$variable.simp))))]
+    if(nrow(to.plot)>0){
+      setkey(to.plot,variable.simp)
+      p<-ggplot(to.plot[,.(value=sum(value)),by=c('t','variable.simp')],aes(x=t,y=value/1000,fill=variable.simp))+
+        geom_area()+
+        xlab('Hour')+
+        ylab('Number of vehicles (thousands)')+
+        scale_fill_manual(name = 'Vehicle activity',values = getPalette(to.plot$variable.simp),guide=guide_legend(reverse=F))+
+        scale_x_continuous(breaks=day.axis.breaks)+
+        theme_bw()
+      pdf.scale <- 1
+      ggsave(pp(plots.dir,'/run-',run.i,'/_num-vehs-simple-2.pdf'),p,width=10*pdf.scale,height=5*pdf.scale,units='in')
+      
+      to.plot[,variable.simp:=ifelse(grepl('vehiclesCharging',variable),'Charging',ifelse(variable=='vehiclesIdle','Idle','Moving'))]
+      to.plot[,variable.simp:=factor(variable.simp,c('Idle','Moving','Charging'))]
+      setkey(to.plot,variable.simp)
+      p <- ggplot(to.plot,aes(x=t,y=value/1000,fill=variable.simp))+
+        geom_area()+
+        xlab('Hour')+
+        ylab('Number of vehicles (thousands)')+
+        facet_wrap(~rmob,scales='free_y')+
+        scale_x_continuous(breaks=day.axis.breaks)+
+        scale_fill_manual(name = 'Vehicle activity',values = getPalette(to.plot$variable.simp),guide=guide_legend(reverse=F))+
+        theme_bw()
+      ggsave(pp(plots.dir,'/run-',run.i,'/_num-vehs-simple.pdf'),p,width=10*pdf.scale,height=8*pdf.scale,units='in')
+    }
   
-    to.plot[,variable.simp:=ifelse(grepl('vehiclesCharging',variable),'Charging',ifelse(variable=='vehiclesIdle','Idle','Moving'))]
-    to.plot[,variable.simp:=factor(variable.simp,c('Idle','Moving','Charging'))]
-    setkey(to.plot,variable.simp)
-    p <- ggplot(to.plot,aes(x=t,y=value/1000,fill=variable.simp))+
-      geom_bar(stat='identity',position='stack')+
-      xlab('Hour')+
-      ylab('Number of vehicles (thousands)')+
-      facet_wrap(~rmob,scales='free_y')+
-      scale_x_continuous(breaks=day.axis.breaks)+
-      scale_fill_manual(name = 'Vehicle activity',values = getPalette(to.plot$variable.simp),guide=guide_legend(reverse=F))+
-      theme_bw()
-    ggsave(pp(plots.dir,'/run-',run.i,'/_num-vehs-simple.pdf'),p,width=10*pdf.scale,height=8*pdf.scale,units='in')
 
     # Charging load
     p <- ggplot(veh.ch[run==run.i],aes(x=t,y=gw.charging,fill=fct_rev(charger.level)))+
@@ -181,6 +185,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     personal.evs.total[,t:=rep(1:length(u(personal.ev.ch$t)),each=nrow(personal.evs.total)/length(u(personal.ev.ch$t)))]
     personal.evs.total <- personal.evs.total[,.(Total=sum(value)),by=.(t,rmob)]
 
+    chts.trips$n <- 1:nrow(chts.trips)
     chts.hours <- unlist(sapply(chts.trips$n,function(x) seq(chts.trips$start_hour[x],chts.trips$end_hour[x])))
     chts.hours <- data.table(table(chts.hours))
     names(chts.hours) <- c('Hour','Count')
@@ -224,7 +229,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
       theme_bw() 
     ggsave(pp(plots.dir,'/run-',run.i,'/_soc.pdf'),p,width=10*pdf.scale,height=8*pdf.scale,units='in')
     p <- ggplot(en,aes(x=t,y=soc/10^6,fill=fct_rev(battery.level)))+
-      geom_bar(stat='identity',position='stack')+
+      geom_area()+
       xlab('Hour')+
       ylab('Fleet Energy State (GWh)')+
       facet_wrap(~rmob,scales='free_y')+
@@ -260,14 +265,16 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     ggsave(pp(plots.dir,'/run-',run.i,'/_fleet-size-and-type-percent.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
     to.remove <- to.plot[,sum(value),by='variable'][V1==0]$variable
     to.plot <- to.plot[!variable%in%to.remove,.(value=sum(value)/1e6,percent=value/sum(value)*100),by=c('group','variable','urb')]
-    p <- ggplot(to.plot,aes(x=urb,y=value,fill=variable))+
-      geom_bar(stat='identity')+
-      xlab('Regional Type')+
-      ylab('Count in Millions')+
-      facet_wrap(~group,scales='free_y')+ 
-      theme_bw()+
-      scale_fill_manual(name='Charger/Battery Level',values = getPalette(to.plot$variable),guide=guide_legend(reverse=F))
-    ggsave(pp(plots.dir,'/run-',run.i,'/_fleet-size-and-type-agg.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
+    if(nrow(to.plot)>0){
+      p <- ggplot(to.plot,aes(x=urb,y=value,fill=variable))+
+        geom_bar(stat='identity')+
+        xlab('Regional Type')+
+        ylab('Count in Millions')+
+        facet_wrap(~group,scales='free_y')+ 
+        theme_bw()+
+        scale_fill_manual(name='Charger/Battery Level',values = getPalette(to.plot$variable),guide=guide_legend(reverse=F))
+      ggsave(pp(plots.dir,'/run-',run.i,'/_fleet-size-and-type-agg.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
+    }
     
     # to.plot <- res[['rmob']][,.(rmob,urbanFormFactor)]
     # to.plot[,urb:=ifelse(grepl('RUR$',rmob),'Rural','Urban')]
@@ -307,7 +314,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     to.plot[,consq.emissions:=emissions-base.emissions]
     to.plot <- to.plot[complete.cases(to.plot),]
     p <- ggplot(to.plot,aes(x=t,y=emissions/1000,fill=Simplified))+
-      geom_bar(stat='identity')+
+      geom_area()+
       xlab('Hour')+
       ylab('Hourly CO2 Emissions (tons)')+
       scale_fill_discrete(name='Fuel Type')+
@@ -316,7 +323,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     ggsave(pp(plots.dir,'/run-',run.i,'/_emissions-total-by-region-fuel.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
 
     p <- ggplot(to.plot,aes(x=t,y=consq.emissions/1000,fill=Simplified))+
-      geom_bar(stat='identity')+
+      geom_area()+
       xlab('Hour')+
       ylab('Hourly CO2 Emissions (tons)')+
       scale_fill_discrete(name='Fuel Type')+
@@ -684,9 +691,9 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
 
     to.plot[,vehicle.activity:=gsub('\\.L0|\\.L','(',gsub('vehiclesCharging','Charging ',variable))]
     to.plot[,vehicle.activity:=ifelse(grepl('Charging',vehicle.activity),paste(vehicle.activity,'kW)'),vehicle.activity)]
-    to.plot[,vehicle.activity:=gsub('\\.','-',gsub('\\.d','(',gsub('vehiclesMoving','Driving ',vehicle.activity)))]
-    to.plot[,vehicle.activity:=ifelse(grepl('Driving',vehicle.activity),paste(vehicle.activity,' mi)'),vehicle.activity)]
-    to.plot[,vehicle.activity:=ifelse(grepl('run',vehicle.activity),'Driving (private)',ifelse(grepl('vehiclesIdle',vehicle.activity),'Idling',vehicle.activity))]
+    to.plot[,vehicle.activity:=gsub('\\.','-',gsub('\\.d','(',gsub('vehiclesMoving','Moving ',vehicle.activity)))]
+    to.plot[,vehicle.activity:=ifelse(grepl('Moving',vehicle.activity),paste(vehicle.activity,' mi)'),vehicle.activity)]
+    to.plot[,vehicle.activity:=ifelse(grepl('run',vehicle.activity),'Moving (private)',ifelse(grepl('vehiclesIdle',vehicle.activity),'Idling',vehicle.activity))]
     to.plot$vehicle.activity <- factor(to.plot$vehicle.activity,levels=unique(to.plot$vehicle.activity)[unique(mixedorder(to.plot$vehicle.activity))])
 
     streval(pp('setkey(to.plot,variable,vehicle.activity,t,b,',param.names,')'))

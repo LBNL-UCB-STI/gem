@@ -12,6 +12,9 @@ library('RColorBrewer')
 library('forcats')
 library('gtools')
 library('sf')
+library('cowplot')
+library('tidyr')
+library('dplyr')
 
 gdx.to.data.tables <- function(mygdx){
   keys <- all_items(mygdx)$set
