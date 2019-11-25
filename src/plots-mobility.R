@@ -158,7 +158,8 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     ggsave(pp(plots.dir,'/run-',run.i,'/_charging-saevs.pdf'),p,width=10*pdf.scale,height=8*pdf.scale,units='in')
     to.plot <- rbindlist(list(veh.ch,personal.ev.ch),fill=T,use.names=T)[run==run.i]
     to.plot[,gwh:=gw.charging]
-    to.plot <- disag.the.private.load(to.plot,all.inputs[[run.i]]$parameters$personalEVUnmanagedLoads)
+    to.plot[,ll:='']
+    if(exper$runs[run.i]$fractionSAEVs<1.0)to.plot <- disag.the.private.load(to.plot,all.inputs[[run.i]]$parameters$personalEVUnmanagedLoads)
     to.plot[,l.ordered:=ifelse(substr(l,1,1)=='L',pp('a',l),l)]
     to.plot[,col:=getPalette(l)[match(l.ordered,u(l.ordered))]]
     the.ch.cols <- to.plot$col
@@ -216,8 +217,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
       scale_x_continuous(breaks=day.axis.breaks)+
       theme_bw()
     pdf.scale <- 1
-    #ggsave(p,file='test.pdf',height=6,width=9)
-    #ggsave(pp(plots.dir,'/run-',run.i,'/_num-vehs-simple-2.pdf'),p,width=10*pdf.scale,height=5*pdf.scale,units='in')
+    ggsave(pp(plots.dir,'/run-',run.i,'/_num-vehs-simple-personal.pdf'),p,width=10*pdf.scale,height=5*pdf.scale,units='in')
 
     # Energy balance
     p <- ggplot(en[run==run.i],aes(x=t,y=soc/10^6,colour=fct_rev(battery.level)))+
