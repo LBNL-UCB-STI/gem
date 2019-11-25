@@ -18,14 +18,21 @@
       #cs[vals]
       rev(colorRampPalette(brewer.pal(ncol, "Greys"))(ncol))
     }else if(any(substr(u(vals),1,4)=='Idle',na.rm=TRUE)|any(substr(u(vals),1,6)=='Moving',na.rm=TRUE)|any(substr(u(vals),1,8)=='Charging',na.rm=TRUE)){
-      nidle <- sum(substr(u(vals),1,4)=='Idle')
+      nidle <- sum(substr(u(vals),1,3)=='Idl')
       nmoving <- sum(substr(u(vals),1,6)=='Moving')
       ncharging <- sum(substr(u(vals),1,8)=='Charging')
-      c(rev(colorRampPalette(brewer.pal(nidle, "Reds"))(nidle)),
+      c(rev(colorRampPalette(brewer.pal(nidle, "Greys"))(nidle)),
         rev(colorRampPalette(brewer.pal(nmoving, "Blues"))(nmoving)),
-        rev(colorRampPalette(brewer.pal(ncharging, "Greys"))(ncharging))
-        )
+        rev(colorRampPalette(brewer.pal(ncharging, "Reds"))(ncharging))
+      )
+    }else if(any(substr(u(vals),1,4)=='Chgr',na.rm=TRUE)){
+      ncharger <- sum(substr(u(vals),1,4)=='Chgr')
+      nbat <- ncol-ncharger
+      c(
+        rev(colorRampPalette(brewer.pal(nbat, "Blues"))(nbat)),
+        rev(colorRampPalette(brewer.pal(ncharger, "Reds"))(ncharger))
+       )
     }else{
-      rev(colorRampPalette(brewer.pal(ncol, "Oranges"))(ncol))
+      rev(colorRampPalette(brewer.pal(ncol, "Reds"))(ncol))
     }
   }
