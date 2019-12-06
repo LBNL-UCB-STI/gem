@@ -204,15 +204,19 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     personal.evs.ch.total <- personal.evs.ch.total[,.(Charging=sum(Charging)),by=.(t,rmob)]
 
     personal.evs.total <- merge(x=personal.evs.total,y=personal.evs.ch.total,by=c('t','rmob'))
+    personal.evs.total[,Charging:=ifelse(Charging>Total,Total,Charging)]
+    personal.evs.total[,Moving:=ifelse(Moving+Charging>Total,Total-Charging,Moving)]
     personal.evs.total[,Idle:=Total-Moving-Charging]
     personal.evs.total <- personal.evs.total[,.(Moving=sum(Moving),Charging=sum(Charging),Idle=sum(Idle)),by=.(t)]
     personal.evs.total[Idle<0,Idle:=0]
     personal.evs.total <- melt(personal.evs.total,id='t',variable.name='Activity',value.name='Cars')
+    personal.evs.total$Activity <- factor(personal.evs.total$Activity,levels=c('Idle','Moving','Charging'))
 
     p<-ggplot(personal.evs.total,aes(x=t,y=Cars/1000,fill=Activity))+
       geom_area()+
       xlab('Hour')+
       ylab('Number of vehicles (thousands)')+
+      scale_fill_manual(name='Personal Vehicle activity',values=c('Idle'='#bdbdbd','Moving'='#3182bd','Charging'='#ee3a3a'))+
       #scale_fill_manual(name = 'Vehicle activity',values = getPalette(to.plot$variable.simp),guide=guide_legend(reverse=F))+
       scale_x_continuous(breaks=day.axis.breaks)+
       theme_bw()
