@@ -580,6 +580,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
       theme_bw()+
       scale_fill_manual(name='Charger/Battery Level',values = getPalette(to.plot$variable),guide=guide_legend(reverse=F))
     ggsave(pp(sub.dir,'/fleet_and_chargers_',code,'.pdf'),p,width=8*pdf.scale,height=4*pdf.scale,units='in')
+    write.csv(to.plot,pp(sub.dir,'/fleet_and_chargers_',code,'.csv'))
   }
   # Charging profiles
   to.plot.ch.agg <- to.plot.ch[,.(gwh=sum(gw.charging,na.rm=T)),by=c('run',param.names,'charger.level','l','t')]
@@ -593,6 +594,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     p <- ggplot(ch.sub[t>min(day.axis.breaks)&t<=max(day.axis.breaks)],aes(x=t,y=gwh,fill=charger.level))+geom_area(stat='identity')+facet_grid(.~streval(freeCol))+scale_x_continuous(breaks=day.axis.breaks)+scale_fill_manual(values = the.ch.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x='Hour',y='Charging Power (GW)',title=pp('Charging Power by ',factor.labels[freeCol],ifelse(code=='','',' when '),code),fill='')+theme_bw()
     pdf.scale <- 1
     ggsave(pp(sub.dir,'/charging_',code,'.pdf'),p,width=8*pdf.scale,height=4*pdf.scale,units='in')
+    write.csv(ch.sub[t>min(day.axis.breaks)&t<=max(day.axis.breaks)],file=pp(sub.dir,'/charging_',code,'.csv'))
     p <- ggplot(ch.sub[t>min(day.axis.breaks)&t<=max(day.axis.breaks)],aes(x=t,y=gwh,fill=charger.level))+geom_area(stat='identity')+facet_grid(streval(freeCol)~.)+scale_x_continuous(breaks=day.axis.breaks)+scale_fill_manual(values = the.ch.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x='Hour',y='Charging Power (GW)',title=pp('Charging Power by ',factor.labels[freeCol],ifelse(code=='','',' when '),code),fill='')+theme_bw()
     ggsave(pp(sub.dir,'/charging_',code,'_transpose.pdf'),p,width=6*pdf.scale,height=4*pdf.scale,units='in')
   }
@@ -610,12 +612,14 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
       theme_bw()+
       facet_grid(NAME~streval(the.free.col),scales='free_y')
     ggsave(pp(sub.dir,'/generation_',code,'.pdf'),p,width=8*pdf.scale,height=6*pdf.scale,units='in')
+    write.csv(forPlot[r%in%regions],file=pp(sub.dir,'/generation_',code,'.csv'))
   }
   make.2d.charging.plot <- function(ch.sub,code,freeCols){
     p <- ggplot(ch.sub[t>min(day.axis.breaks)&t<=max(day.axis.breaks)],aes(x=t,y=gwh,fill=charger.level))+geom_area(stat='identity')+scale_x_continuous(breaks=day.axis.breaks)+scale_fill_manual(values = the.ch.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x='Hour',y='Charging Power (GW)',title=pp('Charging Power',ifelse(code=='','',' when '),code),fill='')+theme_bw()
     p <- p + streval(pp('facet_grid(',freeCols[1],'~',freeCols[2],')'))
     pdf.scale <- 1
     ggsave(pp(plots.dir,'_charging_2d',ifelse(code=='','',pp('_',code)),'.pdf'),p,width=14*pdf.scale,height=8*pdf.scale,units='in')
+    write.csv(ch.sub[t>min(day.axis.breaks)&t<=max(day.axis.breaks)],file=pp(plots.dir,'_charging_2d',ifelse(code=='','',pp('_',code)),'.csv'))
   }
   make.2d.metric.plot <- function(all.sub,code,freeCols){
     all.sub <- join.on(all.sub,all.sub[,.(val=sum(value,na.rm=T)),by=c('run','metric')][,.(max.value=max(val,na.rm=T)),by=c('metric')],'metric','metric')
@@ -624,6 +628,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     p <- p + streval(pp('facet_grid(',freeCols[1],'~',freeCols[2],')'))
     pdf.scale <- 1
     ggsave(pp(plots.dir,'_metrics_2d',ifelse(code=='','',pp('_',code)),'.pdf'),p,width=14*pdf.scale,height=8*pdf.scale,units='in')
+    write.csv(all.sub,file=pp(plots.dir,'/metric_2d',ifelse(code=='','',pp('_',code)),'.csv'))
   }
   if(length(param.names)==2){
     make.2d.metric.plot(all,'',param.names)
@@ -652,6 +657,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
         p <- ggplot(all.sub[metric==the.metric],aes(x=factor(streval(freeCol)),y=value/metric.units[metric==the.metric]$scale.factor,fill=variable))+geom_bar(stat='identity',colour='black')+scale_fill_manual(values = the.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x=factor.labels[freeCol],y=metric.units[metric==the.metric]$label,title=pp(the.metric,ifelse(code=='','',' when '),code),fill='')+theme_bw()
         pdf.scale <- 1
         ggsave(pp(sub.dir,'/metric_',the.metric,'_',code,'.pdf'),p,width=6*pdf.scale,height=4*pdf.scale,units='in')
+        write.csv(streval(pp('all.sub[metric==the.metric,.(x=',freeCol,',y=value/metric.units[metric==the.metric]$scale.factor,fill=variable)]')),file=pp(sub.dir,'/metric_',the.metric,'_',code,'.csv'))
         if(the.metric=='Emissions'){
           p <- ggplot(all.sub[metric==the.metric],aes(x=factor(streval(freeCol)),y=value/metric.units[metric==the.metric]$scale.factor,fill=variable))+geom_bar(stat='identity',colour='black')+scale_fill_manual(values = the.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x=factor.labels[freeCol],y=metric.units[metric==the.metric]$label,title=pp(the.metric,ifelse(code=='','',' when '),code),fill='')+theme_bw()+scale_y_continuous(limits = c(0,11.5))
           pdf.scale <- 1
