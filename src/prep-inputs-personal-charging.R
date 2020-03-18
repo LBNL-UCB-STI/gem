@@ -324,6 +324,11 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
     all.chargers <- rbindlist(all.chargers)
     all.fleets <- rbindlist(all.fleets)
     all.unmanaged.loads <- rbindlist(all.unmanaged.loads)
+    # what is average utilization rate for the private charging infrastructure
+    kwh.per.day <- inputs$parameters$personalEVChargeEnergyLB[,.(kwh.per.day=sum(diff(value))/(length(u(t))/24)),by='rmob']
+    charger.utilization <- join.on(all.chargers[,.(n=sum(n.ch)),by=c('dest_chg_level','rmob')],kwh.per.day,'rmob','rmob')
+    charger.utilization[,kw:=ifelse(dest_chg_level=='L1',1.5,ifelse(dest_chg_level=='L2',6.7,50))]
+    charger.utilization <- charger.utilization[,.(rate=kwh.per.day[1]/sum(n*kw*24)),by='rmob']
     inputs <- list()
     inputs$sets <- list()
     inputs$parameters <- list()
@@ -334,6 +339,7 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
     inputs$parameters$personalEVFleetSize <- all.fleets[,.(rmob,value=n.veh,type=name)]
     inputs$parameters$personalEVUnmanagedLoads <- all.unmanaged.loads[,.(l,t=hr,value=power)]
     inputs$parameters$personalEVChargers <- all.chargers[,.(rmob,value=n.ch,type=dest_type,level=dest_chg_level)]
+    inputs$parameters$chargerUtilization <- charger.utilization[,.(rmob,value=rate)]
   }else{
     zero <- data.table(expand.grid(t=common.inputs$sets$t,rmob=common.inputs$sets$rmob,value=0)) 
     inputs$parameters$personalEVChargeEnergyUB <- zero
@@ -342,6 +348,7 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
     inputs$parameters$personalEVChargePowerLB <- zero
     inputs$parameters$personalEVFleetSize <- data.table(expand.grid(rmob=common.inputs$sets$rmob,value=0,type=c('PHEV20','PHEV50','BEV100','BEV250'))) 
     inputs$parameters$personalEVChargers <- data.table(expand.grid(t=common.inputs$sets$t,rmob=common.inputs$sets$rmob,value=0,type=c(type=c('Public','Home','Work')),level=c('L1','L2','L3')))
+    inputs$parameters$chargerUtilization <- data.table(expand.grid(rmob=common.inputs$sets$rmob,value=0)) 
   }
   inputs
 }

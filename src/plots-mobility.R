@@ -95,7 +95,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   # Run by Run Plots
   run.i <- u(vehs$run)[3]
   for(run.i in u(vehs$run)){
-    if(T){
+    if(F){
     day.axis.breaks <- seq(0,max(veh.ch$t),by=24)
     setkey(vehs,run,b,rmob,t)
     # to.plot <- melt(vehs[run==run.i],id.vars=c('b','rmob','t'))
@@ -519,6 +519,15 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   veh.amort.ratio <- dailyDiscount*(1+dailyDiscount)^privateVehicleLifetime / ((1+dailyDiscount)^privateVehicleLifetime - 1)
   batt.amort.ratio <- dailyDiscount*(1+dailyDiscount)^privateBatteryLifetime / ((1+dailyDiscount)^privateBatteryLifetime - 1)
   veh.cost <- personal.evs[,.(n=sum(value)),by=c('run','batt.kwh')][,.(privateFleetCost=sum(n*(vehPerDayCost + vehCapCost*veh.amort.ratio + batt.kwh*inputs$parameters$batteryCapitalCost$value*batt.amort.ratio + vehPerMileCosts*12e3/365))),by='run']
+  # ICE Cost comparison
+  iceCapCost <- 27.66e3
+  iceNumVehicles <- 255e6
+  iceAnnualFleetCost <- iceCapCost * iceNumVehicles * discountRate * (1 + discountRate)^11 / ((1+discountRate)^11 - 1)
+  icePerMileCost <- 0.12
+  iceAnnualVMT <- 2883e9
+  iceTotalFuelCost <- 370.5e9
+  iceAnnualCost <- iceAnnualFleetCost + iceTotalFuelCost + icePerMileCost*iceAnnualVMT
+  iceTCOPerMile <- iceAnnualCost/iceAnnualVMT
   
   costs[,totalFleetCost:=vehicleMaintCost/n.days.in.run+fleetCost]
   costs[,totalEnergyCost:=demandChargeCost/n.days.in.run+energyCost/n.days.in.run]
@@ -567,19 +576,30 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   names(the.cols) <- all$variable
   
   # 1d # Fleet and Chargers
-  make.1d.fleet.and.chargers.plot <- function(sub,code,freeCol,sub.dir){
-    to.plot <- sub[,.(value=value,percent=value/sum(value)*100,variable=var.clean),by=c('rmob','group',freeCol)]
+  make.1d.fleet.and.chargers.plot <- function(sub,code,freeCol,sub.dir,energy.by.r.l){
+    # sub <- by.r.sub
+    # freeCol <- the.free.col
+    # sub.dir <- pp(plots.dir,'/_metrics_1d/',code)
+    to.plot <- sub[,.(value=value,percent=value/sum(value)*100,l=l,variable=var.clean,trips=sum(totalSAEVTrips)/n.days.in.run),by=c('run','rmob','group',freeCol)]
     to.plot[,urb:=ifelse(grepl('RUR$',rmob),'Rural','Urban')]
     to.remove <- to.plot[,sum(value),by=c('variable')][V1==0]$variable
-    to.plot <- to.plot[!variable%in%to.remove,.(value=sum(value)/1e6),by=c('group','variable','urb',freeCol)]
-    p <- ggplot(to.plot,aes(x=urb,y=value,fill=variable))+
+    to.plot <- to.plot[!variable%in%to.remove,.(value=sum(value)/1e6,trips=trips[1]/1e6,l=l[1]),by=c('run','group','variable','urb',freeCol)]
+    energy.by.r.l[,urb:=ifelse(grepl('RUR$',rmob),'Rural','Urban')]
+    energy.by.r.l.agg <- energy.by.r.l[,.(energyCharged=sum(energyCharged)),by=c('urb','l','run')]
+    to.plot <- join.on(to.plot,energy.by.r.l.agg,c('urb','l','run'),c('urb','l','run'))
+    fleet.tot <- to.plot[group=='Fleet',.(fleet.tot=sum(value)),by=c('urb',freeCol)]
+    trips.tot <- to.plot[group=='Chargers',.(trips.tot=sum(trips)),by=c('urb',freeCol)]
+    to.plot <- join.on(join.on(to.plot,fleet.tot,c('urb',freeCol),c('urb',freeCol)),trips.tot,c('urb',freeCol),c('urb',freeCol))
+    to.plot[group=='Chargers',value.per:=ifelse(fleet.tot==0,0,value/fleet.tot)]
+    to.plot[group=='Fleet',value.per:=ifelse(trips.tot==0,0,value/trips.tot)]
+    p <- ggplot(to.plot,aes(x=urb,y=value.per,fill=variable))+
       geom_bar(stat='identity')+
       xlab('Regional Type')+
-      ylab('Count in Millions')+
+      ylab('Value (Chargers per Vehicle or Vehicles per Trip)')+
       facet_grid(group~streval(freeCol),scales='free_y')+ 
       theme_bw()+
       scale_fill_manual(name='Charger/Battery Level',values = getPalette(to.plot$variable),guide=guide_legend(reverse=F))
-    ggsave(pp(sub.dir,'/fleet_and_chargers_',code,'.pdf'),p,width=8*pdf.scale,height=4*pdf.scale,units='in')
+    ggsave(pp(sub.dir,'/fleet_and_chargers_',code,'.pdf'),p,width=8,height=4,units='in')
     write.csv(to.plot,pp(sub.dir,'/fleet_and_chargers_',code,'.csv'))
   }
   # Charging profiles
@@ -615,11 +635,11 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     write.csv(forPlot[r%in%regions],file=pp(sub.dir,'/generation_',code,'.csv'))
   }
   make.2d.charging.plot <- function(ch.sub,code,freeCols){
-    p <- ggplot(ch.sub[t>min(day.axis.breaks)&t<=max(day.axis.breaks)],aes(x=t,y=gwh,fill=charger.level))+geom_area(stat='identity')+scale_x_continuous(breaks=day.axis.breaks)+scale_fill_manual(values = the.ch.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x='Hour',y='Charging Power (GW)',title=pp('Charging Power',ifelse(code=='','',' when '),code),fill='')+theme_bw()
+    p <- ggplot(ch.sub[t-24>min(day.axis.breaks)&t-24<=max(day.axis.breaks)],aes(x=t-24,y=gwh,fill=charger.level))+geom_area(stat='identity')+scale_x_continuous(breaks=day.axis.breaks)+scale_fill_manual(values = the.ch.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x='Hour',y='Charging Power (GW)',title=pp('Charging Power',ifelse(code=='','',' when '),code),fill='')+theme_bw()
     p <- p + streval(pp('facet_grid(',freeCols[1],'~',freeCols[2],')'))
     pdf.scale <- 1
     ggsave(pp(plots.dir,'_charging_2d',ifelse(code=='','',pp('_',code)),'.pdf'),p,width=14*pdf.scale,height=8*pdf.scale,units='in')
-    write.csv(ch.sub[t>min(day.axis.breaks)&t<=max(day.axis.breaks)],file=pp(plots.dir,'_charging_2d',ifelse(code=='','',pp('_',code)),'.csv'))
+    write.csv(ch.sub[t-24>min(day.axis.breaks)&t-24<=max(day.axis.breaks)],file=pp(plots.dir,'_charging_2d',ifelse(code=='','',pp('_',code)),'.csv'))
   }
   make.2d.metric.plot <- function(all.sub,code,freeCols){
     all.sub <- join.on(all.sub,all.sub[,.(val=sum(value,na.rm=T)),by=c('run','metric')][,.(max.value=max(val,na.rm=T)),by=c('metric')],'metric','metric')
@@ -689,7 +709,9 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
         make.1d.charging.plot(ch.sub,code,the.free.col,pp(plots.dir,'/_metrics_1d/',code))
         make.1d.generation.plot(param.names[the.param.inds],param.combs[comb.i,get(param.names[the.param.inds])],code,the.free.col,pp(plots.dir,'/_metrics_1d/',code))
         by.r.sub <- streval(pp('by.r[',pp(param.names[the.param.inds],'==',unlist(param.combs[comb.i]),collapse=' & '),']'))
-        if(sum(by.r.sub$value)>0)make.1d.fleet.and.chargers.plot(by.r.sub,code,the.free.col,pp(plots.dir,'/_metrics_1d/',code))
+        by.r.sub <- join.on(by.r.sub,res[['d-rmob-t']][,.(totalSAEVTrips=sum(demand,na.rm=T)),by=c('run','rmob')],c('run','rmob'),c('run','rmob'))
+        energy.by.r.l <- res[['b-l-rmob-t']][run%in%u(by.r.sub$run),.(energyCharged=sum(energyCharged)),by=c('run','l','rmob')]
+        if(sum(by.r.sub$value)>0)make.1d.fleet.and.chargers.plot(by.r.sub,code,the.free.col,pp(plots.dir,'/_metrics_1d/',code),energy.by.r.l)
       }
     }
   }

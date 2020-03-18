@@ -135,6 +135,7 @@ if(!args$plots){ # only prep and run model if *not* in plot-only mode
 #####################################################################################
 plots.dir <- pp(exper$input.dir,'/plots/')
 make.dir(plots.dir)
+write.csv(exper$runs,pp(plots.dir,'runs.csv'),row.names=T)
 results <- list()
 for(i in 1:nrow(exper$runs)) {
   result <- gdx.to.data.tables(gdx(pp(exper$input.dir,'/runs/run-',i,'/results.gdx')))
@@ -150,6 +151,7 @@ for(i in 1:nrow(exper$runs)) {
     if(i==1)results[[key]] <- list()
     results[[key]][[length(results[[key]])+1]] <- result[[key]]
   }
+  all.inputs[[i]]$sets$t <- all.inputs[[i]]$set$t[1:(length(all.inputs[[i]]$set$t)-48)]
   make.dir(pp(plots.dir,'/run-',i,''))
 }
 res <- lapply(results,function(ll){ rbindlist(ll,fill=T) })
