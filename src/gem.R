@@ -38,18 +38,9 @@ option_list <- list(make_option(c("-p", "--plots"), action="store_true", default
                     make_option(c("-e", "--experiment"), type="character", default='input/experiments/base.yaml',help="Path to experiment file [default %default]",metavar="exp"),
                     make_option(c("-r", "--runsubset"), type="character", default='',help="Comma separate list of runs to execute [default %default]"))
 if(interactive()){
-  args<-'input/experiments/congestion.yaml'
-  args<-'input/experiments/l10ChargerCost.yaml'
-  args<-'input/experiments/chargerCostSuperlinear.yaml'
-  args<-'input/experiments/discountRate.yaml'
-  args<-'input/experiments/carbonTax.yaml'
-  args<-'input/experiments/renewableScalingFactor.yaml'
-  args<-'input/experiments/fractionSAEVs.yaml'
-  args<-'input/experiments/fractionSAEVsAndSmartCharging.yaml'
+#  args<-'input/experiments/fractionSAEVsAndSmartCharging.yaml'
 #  args<-'input/experiments/base.yaml'
-#  args<-'input/experiments/fractionSAEVsAndSmartChargingAndRE.yaml'
-#  args<-'input/experiments/batteryLifetime.yaml'
-#  args<-'input/experiments/vehicleLifetime.yaml'
+  args<-'input/experiments/smartMobility.yaml'
   args <- pp('--experiment=',args)
 args <- c(args,'-t') # don't add timestamp
 args <- c(args,'-p') # only plots
