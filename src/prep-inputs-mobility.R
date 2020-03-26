@@ -9,7 +9,7 @@
 
 prep.inputs.mobility <- function(exper.row,common.inputs){
   param.names <- names(exper.row)
-
+  
   inputs <- list()
   inputs$sets <- list()
   inputs$parameters <- list()
@@ -26,6 +26,9 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
     }
   }
 
+  if('electrificationPenetration' %in% names(exper.row)){
+    electrificationPenetration <- exper.row$electrificationPenetration
+  }
   if('fractionSAEVs' %in% names(exper.row)){
     fractionSAEVs <- exper.row$fractionSAEVs
   }
@@ -84,7 +87,7 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
   all.dem[,':='(value=trips,trips=NULL,rmob=r,r=NULL)]
   all.dem[t==tail(common.inputs$sets$t,1),value:=0]
   all.dem.unscaled <- all.dem[,list(t,d=pp('d',d),rmob,value=value)]
-  all.dem <- all.dem[,list(t,d=pp('d',d),rmob,value=value*fractionSAEVs)]
+  all.dem <- all.dem[,list(t,d=pp('d',d),rmob,value=value*fractionSAEVs*electrificationPenetration)]
   inputs$parameters$demand <- all.dem
   inputs$parameters$demandUnscaled <- all.dem.unscaled
 
@@ -146,7 +149,7 @@ prep.inputs.mobility <- function(exper.row,common.inputs){
   
   ##### Scaling Factors from RISE #####
   rise <- data.table(read.csv(pp(gem.raw.inputs,'/rise-scaling-factors.csv')))
-  closest.mode.share <- u(rise$mode_share)[which.min(abs(u(rise$mode_share)-fractionSAEVs))]
+  closest.mode.share <- u(rise$mode_share)[which.min(abs(u(rise$mode_share)-fractionSAEVs*electrificationPenetration))]
   rise[,chargeRelocationRatio:=d_chgempty+1]
   inputs$parameters$chargeRelocationRatio <- rise[mode_share==closest.mode.share,.(rmob=abbrev,value=chargeRelocationRatio)]
   inputs$parameters$fleetRatio <- rise[mode_share==closest.mode.share,.(rmob=abbrev,value=ntx_rat)]

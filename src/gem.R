@@ -40,11 +40,12 @@ option_list <- list(make_option(c("-p", "--plots"), action="store_true", default
 if(interactive()){
 #  args<-'input/experiments/fractionSAEVsAndSmartCharging.yaml'
 #  args<-'input/experiments/base.yaml'
-  args<-'input/experiments/smartMobility.yaml'
+  # args<-'input/experiments/smartMobility.yaml'
+  args<-'input/experiments/electrificationPenetration.yaml'
   args <- pp('--experiment=',args)
-args <- c(args,'-t') # don't add timestamp
-args <- c(args,'-p') # only plots
-args <- c(args,'-d') # trim one day off beginning and end of results
+# args <- c(args,'-t') # don't add timestamp
+# args <- c(args,'-p') # only plots
+# args <- c(args,'-d') # trim one day off beginning and end of results
 #args <- c(args,'--runsubset=16,17,18,19')
 #args <- c(args,'--runsubset=4') 
   args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=F,args=args)

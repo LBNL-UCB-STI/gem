@@ -25,6 +25,9 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
   source("src/eviPro/func_GenVmtWeights.R")         #Generates vmt distribution for fleet generation
   source("src/eviPro/func_CreateFleetWeights.R")    #Creates fleet weights from values hard coded in this function. Use this instead of loading fleet weights from a file if desired.
 
+  if('electrificationPenetration' %in% names(exper.row)){
+    electrificationPenetration <- exper.row$electrificationPenetration
+  }
   if('fractionSAEVs' %in% names(exper.row)){
     fractionSAEVs <- exper.row$fractionSAEVs
   }
@@ -122,7 +125,7 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
     }
     transit.type <- ifelse(includeTransitDemand,'with_transit','no_transit')
     # We assume 4.17 trips per person, this is based on NHTS overall trips per person 3.46 but then rescaled by 1/0.83 to account for the people who take no trips (which we effectively remove)
-    fleet.sizes <- inputs.mobility$parameters$demandUnscaled[,list(n.vehs=round(sum(value)/length(days)/4.17*(1-fractionSAEVs),0)),by='rmob']
+    fleet.sizes <- inputs.mobility$parameters$demandUnscaled[,list(n.vehs=round(sum(value)/length(days)/4.17*electrificationPenetration*(1-fractionSAEVs),0)),by='rmob']
     all.all.energy.constraints <- list()
     all.unmanaged.loads <- list()
     all.fleets <- list()
@@ -324,11 +327,6 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
     all.chargers <- rbindlist(all.chargers)
     all.fleets <- rbindlist(all.fleets)
     all.unmanaged.loads <- rbindlist(all.unmanaged.loads)
-    # what is average utilization rate for the private charging infrastructure
-    kwh.per.day <- inputs$parameters$personalEVChargeEnergyLB[,.(kwh.per.day=sum(diff(value))/(length(u(t))/24)),by='rmob']
-    charger.utilization <- join.on(all.chargers[,.(n=sum(n.ch)),by=c('dest_chg_level','rmob')],kwh.per.day,'rmob','rmob')
-    charger.utilization[,kw:=ifelse(dest_chg_level=='L1',1.5,ifelse(dest_chg_level=='L2',6.7,50))]
-    charger.utilization <- charger.utilization[,.(rate=kwh.per.day[1]/sum(n*kw*24)),by='rmob']
     inputs <- list()
     inputs$sets <- list()
     inputs$parameters <- list()
@@ -339,6 +337,11 @@ prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobilit
     inputs$parameters$personalEVFleetSize <- all.fleets[,.(rmob,value=n.veh,type=name)]
     inputs$parameters$personalEVUnmanagedLoads <- all.unmanaged.loads[,.(l,t=hr,value=power)]
     inputs$parameters$personalEVChargers <- all.chargers[,.(rmob,value=n.ch,type=dest_type,level=dest_chg_level)]
+    # what is average utilization rate for the private charging infrastructure
+    kwh.per.day <- inputs$parameters$personalEVChargeEnergyLB[,.(kwh.per.day=sum(diff(value))/(length(u(t))/24)),by='rmob']
+    charger.utilization <- join.on(all.chargers[,.(n=sum(n.ch)),by=c('dest_chg_level','rmob')],kwh.per.day,'rmob','rmob')
+    charger.utilization[,kw:=ifelse(dest_chg_level=='L1',1.5,ifelse(dest_chg_level=='L2',6.7,50))]
+    charger.utilization <- charger.utilization[,.(rate=kwh.per.day[1]/sum(n*kw*24)),by='rmob']
     inputs$parameters$chargerUtilization <- charger.utilization[,.(rmob,value=rate)]
   }else{
     zero <- data.table(expand.grid(t=common.inputs$sets$t,rmob=common.inputs$sets$rmob,value=0)) 

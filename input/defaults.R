@@ -9,8 +9,7 @@
 #days <- c(74:77,148:150,260:262,351:354) # 3 per week, 2 weekday, 1 weekend plus 2 for buffer on ends
 # DEFAULT TIME PERIOD FOR PAPERS / FINAL ANALYSIS CORRECTED
 days <- c(70:73,176:178,260:262,351:354) # 3 per week, 2 weekday, 1 weekend plus 2 for buffer on ends
-
-days <- c(70:73) # 3 per week, 2 weekday, 1 weekend plus 2 for buffer on ends
+days <- c(70:71) # 3 per week, 2 weekday, 1 weekend plus 2 for buffer on ends
 
 #days <- c(75:76,149:150,261:262,352:353) # 2 per week, 2 weekday
 
@@ -28,14 +27,14 @@ year <- 2040
 discountRate <- 0.05
 
 #### Mobility ####
-electrification.penertation <- 1.0 # how many of total trips are electrified
+electrificationPenetration <- 1.0 # how many of total trips are electrified
 battery.capital.cost <- 150 # $/kWh
 charger.levels <- c(10,20,50,100,250) # kW
 chargerLifetime <- 10
 sharingFactor <- 1.5
 batteryCapitalCost <- 150
 scale.urban.form.factor <- 1.0
-includeTransitDemand <- 0 # 0 or 1
+includeTransitDemand <- 1 # 0 or 1
 fractionSAEVs <- 0.5
 fractionSmartCharging <- 0.0
 privateFleetWeights <- "fleet_weights_base" # name (without extension) of file in {gem.raw.inputs}/NREL-EVI-Pro-Preprocessed-Profiles/data
