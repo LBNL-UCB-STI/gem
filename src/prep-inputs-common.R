@@ -8,9 +8,7 @@
 # Returns: list containing all data tables needed to run the model (as named data.tables)
 #############################################################################################
 
-prep.inputs.common <- function(exper.row){
-  param.names <- names(exper.row)
-
+prep.inputs.common <- function(exper.row,param.names){
   inputs <- list()
 
   inputs

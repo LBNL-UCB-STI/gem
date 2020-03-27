@@ -7,7 +7,7 @@
 # Returns: list containing all data tables needed to run the model (as named data.tables)
 ###############################################################################################
 
-prep.inputs.personal.charging <- function(exper.row,common.inputs,inputs.mobility){
+prep.inputs.personal.charging <- function(exper.row,param.names,common.inputs,inputs.mobility){
   ###########################################################
   # Setup variables and environment
   ###########################################################

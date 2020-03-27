@@ -93,7 +93,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   gen.cost <- gen.cost[,list(energyCost=sum(generationCosts*(generation-base.generation))),by=list(r,run)]
 
   # Run by Run Plots
-  run.i <- u(vehs$run)[3]
+  run.i <- u(vehs$run)[1]
   for(run.i in u(vehs$run)){
     if(F){
     day.axis.breaks <- seq(0,max(veh.ch$t),by=24)
@@ -460,7 +460,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   ###################################
   # Across factor plots
   ###################################
-  param.names <- names(exper$runs)
+  param.names <- exper$param.names
   
   # Overall Metrics: # vehicles, peak demand, # chargers, emissions, costs
   # (We also need a counterfactual case (all gasoline vehicles) to provide electricity demand, CO2 emissions and costs to compare with. )
@@ -718,8 +718,8 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   
   if(length(param.names)==1){
     # Vehicle allocations
-    to.plot <- melt(vehs,id.vars=c('b','rmob','t',param.names))
-    to.plot <- to.plot[,.(value=sum(value)),by=c('b','t',param.names,'variable')]
+    to.plot <- melt(vehs,id.vars=c('b','rmob','t',names(exper$runs)))
+    to.plot <- to.plot[,.(value=sum(value)),by=c('b','t',names(exper$runs),'variable')]
 
     to.plot[,vehicle.activity:=gsub('\\.L0|\\.L','(',gsub('vehiclesCharging','Charging ',variable))]
     to.plot[,vehicle.activity:=ifelse(grepl('Charging',vehicle.activity),paste(vehicle.activity,'kW)'),vehicle.activity)]
@@ -899,48 +899,49 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
       scale_fill_manual(name='Vehicle battery level',values = (getPalette(vmt.by.region$battery.level)),guide=guide_legend(reverse=F))
     streval(pp('p <- p + facet_wrap(~',param.names,')'))
     ggsave(pp(plots.dir,'_vehicle-lifetime-targets.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')  
-    towrite <- melt(vmt.by.region,id.vars=c('rmob','b',param.names),measure.vars='lifetime.target')
-    towrite[is.na(value),value:=mean(towrite$value,na.rm=T)]
-    towrite[value<=0.5,value:=0.5]
-    towrite.prev <- data.table(read.csv(pp(gem.raw.inputs,'/rise-scaling-factors/vehicleLifetimes/vehicleLifetime.csv')))
-    towrite.new <- join.on(towrite,towrite.prev,c('b','rmob'),c('b','rmob'))
-    towrite.new[,value:=(value*7+i.value)/8] # weight toward previous 7 to 1
-    write.csv(towrite.new[,.(b,rmob,value)],file=pp(gem.raw.inputs,'/rise-scaling-factors/vehicleLifetimes/vehicleLifetime.csv'),row.names=F)
-    write.csv(towrite.new[,.(b,rmob,value)],file=pp(gem.raw.inputs,'/rise-scaling-factors/vehicleLifetimes/batteryLifetime.csv'),row.names=F)
-    write.csv(towrite.new[,.(b,rmob,value)],file=pp(gem.raw.inputs,'/rise-scaling-factors/vehicleLifetime.csv'),row.names=F)
-    write.csv(towrite.new[,.(b,rmob,value)],file=pp(gem.raw.inputs,'/rise-scaling-factors/batteryLifetime.csv'),row.names=F)
-    the.dir <- '/Users/critter/odrive/GoogleDriveLBL/VGI4NewMobility/gem-raw-inputs/rise-scaling-factors/vehicleLifetimes/'
-    last.iter <- tail(sort(as.numeric(unlist(lapply(str_split(grep('-',list.files(the.dir),value=T),"-"),function(ll){ str_split(ll[2],".csv")[[1]][1] })))),1)
-    write.csv(towrite.new[,.(b,rmob,value)],file=pp(gem.raw.inputs,'/rise-scaling-factors/vehicleLifetimes/vehicleLifetime-',last.iter+1,'.csv'),row.names=F)
+    if(F){
+      towrite <- melt(vmt.by.region,id.vars=c('rmob','b',param.names),measure.vars='lifetime.target')
+      towrite[is.na(value),value:=mean(towrite$value,na.rm=T)]
+      towrite[value<=0.5,value:=0.5]
+      towrite.prev <- data.table(read.csv(pp(gem.raw.inputs,'/rise-scaling-factors/vehicleLifetimes/vehicleLifetime.csv')))
+      towrite.new <- join.on(towrite,towrite.prev,c('b','rmob'),c('b','rmob'))
+      towrite.new[,value:=(value*7+i.value)/8] # weight toward previous 7 to 1
+      write.csv(towrite.new[,.(b,rmob,value)],file=pp(gem.raw.inputs,'/rise-scaling-factors/vehicleLifetimes/vehicleLifetime.csv'),row.names=F)
+      write.csv(towrite.new[,.(b,rmob,value)],file=pp(gem.raw.inputs,'/rise-scaling-factors/vehicleLifetimes/batteryLifetime.csv'),row.names=F)
+      write.csv(towrite.new[,.(b,rmob,value)],file=pp(gem.raw.inputs,'/rise-scaling-factors/vehicleLifetime.csv'),row.names=F)
+      write.csv(towrite.new[,.(b,rmob,value)],file=pp(gem.raw.inputs,'/rise-scaling-factors/batteryLifetime.csv'),row.names=F)
+      the.dir <- '/Users/critter/odrive/GoogleDriveLBL/VGI4NewMobility/gem-raw-inputs/rise-scaling-factors/vehicleLifetimes/'
+      last.iter <- tail(sort(as.numeric(unlist(lapply(str_split(grep('-',list.files(the.dir),value=T),"-"),function(ll){ str_split(ll[2],".csv")[[1]][1] })))),1)
+      write.csv(towrite.new[,.(b,rmob,value)],file=pp(gem.raw.inputs,'/rise-scaling-factors/vehicleLifetimes/vehicleLifetime-',last.iter+1,'.csv'),row.names=F)
+      
+      all <- list()
+      for(file in grep('-',list.files(the.dir),value=T)){ 
+        all[[length(all)+1]] <- data.table(read.csv(pp(the.dir,file)))
+        the.iter <- as.numeric(str_split(str_split(tail(str_split(file,"/")[[1]],1),"-")[[1]][2],'.csv')[[1]][1])
+        all[[length(all)]][,iter:=the.iter]
+      }
+      all <- rbindlist(all)
+      p <- ggplot(all[iter>=11],aes(x=factor(iter),y=value,fill=b))+geom_bar(position='dodge',stat='identity')+facet_wrap(~rmob)
+      ggsave(pp(gem.raw.inputs,'/rise-scaling-factors/vehicleLifetimes/vehicleLifetimeTargets.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')  
+      ## Not sure exactly what the "value" represents ##
+      p <- ggplot(melt(vmt.by.region,id.vars=c('rmob','battery.level'),measure.vars='lifetime.error'),aes(x=rmob,y=value,fill=battery.level))+
+        geom_bar(stat='identity',position='dodge')+
+        xlab('Region')+
+        #ylab('???')+
+        theme_bw()+
+        theme(axis.text.x = element_text(angle = 50, hjust = 1))+
+        scale_fill_manual(name='Vehicle battery level',values = (getPalette(vmt.by.region$battery.level)),guide=guide_legend(reverse=F))
+      ggsave(pp(plots.dir,'_vehicle-lifetime-errors.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')  
     
-    all <- list()
-    for(file in grep('-',list.files(the.dir),value=T)){ 
-      all[[length(all)+1]] <- data.table(read.csv(pp(the.dir,file)))
-      the.iter <- as.numeric(str_split(str_split(tail(str_split(file,"/")[[1]],1),"-")[[1]][2],'.csv')[[1]][1])
-      all[[length(all)]][,iter:=the.iter]
+        
     }
-    all <- rbindlist(all)
-    p <- ggplot(all[iter>=11],aes(x=factor(iter),y=value,fill=b))+geom_bar(position='dodge',stat='identity')+facet_wrap(~rmob)
-    ggsave(pp(gem.raw.inputs,'/rise-scaling-factors/vehicleLifetimes/vehicleLifetimeTargets.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')  
-
-    ## Not sure exactly what the "value" represents ##
-    p <- ggplot(melt(vmt.by.region,id.vars=c('rmob','battery.level'),measure.vars='lifetime.error'),aes(x=rmob,y=value,fill=battery.level))+
-      geom_bar(stat='identity',position='dodge')+
-      xlab('Region')+
-      #ylab('???')+
-      theme_bw()+
-      theme(axis.text.x = element_text(angle = 50, hjust = 1))+
-      scale_fill_manual(name='Vehicle battery level',values = (getPalette(vmt.by.region$battery.level)),guide=guide_legend(reverse=F))
-    ggsave(pp(plots.dir,'_vehicle-lifetime-errors.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')  
-    
-    
     lbs <- rbindlist(lapply(seq_along(all.inputs),function(i){ all.inputs[[i]]$parameters$personalEVChargeEnergyLB[,run:=i] }),fill=T)
     ubs <- rbindlist(lapply(seq_along(all.inputs),function(i){ all.inputs[[i]]$parameters$personalEVChargeEnergyUB[,run:=i] }),fill=T)
     lbs[,lb:=value]
     ubs[,ub:=value]
     lbs <- join.on(lbs,run.params,'run','run')
     ubs <- join.on(ubs,run.params,'run','run')
-    to.plot <- melt(join.on(lbs,ubs,c('t','rmob','run'),c('t','rmob','run'),'ub'),id.vars=c('t','rmob','run',param.names))[variable!='value']
+    to.plot <- melt(join.on(lbs,ubs,c('t','rmob','run'),c('t','rmob','run'),'ub'),id.vars=c('t','rmob','run',names(exper$runs)))[variable!='value']
     to.plot[,t:=to.number(t)]
     to.plot[,value:=value/1e6]
     p <- ggplot(to.plot[,.(value=sum(value)),by=c('t','variable',param.names)],aes(x=t,y=value,colour=variable))+geom_line()
@@ -958,7 +959,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     ubs[,ub:=value]
     lbs <- join.on(lbs,run.params,'run','run')
     ubs <- join.on(ubs,run.params,'run','run')
-    to.plot <- melt(join.on(lbs,ubs,c('t','rmob','run'),c('t','rmob','run'),'ub'),id.vars=c('t','rmob','run',param.names))[variable!='value']
+    to.plot <- melt(join.on(lbs,ubs,c('t','rmob','run'),c('t','rmob','run'),'ub'),id.vars=c('t','rmob','run',names(exper$runs)))[variable!='value']
     to.plot[,t:=to.number(t)]
     to.plot[,value:=value/1e6]
     p <- ggplot(to.plot[,.(value=sum(value)),by=c('t','variable',param.names)],aes(x=t,y=value,colour=variable))+geom_line()

@@ -40,8 +40,8 @@ option_list <- list(make_option(c("-p", "--plots"), action="store_true", default
 if(interactive()){
 #  args<-'input/experiments/fractionSAEVsAndSmartCharging.yaml'
 #  args<-'input/experiments/base.yaml'
-  # args<-'input/experiments/smartMobility.yaml'
-  args<-'input/experiments/electrificationPenetration.yaml'
+  args<-'input/experiments/smartMobility.yaml'
+  # args<-'input/experiments/electrificationPenetration.yaml'
   args <- pp('--experiment=',args)
 # args <- c(args,'-t') # don't add timestamp
 # args <- c(args,'-p') # only plots
@@ -75,11 +75,11 @@ if(!args$plots){ # only prep and run model if *not* in plot-only mode
     cat(pp('Prepping inputs for run ',i,'\n'))
     inputs <- list()
   
-    common.inputs <- c(static.inputs,prep.inputs.common(exper$run[i]))
+    common.inputs <- c(static.inputs,prep.inputs.common(exper$run[i],exper$param.names))
     exper.row <- exper$run[i]
-    inputs.mobility <- prep.inputs.mobility(exper$run[i],common.inputs)
-    inputs.personal.charging <- prep.inputs.personal.charging(exper$run[i],common.inputs,inputs.mobility)
-    inputs.grid <- prep.inputs.grid(exper$run[i],common.inputs) 
+    inputs.mobility <- prep.inputs.mobility(exper$run[i],exper$param.names,common.inputs)
+    inputs.personal.charging <- prep.inputs.personal.charging(exper$run[i],exper$param.names,common.inputs,inputs.mobility)
+    inputs.grid <- prep.inputs.grid(exper$run[i],exper$param.names,common.inputs) 
   
     inputs$sets <- c(common.inputs$sets,inputs.mobility$sets,inputs.grid$sets,inputs.personal.charging$sets)
     inputs$parameters <- c(common.inputs$parameters,inputs.mobility$parameters,inputs.grid$parameters,inputs.personal.charging$parameters)

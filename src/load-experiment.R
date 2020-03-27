@@ -12,6 +12,8 @@
 # ----------runs: the data.table of experimental runs, each row represents one model run
 ##############################################################################################################################################
 
+# experiment.file <- args$experiment
+# add.timestamp <- !args$notimestamp
 load.experiment <- function(experiment.file,add.timestamp=T){
   if(file.exists(experiment.file)){
     exper <- list()
@@ -21,8 +23,14 @@ load.experiment <- function(experiment.file,add.timestamp=T){
       exper$runs <- expand.grid(lapply(exper$yaml$Factors,function(fac){ fac$Levels }),stringsAsFactors=F)
       names(exper$runs) <- unlist(lapply(exper$yaml$Factors,function(fac){ fac$Name }))
       exper$runs <- data.table(exper$runs)
+      exper$param.names <- names(exper$runs)
+    }else if(exper$yaml$Mode=='scenario'){
+      exper$runs <- rbindlist(lapply(exper$yaml$Scenarios,function(ll){ streval(pp('data.table(Scenario="',ll$Name,'",',pp(names(ll$Parameters),'=',ll$Parameters,collapse = ','),')')) }))
+      exper$yaml$Factors <- list(list(Name='Scenario',Levels=exper$runs$Scenario))
+      exper$num.factors <- 1
+      exper$param.names <- 'Scenario'
     }else{
-      stop('only combinatorial experiments enabled for now, please set "Mode: combinatorial" in your yaml file')
+      stop('only combinatorial or scenario experiments enabled for now, please set "Mode: combinatorial" or "Mode: scenario" in your yaml file')
     }
     # Setup the input directory
     exper$input.dir <- pp('experiments/',exper$yaml$Name)

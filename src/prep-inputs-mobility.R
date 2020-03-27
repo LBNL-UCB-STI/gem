@@ -7,7 +7,7 @@
 # Returns: list containing all data tables needed to run the model (as named data.tables)
 ###############################################################################################
 
-prep.inputs.mobility <- function(exper.row,common.inputs){
+prep.inputs.mobility <- function(exper.row,param.names,common.inputs){
   param.names <- names(exper.row)
   
   inputs <- list()

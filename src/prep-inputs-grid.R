@@ -7,9 +7,7 @@
 # Returns: list containing all data tables needed to run the model (as named data.tables)
 #############################################################################################
 
-prep.inputs.grid <- function(exper.row,common.inputs){
-  param.names <- names(exper.row)
-
+prep.inputs.grid <- function(exper.row,param.names,common.inputs){
   inputs <- list()
   inputs$sets <- list()
   inputs$parameters <- list()

@@ -1,10 +1,11 @@
-Name: fracSAEVs
-Mode: combinatorial
-Factors:
-  - Name: fractionSAEVs
-    Levels:
-      - 0.0
-      - 0.25
-      - 0.5
-      - 0.75
-      - 1.0
+Name: smartMobility
+Mode: scenario
+Scenarios:
+  - Name: A2
+    Parameters:
+      electrificationPenetration: 0.25
+      fractionSAEVs: 0.75
+  - Name: A3
+    Parameters:
+      electrificationPenetration: 0.5
+      fractionSAEVs: 0.75
