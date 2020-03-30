@@ -569,6 +569,11 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
                              scale.factor=c(1e6,1e6,1,1e6,1e9),
                              label=c('Millions of Vehicles','Millions of Chargers','Peak Load (GW)','Emissions (Million Tonnes CO2eq)','Cost (Billions of $)'))
   factor.labels <- c('fractionSAEVs'='Fraction SAEVs in Fleet','fractionSmartCharging'='Fraction Smart Charging in Private Fleet','renewableScalingFactor'='Solar & Wind Capacity Scaling Factor')
+  for(param.name in param.names){
+    if(!param.name %in% names(factor.labels)){
+      factor.labels <- c(factor.labels,streval(pp("c('",param.name,"'='",param.name,"')")))
+    }
+  }
   
   all <- rbindlist(list(to.plot.fleet,to.plot.chargers,to.plot.peak.ch,to.plot.em,to.plot.cost),fill=T)
   all[,metric:=factor(metric,levels = c('Fleet Size','# Chargers','Peak Load','Cost','Emissions'))]

@@ -33,6 +33,8 @@ charger.levels <- c(10,20,50,100,250) # kW
 chargerLifetime <- 10
 sharingFactor <- 1.5
 batteryCapitalCost <- 150
+b150ConversionEfficiency <- 0.324 # What is average conversion efficiency for a 150-mile BEV? kwh/mile, all other vehicle ranges
+                                  # will be scaled proportionally assuming 0.324 as the default for BEV150
 scale.urban.form.factor <- 1.0
 includeTransitDemand <- 1 # 0 or 1
 fractionSAEVs <- 0.5

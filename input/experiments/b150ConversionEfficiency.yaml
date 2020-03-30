@@ -1,0 +1,9 @@
+Name: b150ConversionEfficiency
+Mode: combinatorial
+Factors:
+  - Name: b150ConversionEfficiency
+    Levels:
+      - 0.275
+      - 0.3
+      - 0.325
+      - 0.35

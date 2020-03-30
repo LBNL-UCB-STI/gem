@@ -39,16 +39,10 @@ parameters
 	sharingFactor				Avg person per vehicle trip 
 	chargerDistributionFactor(l)		increased chargers needed to serve vehs 
 ************* We original varied from 0.262-0.310 per ES&T paper, but changed to center around 0.325 to match EVI-Pro assumptiosn ***************
-*	conversionEfficiency(b) 		kwh per mile / b075 0.262
-*												   b150 0.274
-*												   b225 0.286
-*												   b300 0.298
-*												   b400 0.310 /									   
-	conversionEfficiency(b) 		kwh per mile / b075 0.31
-												   b150 0.324
-												   b225 0.338
-												   b300 0.351
-												   b400 0.353 /									   
+*	kwh per mile /	b075  b150  b225  b300	b400
+*	TRB Paper 2019	0.262 0.274 0.286 0.298	0.310 /									   
+*	2nd Paper 2020	0.31  0.324 0.338 0.351 0.353
+	conversionEfficiency(b) 		kwh per mile 									   
 	travelDistance(d,rmob)				avg miles per passenger 
 	speed(t,d,rmob)
 	demandCharge(rmob) 				USD per kW month
@@ -115,7 +109,7 @@ positive variable
 
 
 $gdxin <<gdxName>>
-$load d r rmob l t g gtor rmobtor demand speed sharingFactor travelDistance demandCharge chargerPower chargerCapitalCost chargerDistributionFactor solar wind hydro genCost demandLoad maxGen maxSolar maxWind transCap transCost personalEVChargeEnergyLB personalEVChargeEnergyUB personalEVChargePowerLB personalEVChargePowerUB distCorrection timeCorrection chargeRelocationRatio chargeRelocationCorrection fleetRatio batteryRatio vehicleLifetime batteryLifetime batteryCapitalCost discountRate chargerLifetime
+$load d r rmob l t g gtor rmobtor demand speed sharingFactor travelDistance demandCharge chargerPower chargerCapitalCost chargerDistributionFactor conversionEfficiency solar wind hydro genCost demandLoad maxGen maxSolar maxWind transCap transCost personalEVChargeEnergyLB personalEVChargeEnergyUB personalEVChargePowerLB personalEVChargePowerUB distCorrection timeCorrection chargeRelocationRatio chargeRelocationCorrection fleetRatio batteryRatio vehicleLifetime batteryLifetime batteryCapitalCost discountRate chargerLifetime
 $gdxin
 
 display

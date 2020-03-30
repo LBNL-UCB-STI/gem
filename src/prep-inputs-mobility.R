@@ -26,10 +26,10 @@ prep.inputs.mobility <- function(exper.row,param.names,common.inputs){
     }
   }
 
-  if('electrificationPenetration' %in% names(exper.row)){
+  if('electrificationPenetration' %in% param.names){
     electrificationPenetration <- exper.row$electrificationPenetration
   }
-  if('fractionSAEVs' %in% names(exper.row)){
+  if('fractionSAEVs' %in% param.names){
     fractionSAEVs <- exper.row$fractionSAEVs
   }
 
@@ -46,6 +46,23 @@ prep.inputs.mobility <- function(exper.row,param.names,common.inputs){
   }else{
     inputs$parameters$urbanFormFactor <- data.table(rmob=common.inputs$sets$rmob,value=1.3)
   }
+  
+  ##### VEHICLE CONVERSION EFFICIENCY - kwh/mile #####
+  # We original varied from 0.262-0.310 per ES&T paper, but changed to center around 0.325 to match EVI-Pro assumptions
+  #	kwh per mile /	b075  b150  b225  b300	b400
+  #	TRB Paper 2019	0.262 0.274 0.286 0.298	0.310 /									   
+  # 2nd Paper 2020	0.31  0.324 0.338 0.351 0.353
+  conversion.efficiency.by.range <- c(.31,.324,.338,.351,.353)
+  if('b150ConversionEfficiency' %in% param.names){
+    inputs$parameters$conversionEfficiency <- data.table(b=c('b075','b150','b225','b300','b400'),value=conversion.efficiency.by.range*exper.row$b150ConversionEfficiency/.324)
+  }else{
+    inputs$parameters$conversionEfficiency <- data.table(b=c('b075','b150','b225','b300','b400'),value=conversion.efficiency.by.range)
+  }
+  # / b075 0.31
+  # b150 0.324
+  # b225 0.338
+  # b300 0.351
+  # b400 0.353 /
 
   #### DEMAND ####
   if(F){
