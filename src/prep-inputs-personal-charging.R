@@ -37,6 +37,11 @@ prep.inputs.personal.charging <- function(exper.row,param.names,common.inputs,in
   if('privateFleetWeights' %in% names(exper.row)){
     privateFleetWeights <- exper.row$privateFleetWeights
   }
+  if('privateBEVConversionEfficiency' %in% names(exper.row)){
+    conversionEfficiencyScalingFactor <- exper.row$privateBEVConversionEfficiency/0.325
+  }else{
+    conversionEfficiencyScalingFactor <- 1.0
+  }
   
   if(fractionSAEVs < 1){
     ###########################################################
@@ -330,12 +335,12 @@ prep.inputs.personal.charging <- function(exper.row,param.names,common.inputs,in
     inputs <- list()
     inputs$sets <- list()
     inputs$parameters <- list()
-    inputs$parameters$personalEVChargeEnergyUB <- all.all.energy.constraints[,list(t,rmob,value=ifelse(max.energy>=min.energy,max.energy,min.energy))]
-    inputs$parameters$personalEVChargeEnergyLB <- all.all.energy.constraints[,list(t,rmob,value=min.energy)]
-    inputs$parameters$personalEVChargePowerUB <- all.all.energy.constraints[,list(t,rmob,value=max.power)]
-    inputs$parameters$personalEVChargePowerLB <- all.all.energy.constraints[,list(t,rmob,value=min.power)]
+    inputs$parameters$personalEVChargeEnergyUB <- all.all.energy.constraints[,list(t,rmob,value=conversionEfficiencyScalingFactor*ifelse(max.energy>=min.energy,max.energy,min.energy))]
+    inputs$parameters$personalEVChargeEnergyLB <- all.all.energy.constraints[,list(t,rmob,value=conversionEfficiencyScalingFactor*min.energy)]
+    inputs$parameters$personalEVChargePowerUB <- all.all.energy.constraints[,list(t,rmob,value=conversionEfficiencyScalingFactor*max.power)]
+    inputs$parameters$personalEVChargePowerLB <- all.all.energy.constraints[,list(t,rmob,value=conversionEfficiencyScalingFactor*min.power)]
     inputs$parameters$personalEVFleetSize <- all.fleets[,.(rmob,value=n.veh,type=name)]
-    inputs$parameters$personalEVUnmanagedLoads <- all.unmanaged.loads[,.(l,t=hr,value=power)]
+    inputs$parameters$personalEVUnmanagedLoads <- all.unmanaged.loads[,.(l,t=hr,value=conversionEfficiencyScalingFactor*power)]
     inputs$parameters$personalEVChargers <- all.chargers[,.(rmob,value=n.ch,type=dest_type,level=dest_chg_level)]
     # what is average utilization rate for the private charging infrastructure
     kwh.per.day <- inputs$parameters$personalEVChargeEnergyLB[,.(kwh.per.day=sum(diff(value))/(length(u(t))/24)),by='rmob']

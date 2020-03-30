@@ -1,0 +1,13 @@
+Name: conversionEfficiency
+Mode: combinatorial
+Factors:
+  - Name: privateBEVConversionEfficiency
+    Levels:
+      - 0.3
+      - 0.325
+      - 0.35
+  - Name: b150ConversionEfficiency
+    Levels:
+      - 0.3
+      - 0.325
+      - 0.35
