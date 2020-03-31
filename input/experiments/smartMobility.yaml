@@ -1,11 +1,69 @@
 Name: smartMobility
 Mode: scenario
 Scenarios:
-  - Name: A2
-    Parameters:
-      electrificationPenetration: 0.25
-      fractionSAEVs: 0.75
-  - Name: A3
-    Parameters:
-      electrificationPenetration: 0.5
-      fractionSAEVs: 0.75
+- Name: base0
+  Parameters:
+    electrificationPenetration: 0.0010473
+    fractionSAEVs: 0.0361757
+    b150ConversionEfficiency: 0.353683
+    privateBEVConversionEfficiency: 0.255
+- Name: base2
+  Parameters:
+    electrificationPenetration: 0.0008895
+    fractionSAEVs: 0.0361757
+    b150ConversionEfficiency: 0.353683
+    privateBEVConversionEfficiency: 0.2513058
+- Name: base3
+  Parameters:
+    electrificationPenetration: 0.0679069
+    fractionSAEVs: 0.0361757
+    b150ConversionEfficiency: 0.353683
+    privateBEVConversionEfficiency: 0.2437173
+- Name: base5
+  Parameters:
+    electrificationPenetration: 0.1771398
+    fractionSAEVs: 0.0361757
+    b150ConversionEfficiency: 0.353683
+    privateBEVConversionEfficiency: 0.3113138
+- Name: base6
+  Parameters:
+    electrificationPenetration: 0.3834788
+    fractionSAEVs: 0.0361757
+    b150ConversionEfficiency: 0.353683
+    privateBEVConversionEfficiency: 0.2948876
+- Name: a2
+  Parameters:
+    electrificationPenetration: 0.0418233
+    fractionSAEVs: 0.0577849
+    b150ConversionEfficiency: 0.353683
+    privateBEVConversionEfficiency: 0.2802406
+- Name: a3
+  Parameters:
+    electrificationPenetration: 0.07156
+    fractionSAEVs: 0.0592949
+    b150ConversionEfficiency: 0.353683
+    privateBEVConversionEfficiency: 0.2450969
+- Name: b5
+  Parameters:
+    electrificationPenetration: 0.1536478
+    fractionSAEVs: 0.4528926
+    b150ConversionEfficiency: 0.3617936
+    privateBEVConversionEfficiency: 0.3137211
+- Name: b6
+  Parameters:
+    electrificationPenetration: 0.270884
+    fractionSAEVs: 0.5668359
+    b150ConversionEfficiency: 0.3456933
+    privateBEVConversionEfficiency: 0.3033604
+- Name: c5
+  Parameters:
+    electrificationPenetration: 0.1782563
+    fractionSAEVs: 0.0583756
+    b150ConversionEfficiency: 0.3626991
+    privateBEVConversionEfficiency: 0.3182639
+- Name: c6
+  Parameters:
+    electrificationPenetration: 0.4084872
+    fractionSAEVs: 0.0886889
+    b150ConversionEfficiency: 0.3445462
+    privateBEVConversionEfficiency: 0.3236733

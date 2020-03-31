@@ -677,18 +677,20 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     }
   }
   make.1d.metric.plot <- function(all.sub,code,freeCol,sub.dir){
+    the.levels <- streval(pp('exper$runs[,.(col=',freeCol,')]$col'))
+    streval(pp('all.sub[,',freeCol,':=factor(',freeCol,',levels=the.levels)]'))
     make.dir(sub.dir)
     for(the.metric in u(all.sub$metric)){
-        p <- ggplot(all.sub[metric==the.metric],aes(x=factor(streval(freeCol)),y=value/metric.units[metric==the.metric]$scale.factor,fill=variable))+geom_bar(stat='identity',colour='black')+scale_fill_manual(values = the.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x=factor.labels[freeCol],y=metric.units[metric==the.metric]$label,title=pp(the.metric,ifelse(code=='','',' when '),code),fill='')+theme_bw()
+        p <- ggplot(all.sub[metric==the.metric],aes(x=streval(freeCol),y=value/metric.units[metric==the.metric]$scale.factor,fill=variable))+geom_bar(stat='identity',colour='black')+scale_fill_manual(values = the.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x=factor.labels[freeCol],y=metric.units[metric==the.metric]$label,title=pp(the.metric,ifelse(code=='','',' when '),code),fill='')+theme_bw()
         pdf.scale <- 1
         ggsave(pp(sub.dir,'/metric_',the.metric,'_',code,'.pdf'),p,width=6*pdf.scale,height=4*pdf.scale,units='in')
         write.csv(streval(pp('all.sub[metric==the.metric,.(x=',freeCol,',y=value/metric.units[metric==the.metric]$scale.factor,fill=variable)]')),file=pp(sub.dir,'/metric_',the.metric,'_',code,'.csv'))
         if(the.metric=='Emissions'){
-          p <- ggplot(all.sub[metric==the.metric],aes(x=factor(streval(freeCol)),y=value/metric.units[metric==the.metric]$scale.factor,fill=variable))+geom_bar(stat='identity',colour='black')+scale_fill_manual(values = the.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x=factor.labels[freeCol],y=metric.units[metric==the.metric]$label,title=pp(the.metric,ifelse(code=='','',' when '),code),fill='')+theme_bw()+scale_y_continuous(limits = c(0,11.5))
+          p <- ggplot(all.sub[metric==the.metric],aes(x=streval(freeCol),y=value/metric.units[metric==the.metric]$scale.factor,fill=variable))+geom_bar(stat='identity',colour='black')+scale_fill_manual(values = the.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x=factor.labels[freeCol],y=metric.units[metric==the.metric]$label,title=pp(the.metric,ifelse(code=='','',' when '),code),fill='')+theme_bw()+scale_y_continuous(limits = c(0,11.5))
           pdf.scale <- 1
           ggsave(pp(sub.dir,'/metric_',the.metric,'_',code,'_scaledTo11.pdf'),p,width=6*pdf.scale,height=4*pdf.scale,units='in')
         }else if(the.metric=='Cost'){
-          p <- ggplot(all.sub[metric==the.metric & variable=='Cost: Energy'],aes(x=factor(streval(freeCol)),y=value/metric.units[metric==the.metric]$scale.factor,fill=variable))+geom_bar(stat='identity',colour='black')+scale_fill_manual(values = the.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x=factor.labels[freeCol],y=metric.units[metric==the.metric]$label,title=pp(the.metric,ifelse(code=='','',' when '),code),fill='')+theme_bw()
+          p <- ggplot(all.sub[metric==the.metric & variable=='Cost: Energy'],aes(x=streval(freeCol),y=value/metric.units[metric==the.metric]$scale.factor,fill=variable))+geom_bar(stat='identity',colour='black')+scale_fill_manual(values = the.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x=factor.labels[freeCol],y=metric.units[metric==the.metric]$label,title=pp(the.metric,ifelse(code=='','',' when '),code),fill='')+theme_bw()
           pdf.scale <- 1
           ggsave(pp(sub.dir,'/metric_',the.metric,'_',code,'_energyInset.pdf'),p,width=6*pdf.scale,height=4*pdf.scale,units='in')
         }

@@ -41,8 +41,8 @@ if(interactive()){
 #  args<-'input/experiments/fractionSAEVsAndSmartCharging.yaml'
 #  args<-'input/experiments/base.yaml'
   args<-'input/experiments/smartMobility.yaml'
-  args<-'input/experiments/b150ConversionEfficiency.yaml'
-  args<-'input/experiments/conversionEfficiency.yaml'
+  # args<-'input/experiments/b150ConversionEfficiency.yaml'
+  # args<-'input/experiments/conversionEfficiency.yaml'
   # args<-'input/experiments/electrificationPenetration.yaml'
   args <- pp('--experiment=',args)
 # args <- c(args,'-t') # don't add timestamp
