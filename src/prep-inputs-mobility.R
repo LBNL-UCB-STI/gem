@@ -32,6 +32,9 @@ prep.inputs.mobility <- function(exper.row,param.names,common.inputs){
   if('fractionSAEVs' %in% param.names){
     fractionSAEVs <- exper.row$fractionSAEVs
   }
+  if('vmtReboundFactor' %in% param.names){
+    vmtReboundFactor <- exper.row$vmtReboundFactor
+  }
 
   ##### SHARING #####
   if('sharingFactor'%in%param.names){
@@ -104,7 +107,7 @@ prep.inputs.mobility <- function(exper.row,param.names,common.inputs){
   all.dem[,':='(value=trips,trips=NULL,rmob=r,r=NULL)]
   all.dem[t==tail(common.inputs$sets$t,1),value:=0]
   all.dem.unscaled <- all.dem[,list(t,d=pp('d',d),rmob,value=value)]
-  all.dem <- all.dem[,list(t,d=pp('d',d),rmob,value=value*fractionSAEVs*electrificationPenetration)]
+  all.dem <- all.dem[,list(t,d=pp('d',d),rmob,value=value*fractionSAEVs*electrificationPenetration*vmtReboundFactor)]
   inputs$parameters$demand <- all.dem
   inputs$parameters$demandUnscaled <- all.dem.unscaled
 

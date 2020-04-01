@@ -9,7 +9,7 @@
 #days <- c(74:77,148:150,260:262,351:354) # 3 per week, 2 weekday, 1 weekend plus 2 for buffer on ends
 # DEFAULT TIME PERIOD FOR PAPERS / FINAL ANALYSIS CORRECTED
 days <- c(70:73,176:178,260:262,351:354) # 3 per week, 2 weekday, 1 weekend plus 2 for buffer on ends
-days <- c(70:71) # 3 per week, 2 weekday, 1 weekend plus 2 for buffer on ends
+# days <- c(70:71) # 3 per week, 2 weekday, 1 weekend plus 2 for buffer on ends
 
 #days <- c(75:76,149:150,261:262,352:353) # 2 per week, 2 weekday
 
@@ -32,6 +32,7 @@ battery.capital.cost <- 150 # $/kWh
 charger.levels <- c(10,20,50,100,250) # kW
 chargerLifetime <- 10
 sharingFactor <- 1.5
+vmtReboundFactor <- 1.0 # scales VMT in the system, imperfectly, by scaling # trips for SAEVs and energy for private charging
 batteryCapitalCost <- 150
 b150ConversionEfficiency <- 0.324 # What is average conversion efficiency for a 150-mile BEV? kwh/mile, all other vehicle ranges
                                   # will be scaled proportionally assuming 0.324 as the default for BEV150

@@ -45,9 +45,9 @@ if(interactive()){
   # args<-'input/experiments/conversionEfficiency.yaml'
   # args<-'input/experiments/electrificationPenetration.yaml'
   args <- pp('--experiment=',args)
-# args <- c(args,'-t') # don't add timestamp
-# args <- c(args,'-p') # only plots
-# args <- c(args,'-d') # trim one day off beginning and end of results
+ args <- c(args,'-t') # don't add timestamp
+ args <- c(args,'-p') # only plots
+ args <- c(args,'-d') # trim one day off beginning and end of results
 #args <- c(args,'--runsubset=16,17,18,19')
 #args <- c(args,'--runsubset=4') 
   args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=F,args=args)
@@ -145,7 +145,9 @@ for(i in 1:nrow(exper$runs)) {
     if(i==1)results[[key]] <- list()
     results[[key]][[length(results[[key]])+1]] <- result[[key]]
   }
-  all.inputs[[i]]$sets$t <- all.inputs[[i]]$set$t[1:(length(all.inputs[[i]]$set$t)-48)]
+  if(args$trimdays){
+    all.inputs[[i]]$sets$t <- all.inputs[[i]]$set$t[1:(length(all.inputs[[i]]$set$t)-48)]
+  }
   make.dir(pp(plots.dir,'/run-',i,''))
 }
 res <- lapply(results,function(ll){ rbindlist(ll,fill=T) })

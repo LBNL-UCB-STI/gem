@@ -4,66 +4,77 @@ Scenarios:
 - Name: base0
   Parameters:
     electrificationPenetration: 0.0010473
-    fractionSAEVs: 0.0361757
+    fractionSAEVs: 0.0
+    vmtReboundFactor: 1.0
     b150ConversionEfficiency: 0.353683
     privateBEVConversionEfficiency: 0.255
 - Name: base2
   Parameters:
-    electrificationPenetration: 0.0008895
-    fractionSAEVs: 0.0361757
+    electrificationPenetration: 0.03
+    fractionSAEVs: 0.0
+    vmtReboundFactor: 1.0
     b150ConversionEfficiency: 0.353683
     privateBEVConversionEfficiency: 0.2513058
 - Name: base3
   Parameters:
     electrificationPenetration: 0.0679069
-    fractionSAEVs: 0.0361757
+    fractionSAEVs: 0.0
+    vmtReboundFactor: 1.0
     b150ConversionEfficiency: 0.353683
     privateBEVConversionEfficiency: 0.2437173
 - Name: base5
   Parameters:
     electrificationPenetration: 0.1771398
-    fractionSAEVs: 0.0361757
+    fractionSAEVs: 0.0
+    vmtReboundFactor: 1.0
     b150ConversionEfficiency: 0.353683
     privateBEVConversionEfficiency: 0.3113138
 - Name: base6
   Parameters:
     electrificationPenetration: 0.3834788
-    fractionSAEVs: 0.0361757
+    fractionSAEVs: 0.0
+    vmtReboundFactor: 1.0
     b150ConversionEfficiency: 0.353683
     privateBEVConversionEfficiency: 0.2948876
 - Name: a2
   Parameters:
     electrificationPenetration: 0.0418233
-    fractionSAEVs: 0.0577849
+    fractionSAEVs: 0.0
+    vmtReboundFactor: 0.91
     b150ConversionEfficiency: 0.353683
     privateBEVConversionEfficiency: 0.2802406
 - Name: a3
   Parameters:
     electrificationPenetration: 0.07156
-    fractionSAEVs: 0.0592949
+    fractionSAEVs: 0.0
+    vmtReboundFactor: 0.915
     b150ConversionEfficiency: 0.353683
     privateBEVConversionEfficiency: 0.2450969
 - Name: b5
   Parameters:
     electrificationPenetration: 0.1536478
-    fractionSAEVs: 0.4528926
+    fractionSAEVs: 0.453012
+    vmtReboundFactor: 0.875
     b150ConversionEfficiency: 0.3617936
     privateBEVConversionEfficiency: 0.3137211
 - Name: b6
   Parameters:
     electrificationPenetration: 0.270884
-    fractionSAEVs: 0.5668359
+    fractionSAEVs: 0.5282555
+    vmtReboundFactor: 0.895
     b150ConversionEfficiency: 0.3456933
     privateBEVConversionEfficiency: 0.3033604
 - Name: c5
   Parameters:
     electrificationPenetration: 0.1782563
-    fractionSAEVs: 0.0583756
+    fractionSAEVs: 0.0803571
+    vmtReboundFactor: 1.03
     b150ConversionEfficiency: 0.3626991
-    privateBEVConversionEfficiency: 0.3182639
+    privateBEVConversionEfficiency: 0.3194856
 - Name: c6
   Parameters:
     electrificationPenetration: 0.4084872
-    fractionSAEVs: 0.0886889
+    fractionSAEVs: 0.0897933
+    vmtReboundFactor: 1.135
     b150ConversionEfficiency: 0.3445462
-    privateBEVConversionEfficiency: 0.3236733
+    privateBEVConversionEfficiency: 0.323398
