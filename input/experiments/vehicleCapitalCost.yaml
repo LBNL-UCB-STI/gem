@@ -1,0 +1,9 @@
+Name: vehicleCapitalCost
+Mode: combinatorial
+Factors:
+  - Name: vehicleCapitalCost
+    Levels:
+      - 20000
+      - 25000
+      - 30000
+      - 35000

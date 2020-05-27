@@ -39,14 +39,16 @@ option_list <- list(make_option(c("-p", "--plots"), action="store_true", default
                     make_option(c("-r", "--runsubset"), type="character", default='',help="Comma separate list of runs to execute [default %default]"))
 if(interactive()){
 #  args<-'input/experiments/fractionSAEVsAndSmartCharging.yaml'
-#  args<-'input/experiments/base.yaml'
-  args<-'input/experiments/smartMobility.yaml'
+ args<-'input/experiments/base.yaml'
+#  args<-'input/experiments/smartMobility.yaml'
+   # args<-'input/experiments/batteryLifetime.yaml'
+   # args<-'input/experiments/sharingFactor.yaml'
   # args<-'input/experiments/b150ConversionEfficiency.yaml'
   # args<-'input/experiments/conversionEfficiency.yaml'
   # args<-'input/experiments/electrificationPenetration.yaml'
   args <- pp('--experiment=',args)
  args <- c(args,'-t') # don't add timestamp
- args <- c(args,'-p') # only plots
+ # args <- c(args,'-p') # only plots
  args <- c(args,'-d') # trim one day off beginning and end of results
 #args <- c(args,'--runsubset=16,17,18,19')
 #args <- c(args,'--runsubset=4') 
@@ -111,10 +113,10 @@ if(!args$plots){ # only prep and run model if *not* in plot-only mode
     
     cat(pp(Sys.time(),'\n'))
     setwd(pp(exper$input.dir,'/runs/run-',i))
-    gams('gem.gms')
+    gams('gem.gms solvelink=2')
     print('Full GEM results:')
     print.lst.status('gem.lst')
-    gams('gem-baseGeneration.gms')
+    gams('gem-baseGeneration.gms solvelink=2')
     print('Base generation results:')
     print.lst.status('gem-baseGeneration.lst')
     setwd(gem.project.directory)

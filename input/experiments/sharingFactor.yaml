@@ -1,0 +1,9 @@
+Name: sharingFactor
+Mode: combinatorial
+Factors:
+  - Name: sharingFactor
+    Levels:
+      - 1.0
+      - 1.25
+      - 1.5
+      - 1.75

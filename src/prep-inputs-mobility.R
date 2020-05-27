@@ -16,7 +16,7 @@ prep.inputs.mobility <- function(exper.row,param.names,common.inputs){
 
   ##### GENERIC PROCESSING OF SIMPLE PARAMS #####
 
-  generic.params <- c('batteryCapitalCost','discountRate','chargerLifetime')
+  generic.params <- c('batteryCapitalCost','discountRate','chargerLifetime','vehicleCapitalCost','sharingFactor')
 
   for(generic.param in generic.params){
     if(generic.param %in% param.names){
@@ -34,13 +34,6 @@ prep.inputs.mobility <- function(exper.row,param.names,common.inputs){
   }
   if('vmtReboundFactor' %in% param.names){
     vmtReboundFactor <- exper.row$vmtReboundFactor
-  }
-
-  ##### SHARING #####
-  if('sharingFactor'%in%param.names){
-    inputs$parameters$sharingFactor <- data.table(d=common.inputs$sets$d,value=exper.row$sharing)
-  }else{
-    inputs$parameters$sharingFactor <- data.table(value=sharingFactor)
   }
 
   ##### URBAN FORM - STRAIGHT SCALING ALL REGIONS #####

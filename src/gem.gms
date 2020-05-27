@@ -75,7 +75,7 @@ scalar
 	deltaT				time step size in hours /1/
 	dailyDiscountRate 		rate /0/
 	chargerVariableCost		O&M cost per kW per day /0.04/
-	vehicleCapitalCost 		USD /30000/
+	vehicleCapitalCost 		USD 
 	vehiclePerYearCosts		USD for insurance /600/
 	vehiclePerMileCosts		USD for insurance & maint /0.09/
 	dailyVehicleCost 		amortized cap /0/
@@ -109,7 +109,7 @@ positive variable
 
 
 $gdxin <<gdxName>>
-$load d r rmob l t g gtor rmobtor demand speed sharingFactor travelDistance demandCharge chargerPower chargerCapitalCost chargerDistributionFactor conversionEfficiency solar wind hydro genCost demandLoad maxGen maxSolar maxWind transCap transCost personalEVChargeEnergyLB personalEVChargeEnergyUB personalEVChargePowerLB personalEVChargePowerUB distCorrection timeCorrection chargeRelocationRatio chargeRelocationCorrection fleetRatio batteryRatio vehicleLifetime batteryLifetime batteryCapitalCost discountRate chargerLifetime
+$load d r rmob l t g gtor rmobtor demand speed sharingFactor travelDistance demandCharge chargerPower chargerCapitalCost chargerDistributionFactor conversionEfficiency solar wind hydro genCost demandLoad maxGen maxSolar maxWind transCap transCost personalEVChargeEnergyLB personalEVChargeEnergyUB personalEVChargePowerLB personalEVChargePowerUB distCorrection timeCorrection chargeRelocationRatio chargeRelocationCorrection fleetRatio batteryRatio vehicleLifetime batteryLifetime batteryCapitalCost vehicleCapitalCost discountRate chargerLifetime
 $gdxin
 
 display
