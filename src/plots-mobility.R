@@ -1,4 +1,4 @@
-###############################################################################################
+###############################################################################################ll.
 # Grid-Integrated Electric Mobility Model (GEM)
 # 
 # This makes plots related to mobility.
@@ -442,9 +442,10 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   vmt[,vmt:=vehiclesMoving*travelDistance]
   vmt[,pmt:=demandAllocated*travelDistance]
   fleet <- res[['b-rmob']]
-  vmt.by.region <- join.on(join.on(fleet,vmt[,.(vmt=sum(vmt)),by=c('rmob','b','run')],c('rmob','b','run'),c('rmob','b','run')),inputs$parameters$vehicleLifetime[,.(value=mean(value)),by=c('b','rmob')],c('rmob','b'),c('rmob','b'),'value','assumed.lifetime.')
+  vmt.by.region <- join.on(join.on(fleet,vmt[,.(vmt=sum(vmt),pmt=sum(pmt)),by=c('rmob','b','run')],c('rmob','b','run'),c('rmob','b','run')),inputs$parameters$vehicleLifetime[,.(value=mean(value)),by=c('b','rmob')],c('rmob','b'),c('rmob','b'),'value','assumed.lifetime.')
   n.days <- max(vmt$t)/24
   vmt.by.region[,daily.vmt.per.vehicle:=vmt/fleetSize/n.days]
+  vmt.by.region[,daily.pmt:=pmt/n.days]
   vmt.by.region[,battery.level:=gsub('b|b0','',b)]
   vmt.by.region[,battery.level:=paste(battery.level,'mi')]
   vmt.by.region$battery.level <- factor(vmt.by.region$battery.level,levels=unique(vmt.by.region$battery.level)[mixedorder(unique(vmt.by.region$battery.level))])
@@ -478,6 +479,14 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   to.plot.fleet[,col:=getPalette(b)[match(to.plot.fleet$b,u(to.plot.fleet$b))]]
   to.plot.fleet <- join.on(to.plot.fleet,res[['b']],c('run','b'),c('run','b'))
   to.plot.fleet[is.na(batteryCapacity),':='(batteryCapacity=batt.kwh,conversionEfficiency=personal.ev.conversion.eff)]
+  to.plot.saev.hours <- streval(pp('vehs[,.(Charging=sum(',pp('vehiclesCharging.',all.inputs[[1]]$sets$l,collapse='+'),')/n.days.in.run,Moving=sum(',pp('vehiclesMoving.',str_replace_all(all.inputs[[1]]$sets$d,"-","."),collapse='+'),')/n.days.in.run,Idle=sum(vehiclesIdle)/n.days.in.run),by="run"]'))
+  to.plot.saev.hours <- melt(join.on(to.plot.saev.hours,to.plot.fleet[!is.na(bplus),.(n.veh=sum(value)),by='run'],'run','run'),id.vars=c('run','n.veh'))
+  to.plot.saev.hours[,':='(metric='SAEV_Utilization',value=value/n.veh)]
+  to.plot.saev.hours <- join.on(to.plot.saev.hours,run.params,'run','run')
+  to.plot.saev.hours[,col:=getPalette(variable)[match(variable,u(variable))]]
+  person.trips <- res[['b-d-rmob-t']][,.(personTripsPerDay=sum(demandAllocated)/n.days.in.run),by=c('run','b')]
+  to.plot.trips.per.saev <- join.on(to.plot.fleet[!is.na(bplus)],person.trips,c('run','b'),c('run','b'))
+  to.plot.trips.per.saev[,':='(metric='Person_Trips_per_SAEV',value=personTripsPerDay/value)]
   
   personal.chargers <- rbindlist(lapply(1:length(all.inputs),function(i){ all.inputs[[i]]$parameters$personalEVChargers[,.(value=sum(value),run=i),by=c('type','level')] }))[,.(run,type,level,value)]
   personal.chargers[,variable:=pp(type,'_Chgr')]
@@ -541,6 +550,12 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   to.plot.cost <- join.on(to.plot.cost,cost.key,'variable.short','variable')
   to.plot.cost[,variable:=pp('Cost: ',cost.key)]
   to.plot.cost[,col:=getPalette(variable.short)[match(variable.short,u(variable.short))]]
+  to.plot.cost.per.pass.mile <- join.on(copy(to.plot.cost),vmt.by.region[,.(daily.pmt=sum(daily.pmt)),by='run'],'run','run')
+  to.plot.cost.per.pass.mile[,metric:='Cost_per_Passenger_Mile']
+  to.plot.cost.per.pass.mile[,value:=value/(daily.pmt*weekday.to.year.factor)]
+  to.plot.cost.per.capita <- copy(to.plot.cost)
+  to.plot.cost.per.capita[,metric:='Cost_per_Capita']
+  to.plot.cost.per.capita[,value:=value/330e6] # 2020 US Population
   
   # Emissions
   saev.lifetimes <- vmt.by.region[,.(vehicleLifetime=vehicleLifetime[1],batteryLifetime=batteryLifetime[1]),by=c('run','b')]
@@ -564,10 +579,16 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   to.plot.em[,variable:=factor(as.character(Simplified))]
   to.plot.em <- join.on(to.plot.em,run.params,'run','run')
   to.plot.em[,col:=getPalette(variable)[match(variable,u(variable))]]
+  to.plot.em.per.pass.mile <- join.on(copy(to.plot.em),vmt.by.region[,.(daily.pmt=sum(daily.pmt)),by='run'],'run','run')
+  to.plot.em.per.pass.mile[,metric:='Emissions_per_Passenger_Mile']
+  to.plot.em.per.pass.mile[,value:=value/(daily.pmt*weekday.to.year.factor)]
+  to.plot.em.per.capita <- copy(to.plot.em)
+  to.plot.em.per.capita[,metric:='Emissions_per_Capita']
+  to.plot.em.per.capita[,value:=value/330e6] # 2020 US Population
   
-  metric.units <- data.table(metric=c('Fleet Size','# Chargers','Peak Load','Emissions','Cost'),
-                             scale.factor=c(1e6,1e6,1,1e6,1e9),
-                             label=c('Millions of Vehicles','Millions of Chargers','Peak Load (GW)','Emissions (Million Tonnes CO2eq)','Cost (Billions of $)'))
+  metric.units <- data.table(metric=c('Fleet Size','# Chargers','Peak Load','Emissions','Emissions_per_Passenger_Mile','Emissions_per_Capita','Cost','Cost_per_Passenger_Mile','Cost_per_Capita','SAEV_Utilization','Person_Trips_per_SAEV'),
+                             scale.factor=c(1e6,1e6,1,1e6,1e-6,1,1e9,1,1,1,1),
+                             label=c('Millions of Vehicles','Millions of Chargers','Peak Load (GW)','Emissions (Million Tonnes CO2eq)','Emissions (grams CO2eq per Passenger-Mile)','Emissions (Tonnes CO2eq per Capita)','Cost (Billions of $)','Cost ($ per Passenger-Mile)','Cost ($ per Capita)','Vehicle-Hours per Day','Person-trips per SAEV per Day'))
   factor.labels <- c('fractionSAEVs'='Fraction SAEVs in Fleet','fractionSmartCharging'='Fraction Smart Charging in Private Fleet','renewableScalingFactor'='Solar & Wind Capacity Scaling Factor')
   for(param.name in param.names){
     if(!param.name %in% names(factor.labels)){
@@ -575,8 +596,8 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     }
   }
   
-  all <- rbindlist(list(to.plot.fleet,to.plot.chargers,to.plot.peak.ch,to.plot.em,to.plot.cost),fill=T)
-  all[,metric:=factor(metric,levels = c('Fleet Size','# Chargers','Peak Load','Cost','Emissions'))]
+  all <- rbindlist(list(to.plot.fleet,to.plot.chargers,to.plot.peak.ch,to.plot.em,to.plot.em.per.pass.mile,to.plot.em.per.capita,to.plot.cost,to.plot.cost.per.pass.mile,to.plot.cost.per.capita,to.plot.saev.hours,to.plot.trips.per.saev),fill=T)
+  all[,metric:=factor(metric,levels = c('Fleet Size','# Chargers','Peak Load','Cost','Emissions','Emissions_per_Passenger_Mile','Emissions_per_Capita','Cost_per_Passenger_Mile','Cost_per_Capita','SAEV_Utilization','Person_Trips_per_SAEV'))]
   the.cols <- all$col
   names(the.cols) <- all$variable
   
@@ -693,6 +714,10 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
           p <- ggplot(all.sub[metric==the.metric & variable=='Cost: Energy'],aes(x=streval(freeCol),y=value/metric.units[metric==the.metric]$scale.factor,fill=variable))+geom_bar(stat='identity',colour='black')+scale_fill_manual(values = the.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x=factor.labels[freeCol],y=metric.units[metric==the.metric]$label,title=pp(the.metric,ifelse(code=='','',' when '),code),fill='')+theme_bw()
           pdf.scale <- 1
           ggsave(pp(sub.dir,'/metric_',the.metric,'_',code,'_energyInset.pdf'),p,width=6*pdf.scale,height=4*pdf.scale,units='in')
+        }else if(the.metric=='Person_Trips_per_SAEV'){
+          p <- ggplot(all.sub[metric==the.metric],aes(x=streval(freeCol),y=value/metric.units[metric==the.metric]$scale.factor,fill=variable))+geom_bar(stat='identity',colour='black',position='dodge')+scale_fill_manual(values = the.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x=factor.labels[freeCol],y=metric.units[metric==the.metric]$label,title=pp(the.metric,ifelse(code=='','',' when '),code),fill='')+theme_bw()
+          pdf.scale <- 1
+          ggsave(pp(sub.dir,'/metric_',the.metric,'_',code,'_dodged.pdf'),p,width=6*pdf.scale,height=4*pdf.scale,units='in')
         }
     }
   }

@@ -36,20 +36,23 @@ option_list <- list(make_option(c("-p", "--plots"), action="store_true", default
                     make_option(c("-t", "--notimestamp"), action="store_true", default=F,help="Don't add timestamp to outputs directory [default %default]"),
                     make_option(c("-d", "--trimdays"), action="store_true", default=F,help="Trim a day off beginning and end of simulation results to avoid edge effects [default %default]"),
                     make_option(c("-e", "--experiment"), type="character", default='input/experiments/base.yaml',help="Path to experiment file [default %default]",metavar="exp"),
-                    make_option(c("-r", "--runsubset"), type="character", default='',help="Comma separate list of runs to execute [default %default]"))
+                    make_option(c("-r", "--runsubset"), type="character", default='',help="Comma separate list of runs to execute [default %default]"),
+                    make_option(c("-o", "--overwrite"), action="store_true", default=F,help="Overwrite an existing solution from GAMS [default %default]"))
 if(interactive()){
 #  args<-'input/experiments/fractionSAEVsAndSmartCharging.yaml'
- args<-'input/experiments/base.yaml'
+ # args<-'input/experiments/base.yaml'
 #  args<-'input/experiments/smartMobility.yaml'
    # args<-'input/experiments/batteryLifetime.yaml'
    # args<-'input/experiments/sharingFactor.yaml'
+   args<-'input/experiments/vehicleCapitalCost.yaml'
   # args<-'input/experiments/b150ConversionEfficiency.yaml'
   # args<-'input/experiments/conversionEfficiency.yaml'
   # args<-'input/experiments/electrificationPenetration.yaml'
   args <- pp('--experiment=',args)
  args <- c(args,'-t') # don't add timestamp
- # args <- c(args,'-p') # only plots
+ args <- c(args,'-p') # only plots
  args <- c(args,'-d') # trim one day off beginning and end of results
+ #args <- c(args,'-o') # overwrite existing
 #args <- c(args,'--runsubset=16,17,18,19')
 #args <- c(args,'--runsubset=4') 
   args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=F,args=args)
@@ -103,24 +106,26 @@ if(!args$plots){ # only prep and run model if *not* in plot-only mode
   
   for(i in runs.to.run) {
     Sys.sleep(0.1) # Allow console statements to print to screen before continuing
-    cat(pp('Running [',i,'] ',exper$runs[i],'\n'))
-    gem.gms <- readLines('src/gem.gms')
-    gem.gms <- gsub(pattern='<<gdxName>>',replace='inputs.gdx',x=gem.gms)
-    gem.baseGeneration.gms <- readLines('src/gem-baseGeneration.gms')
-    gem.baseGeneration.gms <- gsub(pattern='<<gdxName>>',replace='inputs.gdx',x=gem.baseGeneration.gms)
-    writeLines(gem.gms,con=pp(exper$input.dir,'/runs/run-',i,'/gem.gms'))
-    writeLines(gem.baseGeneration.gms,con=pp(exper$input.dir,'/runs/run-',i,'/gem-baseGeneration.gms'))
+    if(args$overwrite | !file.exists(pp(exper$input.dir,'/runs/run-',i,'/results.gdx'))){
+      cat(pp('Running run-',i,' ',pp(names(exper$runs),': ',exper$runs[i],collapse=', '),'\n'))
+      gem.gms <- readLines('src/gem.gms')
+      gem.gms <- gsub(pattern='<<gdxName>>',replace='inputs.gdx',x=gem.gms)
+      gem.baseGeneration.gms <- readLines('src/gem-baseGeneration.gms')
+      gem.baseGeneration.gms <- gsub(pattern='<<gdxName>>',replace='inputs.gdx',x=gem.baseGeneration.gms)
+      writeLines(gem.gms,con=pp(exper$input.dir,'/runs/run-',i,'/gem.gms'))
+      writeLines(gem.baseGeneration.gms,con=pp(exper$input.dir,'/runs/run-',i,'/gem-baseGeneration.gms'))
     
-    cat(pp(Sys.time(),'\n'))
-    setwd(pp(exper$input.dir,'/runs/run-',i))
-    gams('gem.gms solvelink=2')
-    print('Full GEM results:')
-    print.lst.status('gem.lst')
-    gams('gem-baseGeneration.gms solvelink=2')
-    print('Base generation results:')
-    print.lst.status('gem-baseGeneration.lst')
-    setwd(gem.project.directory)
-    cat(pp(Sys.time(),'\n'))
+      cat(pp(Sys.time(),'\n'))
+      setwd(pp(exper$input.dir,'/runs/run-',i))
+      gams('gem.gms solvelink=0')
+      print('Full GEM results:')
+      print.lst.status('gem.lst')
+      gams('gem-baseGeneration.gms solvelink=0')
+      print('Base generation results:')
+      print.lst.status('gem-baseGeneration.lst')
+      setwd(gem.project.directory)
+      cat(pp(Sys.time(),'\n'))
+    }
   }
 }else{
   load(file=pp(exper$input.dir,'/inputs.Rdata'))
@@ -132,7 +137,7 @@ if(!args$plots){ # only prep and run model if *not* in plot-only mode
 plots.dir <- pp(exper$input.dir,'/plots/')
 make.dir(plots.dir)
 write.csv(exper$runs,pp(plots.dir,'runs.csv'),row.names=T)
-results <- list()
+results <- list(); i<-1
 for(i in 1:nrow(exper$runs)) {
   result <- gdx.to.data.tables(gdx(pp(exper$input.dir,'/runs/run-',i,'/results.gdx')))
   result.baseGen <- gdx.to.data.tables(gdx(pp(exper$input.dir,'/runs/run-',i,'/results-baseGeneration.gdx')))
