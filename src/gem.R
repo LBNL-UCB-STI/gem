@@ -40,11 +40,11 @@ option_list <- list(make_option(c("-p", "--plots"), action="store_true", default
                     make_option(c("-o", "--overwrite"), action="store_true", default=F,help="Overwrite an existing solution from GAMS [default %default]"))
 if(interactive()){
 #  args<-'input/experiments/fractionSAEVsAndSmartCharging.yaml'
- # args<-'input/experiments/base.yaml'
-#  args<-'input/experiments/smartMobility.yaml'
+   args<-'input/experiments/base.yaml'
+  # args<-'input/experiments/smartMobility.yaml'
    # args<-'input/experiments/batteryLifetime.yaml'
    # args<-'input/experiments/sharingFactor.yaml'
-   args<-'input/experiments/vehicleCapitalCost.yaml'
+   # args<-'input/experiments/vehicleCapitalCost.yaml'
   # args<-'input/experiments/b150ConversionEfficiency.yaml'
   # args<-'input/experiments/conversionEfficiency.yaml'
   # args<-'input/experiments/electrificationPenetration.yaml'
