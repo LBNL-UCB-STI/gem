@@ -15,6 +15,7 @@ library('sf')
 library('cowplot')
 library('tidyr')
 library('dplyr')
+library('maps')
 #library('gdxrrw')
 
 gdx.to.data.tables <- function(mygdx){
