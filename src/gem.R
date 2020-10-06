@@ -24,6 +24,7 @@ source('src/load-experiment.R')
 source('src/prep-inputs-static.R')
 source('src/prep-inputs-common.R')
 source('src/prep-inputs-mobility.R')
+source('src/prep-inputs-mobility-truck.R')
 source('src/prep-inputs-personal-charging.R')
 source('src/prep-inputs-grid.R')
 source('src/plots-mobility.R')
@@ -40,7 +41,7 @@ option_list <- list(make_option(c("-p", "--plots"), action="store_true", default
                     make_option(c("-o", "--overwrite"), action="store_true", default=F,help="Overwrite an existing solution from GAMS [default %default]"))
 if(interactive()){
 #  args<-'input/experiments/fractionSAEVsAndSmartCharging.yaml'
-   args<-'input/experiments/base.yaml'
+  args<-'input/experiments/base.yaml'
   # args<-'input/experiments/smartMobility.yaml'
    # args<-'input/experiments/batteryLifetime.yaml'
    # args<-'input/experiments/sharingFactor.yaml'
@@ -85,11 +86,12 @@ if(!args$plots){ # only prep and run model if *not* in plot-only mode
     common.inputs <- c(static.inputs,prep.inputs.common(exper$run[i],exper$param.names))
     exper.row <- exper$run[i]
     inputs.mobility <- prep.inputs.mobility(exper$run[i],exper$param.names,common.inputs)
+    inputs.truck <- prep.inputs.mobility.truck(exper$run[i],exper$param.names,common.inputs)
     inputs.personal.charging <- prep.inputs.personal.charging(exper$run[i],exper$param.names,common.inputs,inputs.mobility)
     inputs.grid <- prep.inputs.grid(exper$run[i],exper$param.names,common.inputs) 
   
-    inputs$sets <- c(common.inputs$sets,inputs.mobility$sets,inputs.grid$sets,inputs.personal.charging$sets)
-    inputs$parameters <- c(common.inputs$parameters,inputs.mobility$parameters,inputs.grid$parameters,inputs.personal.charging$parameters)
+    inputs$sets <- c(common.inputs$sets,inputs.mobility$sets,inputs.grid$sets,inputs.personal.charging$sets,inputs.truck$sets)
+    inputs$parameters <- c(common.inputs$parameters,inputs.mobility$parameters,inputs.grid$parameters,inputs.personal.charging$parameters,inputs.truck$parameters)
   
     #print(inputs)
     make.dir(pp(exper$input.dir,'/runs'))
