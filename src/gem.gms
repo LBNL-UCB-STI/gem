@@ -146,7 +146,7 @@ positive variable
 	vehiclesIdle(t,b,rmob)			No. parked
 	numChargers(l,rmob) 			Total no. infrastructure
 	infrastructureCost(rmob) 		Total daily infrastructure cost
-	fleetCost(rmob) 				Total daily fleet cost
+*	fleetCost(rmob) 				Total daily fleet cost
 	demandAllocated(t,b,d,rmob) 	Demand as allocated by battery type
 	generation(g,t)					Power generation by each generator
 	trans(r,t,o)					Power transmission between regions
@@ -200,7 +200,7 @@ equations
 	cNumMoving 			Vehicles to serve demand
 	cFleetDispatch 			Fleet dispatch
 	cInfrastructureCost		Infrastructure cost
-	cFleetCost			Fleet cost
+*	cFleetCost			Fleet cost
 	cMaxDemand 			Inequality to capture max demand for a day
 	cGeneration			Generation must equal load
 	cMaxSolar			Solar generation cannot exceed sun supply
@@ -226,7 +226,7 @@ equations
 
 
 obj..
-	systemCost =e= sum(rmob,sum(t,demandChargeCost(t,rmob)+vehicleMaintCost(t,rmob))+card(t)/24*infrastructureCost(rmob)+card(t)/24*fleetCost(rmob))+sum((g,t),generation(g,t)*genCost(g))+sum((r,t,o),trans(r,t,o)*transCost(r,o));
+	systemCost =e= sum(rmob,sum(t,demandChargeCost(t,rmob)+vehicleMaintCost(t,rmob))+card(t)/24*infrastructureCost(rmob))+sum((g,t),generation(g,t)*genCost(g))+sum((r,t,o),trans(r,t,o)*transCost(r,o));
 
 cDemandChargeCost(t,rmob)..
 	demandChargeCost(t,rmob) - maxDemand(rmob)*demandCharge(rmob)/30.4/24 =e= 0;
@@ -237,8 +237,8 @@ cVehicleMaintCost(t,rmob)..
 cInfrastructureCost(rmob)..
 	infrastructureCost(rmob) - sum(l,numChargers(l,rmob)*(chargerCapitalCost(l) * dailyDiscountRate * (1 + dailyDiscountRate)**(chargerLifetime*365) / ((1 +  dailyDiscountRate)**(chargerLifetime*365) - 1))*chargerDistributionFactor(l)*chargerPower(l)) - sum(tl,trucknumChargers(tl,rmob)*(truckchargerCapitalCost(tl) * dailyDiscountRate * (1 + dailyDiscountRate)**(truckchargerLifetime*365) / ((1 +  dailyDiscountRate)**(truckchargerLifetime*365) - 1))*truckchargerDistributionFactor(tl)*truckchargerPower(tl)) =e= 0;
 
-cFleetCost(rmob)..
-        fleetCost(rmob) - sum(b,fleetSize(b,rmob) * fleetRatio(rmob) * (vehiclePerYearCosts / 365 + vehicleCapitalCost * dailyDiscountRate * (1 + dailyDiscountRate)**(vehicleLifetime(b,rmob)*365) / ((1 +  dailyDiscountRate)**(vehicleLifetime(b,rmob)*365) - 1) + batteryRatio(rmob) * batteryCapacity(b) * batteryCapitalCost * dailyDiscountRate * (1 + dailyDiscountRate)**(batteryLifetime(b,rmob)*365) / ((1 +  dailyDiscountRate)**(batteryLifetime(b,rmob)*365) - 1)))  - sum(tb,truckfleetSize(tb,rmob) * truckfleetRatio(rmob) * (truckvehiclePerYearCosts / 365 + truckvehicleCapitalCost * dailyDiscountRate * (1 + dailyDiscountRate)**(truckvehicleLifetime(tb,rmob)*365) / ((1 +  dailyDiscountRate)**(truckvehicleLifetime(tb,rmob)*365) - 1) + truckbatteryRatio(rmob) * truckbatteryCapacity(tb) * truckbatteryCapitalCost * dailyDiscountRate * (1 + dailyDiscountRate)**(truckbatteryLifetime(tb,rmob)*365) / ((1 +  dailyDiscountRate)**(truckbatteryLifetime(tb,rmob)*365) - 1))) =e= 0;
+*cFleetCost(rmob)..
+*        fleetCost(rmob) - sum(b,fleetSize(b,rmob) * fleetRatio(rmob) * (vehiclePerYearCosts / 365 + vehicleCapitalCost * dailyDiscountRate * (1 + dailyDiscountRate)**(vehicleLifetime(b,rmob)*365) / ((1 +  dailyDiscountRate)**(vehicleLifetime(b,rmob)*365) - 1) + batteryRatio(rmob) * batteryCapacity(b) * batteryCapitalCost * dailyDiscountRate * (1 + dailyDiscountRate)**(batteryLifetime(b,rmob)*365) / ((1 +  dailyDiscountRate)**(batteryLifetime(b,rmob)*365) - 1)))  - sum(tb,truckfleetSize(tb,rmob) * truckfleetRatio(rmob) * (truckvehiclePerYearCosts / 365 + truckvehicleCapitalCost * dailyDiscountRate * (1 + dailyDiscountRate)**(truckvehicleLifetime(tb,rmob)*365) / ((1 +  dailyDiscountRate)**(truckvehicleLifetime(tb,rmob)*365) - 1) + truckbatteryRatio(rmob) * truckbatteryCapacity(tb) * truckbatteryCapitalCost * dailyDiscountRate * (1 + dailyDiscountRate)**(truckbatteryLifetime(tb,rmob)*365) / ((1 +  dailyDiscountRate)**(truckbatteryLifetime(tb,rmob)*365) - 1))) =e= 0;
 
 cDemandAllocation(t,d,rmob)..
 	demand(t,d,rmob) - sum(b,demandAllocated(t,b,d,rmob)) =e= 0;
@@ -330,7 +330,7 @@ cPersonalEVChargeEnergyUB(t,rmob)..
 
 
 model
-	combinedModel /obj,cDemandAllocation,cDemandChargeCost,cVehicleMaintCost,cEnergyToMeetDemand,cChargingUpperBound,cChargingLowerBound,cNoChargeAtStart,cTerminalSOC,cNumCharging,cMaxCharging,cNumMoving,cFleetDispatch,cInfrastructureCost,cFleetCost,cMaxDemand,cGeneration,cMaxSolar,cMaxWind,cPersonalEVChargeEnergyLB,cPersonalEVChargeEnergyUB,cPersonalEVChargePowerLB,cPersonalEVChargePowerUB,cTruckDemandAllocation,cTruckEnergyToMeetDemand,cTruckChargingUpperBound,cTruckChargingLowerBound,cTruckNoChargeAtStart,cTruckTerminalSOC,cTruckNumCharging,cTruckMaxCharging,cTruckNumMoving,cTruckFleetDispatch /
+	combinedModel /obj,cDemandAllocation,cDemandChargeCost,cVehicleMaintCost,cEnergyToMeetDemand,cChargingUpperBound,cChargingLowerBound,cNoChargeAtStart,cTerminalSOC,cNumCharging,cMaxCharging,cNumMoving,cFleetDispatch,cInfrastructureCost,cMaxDemand,cGeneration,cMaxSolar,cMaxWind,cPersonalEVChargeEnergyLB,cPersonalEVChargeEnergyUB,cPersonalEVChargePowerLB,cPersonalEVChargePowerUB,cTruckDemandAllocation,cTruckEnergyToMeetDemand,cTruckChargingUpperBound,cTruckChargingLowerBound,cTruckNoChargeAtStart,cTruckTerminalSOC,cTruckNumCharging,cTruckMaxCharging,cTruckNumMoving,cTruckFleetDispatch /
 *	combinedModel /obj,cDemandAllocation,cDemandChargeCost,cVehicleMaintCost,cEnergyToMeetDemand,cChargingUpperBound,cChargingLowerBound,cNoChargeAtStart,cTerminalSOC,cNumCharging,cMaxCharging,cNumMoving,cFleetDispatch,cInfrastructureCost,cFleetCost,cMaxDemand,cGeneration,cMaxSolar,cMaxWind,cPersonalEVChargeEnergyLB,cPersonalEVChargeEnergyUB,cPersonalEVChargePowerLB,cPersonalEVChargePowerUB/
 
 options
