@@ -107,7 +107,8 @@ prep.inputs.mobility.truck <- function(exper.row,param.names,common.inputs){
   inputs$parameters$truckdemand <- all.dem
   inputs$parameters$truckdemandUnscaled <- all.dem.unscaled
   newdemand <- data.table(read.csv(pp(gem.raw.inputs,'trucks/truckdemand.csv')))
-  newdemand$t <- as.numeric(newdemand$ï..t)
+  names(newdemand)[1] <- 't'
+  newdemand$t <- as.numeric(newdemand$t)
   for(i in 1:length(days)){
     demtmp <- copy(newdemand)
     demtmp[,t:=pp('t',sprintf('%04d', t + 24*(i-1)))]
