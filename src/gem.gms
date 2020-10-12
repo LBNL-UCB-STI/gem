@@ -252,7 +252,7 @@ cEnergyToMeetDemand(t,b,d,rmob)..
 cTruckEnergyToMeetDemand(t,tb,td,rmob)..
 	truckenergyConsumed(t,tb,td,rmob) / truckchargeRelocationRatio(rmob) * trucksharingFactor / (truckdistCorrection(rmob) * truckconversionEfficiency(tb) * trucktravelDistance(td,rmob)) - truckdemandAllocated(t,tb,td,rmob) =e= 0;
 
-cNumMoving(t,b,d,rmob)..git
+cNumMoving(t,b,d,rmob)..
 	demandAllocated(t,b,d,rmob) * travelDistance(d,rmob) * timeCorrection(rmob) - vehiclesMoving(t,b,d,rmob) * sharingFactor * deltaT * speed(t,d,rmob) =e= 0;
 
 cTruckNumMoving(t,tb,td,rmob)..

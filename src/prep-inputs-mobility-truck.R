@@ -10,6 +10,7 @@
 prep.inputs.mobility.truck <- function(exper.row,param.names,common.inputs){
   param.names <- names(exper.row)
   
+
   inputs <- list()
   inputs$sets <- list()
   inputs$parameters <- list()
@@ -92,6 +93,7 @@ prep.inputs.mobility.truck <- function(exper.row,param.names,common.inputs){
   # Day of the week for the days in the simulated year 
   dates <- date.info(days,year)
   all.dem <- list()
+  all.dem1 <- list()
   for(i in 1:length(days)){
     the.dem <- copy(dem[day.type==dates$day.types[i] & use.transit == includeTransitDemand & season == dates$seasons[i]])
     the.dem[,t:=pp('t',sprintf('%04d',1 + t + 24*(i-1)))]
@@ -104,12 +106,23 @@ prep.inputs.mobility.truck <- function(exper.row,param.names,common.inputs){
   all.dem <- all.dem[,list(t,td=pp('td',td),rmob,value=value*fractionSAEVs*electrificationPenetration*vmtReboundFactor)]
   inputs$parameters$truckdemand <- all.dem
   inputs$parameters$truckdemandUnscaled <- all.dem.unscaled
+  newdemand <- data.table(read.csv(pp(gem.raw.inputs,'trucks/truckdemand.csv')))
+  newdemand$t <- as.numeric(newdemand$ï..t)
+  for(i in 1:length(days)){
+    demtmp <- copy(newdemand)
+    demtmp[,t:=pp('t',sprintf('%04d', t + 24*(i-1)))]
+    all.dem1[[length(all.dem1)+1]] <- demtmp[,.(t,td,rmob,value)]
+  }
+  all.dem1 <- rbindlist(all.dem1)
+  inputs$parameters$truckdemandnew <- all.dem1
 
   ##### DISTANCE BINS #####
   inputs$sets$td <- pp('td',sort(u(dem$td)))
   inputs$parameters$trucktravelDistance <- dem[,.(td=pp('td',td),value=weighted.mean(dist,weighted.trips)),by=c('td','r')]
   inputs$parameters$trucktravelDistance[,':='(td=NULL,rmob=r,r=NULL)]
   inputs$parameters$trucktravelDistance <- inputs$parameters$trucktravelDistance[,list(td,rmob,value)]
+  inputs$parameters$trucktravelDistancenew <- read.csv(pp(gem.raw.inputs,'trucks/parameter_selection_traveldistance.csv'))
+  
 
   #### SPEED ####
   if('congestion'%in%param.names){
