@@ -250,7 +250,7 @@ cEnergyToMeetDemand(t,b,d,rmob)..
 	energyConsumed(t,b,d,rmob) / chargeRelocationRatio(rmob) * sharingFactor / (distCorrection(rmob) * conversionEfficiency(b) * travelDistance(d,rmob)) - demandAllocated(t,b,d,rmob) =e= 0;
 
 cTruckEnergyToMeetDemand(t,tb,td,rmob)..
-	truckenergyConsumed(t,tb,td,rmob) / truckchargeRelocationRatio(rmob) * trucksharingFactor / (truckdistCorrection(rmob) * truckconversionEfficiency(tb) * trucktravelDistance(td,rmob)) - truckdemandAllocated(t,tb,td,rmob) =e= 0;
+	truckenergyConsumed(t,tb,td,rmob)  * trucksharingFactor  * truckconversionEfficiency(tb) * trucktravelDistance(td,rmob)) - (truckdistCorrection(rmob) * truckchargeRelocationRatio(rmob)* truckdemandAllocated(t,tb,td,rmob) =e= 0;
 
 cNumMoving(t,b,d,rmob)..
 	demandAllocated(t,b,d,rmob) * travelDistance(d,rmob) * timeCorrection(rmob) - vehiclesMoving(t,b,d,rmob) * sharingFactor * deltaT * speed(t,d,rmob) =e= 0;
@@ -262,7 +262,7 @@ cNumCharging(t,b,l,rmob)..
 	energyCharged(t,b,l,rmob) / (chargerPower(l)*chargeRelocationCorrection(b,l,rmob)) - vehiclesCharging(t,b,l,rmob) =e= 0;
 
 cTruckNumCharging(t,tb,tl,rmob)..
-	truckenergyCharged(t,tb,tl,rmob) / (truckchargerPower(tl)*truckchargeRelocationCorrection(tb,tl,rmob)) - truckvehiclesCharging(t,tb,tl,rmob) =e= 0;
+	truckenergyCharged(t,tb,tl,rmob)  - truckvehiclesCharging(t,tb,tl,rmob) * truckchargerPower(tl)*truckchargeRelocationCorrection(tb,tl,rmob) =e= 0;
 
 cChargingUpperBound(t,b,rmob)..
 	sum(tp$(ord(tp) le ord(t)),sum(d,energyConsumed(tp,b,d,rmob)))-sum(tp$(ord(tp) le ord(t)),sum(l,energyCharged(tp,b,l,rmob))) =g= 0;
