@@ -115,14 +115,14 @@ prep.inputs.mobility.truck <- function(exper.row,param.names,common.inputs){
     all.dem1[[length(all.dem1)+1]] <- demtmp[,.(t,td,rmob,value)]
   }
   all.dem1 <- rbindlist(all.dem1)
-  inputs$parameters$truckdemandnew <- all.dem1
+  inputs$parameters$truckdemand <- all.dem1
 
   ##### DISTANCE BINS #####
   inputs$sets$td <- pp('td',sort(u(dem$td)))
   inputs$parameters$trucktravelDistance <- dem[,.(td=pp('td',td),value=weighted.mean(dist,weighted.trips)),by=c('td','r')]
   inputs$parameters$trucktravelDistance[,':='(td=NULL,rmob=r,r=NULL)]
   inputs$parameters$trucktravelDistance <- inputs$parameters$trucktravelDistance[,list(td,rmob,value)]
-  inputs$parameters$trucktravelDistancenew <- read.csv(pp(gem.raw.inputs,'trucks/parameter_selection_traveldistance.csv'))
+  inputs$parameters$trucktravelDistance <- read.csv(pp(gem.raw.inputs,'trucks/parameter_selection_traveldistance.csv'))
   
 
   #### SPEED ####
