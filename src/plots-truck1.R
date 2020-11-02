@@ -6,7 +6,7 @@
 # Argument: the results list containing GAMS outputs and the plotting directory
 ###############################################################################################
 
-plots.mobility <- function(exper,all.inputs,res,plots.dir){
+plots.truck<- function(exper,all.inputs,res,plots.dir){
   inputs <- all.inputs[[1]]
   source("src/colors.R") 
   

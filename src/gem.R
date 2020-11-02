@@ -29,7 +29,7 @@ source('src/prep-inputs-personal-charging.R')
 source('src/prep-inputs-grid.R')
 source('src/plots-mobility.R')
 source('input/defaults.R')
-source('src/plot-truck1.R')
+source('src/plots-truck1.R')
 
 #####################################################################################
 # PARSE COMMAND LINE OPTIONS 
@@ -192,4 +192,4 @@ for(i in 1:nrow(exper$runs)) {
 }
 res <- lapply(results,function(ll){ rbindlist(ll,fill=T) })
 
-plots.mobility(exper,all.inputs,res,plots.dir)
+plots.truck(exper,all.inputs,res,plots.dir)
