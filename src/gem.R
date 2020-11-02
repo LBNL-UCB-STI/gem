@@ -29,6 +29,7 @@ source('src/prep-inputs-personal-charging.R')
 source('src/prep-inputs-grid.R')
 source('src/plots-mobility.R')
 source('input/defaults.R')
+source('src/plot-truck1.R')
 
 #####################################################################################
 # PARSE COMMAND LINE OPTIONS 
@@ -171,22 +172,22 @@ make.dir(plots.dir)
 write.csv(exper$runs,pp(plots.dir,'runs.csv'),row.names=T)
 results <- list(); i<-1
 for(i in 1:nrow(exper$runs)) {
-  result <- gdx.to.data.tables(gdx(pp(exper$input.dir,'/runs/run-',i,'/results.gdx')))
-  result.baseGen <- gdx.to.data.tables(gdx(pp(exper$input.dir,'/runs/run-',i,'/results-baseGeneration.gdx')))
-  result <- merge.baseGen(result,result.baseGen)
-  for(key in names(result)){
-    result[[key]][,run:=i]
-    if('t'%in%names(result[[key]]) & args$trimdays){
-      max.t <- max(result[[key]]$t)
-      result[[key]] <- result[[key]][t>24 & t<=max.t-24]
-      result[[key]][,t:=t-24]
-    }
-    if(i==1)results[[key]] <- list()
-    results[[key]][[length(results[[key]])+1]] <- result[[key]]
-  }
-  if(args$trimdays){
-    all.inputs[[i]]$sets$t <- all.inputs[[i]]$set$t[1:(length(all.inputs[[i]]$set$t)-48)]
-  }
+  # result <- gdx.to.data.tables(gdx(pp(exper$input.dir,'/runs/run-',i,'/results.gdx')))
+  # result.baseGen <- gdx.to.data.tables(gdx(pp(exper$input.dir,'/runs/run-',i,'/results-baseGeneration.gdx')))
+  # result <- merge.baseGen(result,result.baseGen)
+  # for(key in names(result)){
+  #   result[[key]][,run:=i]
+  #   if('t'%in%names(result[[key]]) & args$trimdays){
+  #     max.t <- max(result[[key]]$t)
+  #     result[[key]] <- result[[key]][t>24 & t<=max.t-24]
+  #     result[[key]][,t:=t-24]
+  #   }
+  #   if(i==1)results[[key]] <- list()
+  #   results[[key]][[length(results[[key]])+1]] <- result[[key]]
+  # }
+  # if(args$trimdays){
+  #   all.inputs[[i]]$sets$t <- all.inputs[[i]]$set$t[1:(length(all.inputs[[i]]$set$t)-48)]
+  # }
   make.dir(pp(plots.dir,'/run-',i,''))
 }
 res <- lapply(results,function(ll){ rbindlist(ll,fill=T) })
