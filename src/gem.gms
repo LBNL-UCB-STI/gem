@@ -23,9 +23,9 @@ set
 	gtor(g,r) 		Generator to region mapping
 	rmobtor(r,rmob) 		Region mobility to region mapping
 
-	tb                                truck battery capacity /tb500,tb800,tb1000,tb1500,tb2000/
+	tb                                truck battery capacity /tb0500,tb0800,tb1000,tb1500,tb2000/
 	td                                truck travel distance
-	tl                                truck charger level
+	tl                                truck charger level /tL0050,tL0100,tL0250,tL0500,tL1000/
 ;
 
 alias (t,tp);
@@ -90,20 +90,28 @@ parameters
 *	kwh per mile /	b075  b150  b225  b300	b400
 *	TRB Paper 2019	0.262 0.274 0.286 0.298	0.310 /									   
 *	2nd Paper 2020	0.31  0.324 0.338 0.351 0.353
-	truckconversionEfficiency(tb) 		kwh per mile 									   
+	truckconversionEfficiency(tb) 		kwh per mile /tb0500 0.36
+                                                    tb0800 0.365
+                                                    tb1000 0.368
+                                                    tb1500 0.37
+                                                    tb2000 0.371/ 									   
 	trucktravelDistance(td,rmob)				avg miles per passenger 
 	tspeed(t,td,rmob)
 	truckdemandCharge(rmob) 				USD per kW month
 
-	truckchargerCapitalCost(tl)			  cost per kW 	
+	truckchargerCapitalCost(tl)			  /tL0050 500
+	                                                   tL0100 650
+	                                                   tL0250 1100
+	                                                   tL0500 1850
+	                                                   tL1000 3350/ 	
 	truckvehicleLifetime(tb,rmob)			  years
 	truckbatteryLifetime(tb,rmob)			  years
 
-        truckbatteryCapacity(tb)                    /tb500 154.61
-                                                    tb800 251.15
-                                                    tb1000 315.51
-                                                    tb1500 476.41
-                                                    tb2000 637.31/
+        truckbatteryCapacity(tb)                    /tb0500 154.61
+                                                    tb0800 240
+                                                    tb1000 290
+                                                    tb1500 430
+                                                    tb2000 480/
         truckbatteryCapitalCost                     /150/
 ;
 
@@ -171,7 +179,7 @@ positive variable
 
 
 $gdxin <<gdxName>>
-$load d r rmob l t td tl g gtor rmobtor demand speed sharingFactor travelDistance demandCharge chargerPower chargerCapitalCost chargerDistributionFactor conversionEfficiency solar wind hydro genCost demandLoad maxGen maxSolar maxWind transCap transCost personalEVChargeEnergyLB personalEVChargeEnergyUB personalEVChargePowerLB personalEVChargePowerUB distCorrection timeCorrection chargeRelocationRatio chargeRelocationCorrection fleetRatio batteryRatio vehicleLifetime batteryLifetime batteryCapitalCost vehicleCapitalCost discountRate chargerLifetime truckdemand truckchargerPower truckchargeRelocationRatio truckchargeRelocationCorrection truckfleetRatio truckbatteryRatio truckdistCorrection trucktimeCorrection truckchargerDistributionFactor truckconversionEfficiency trucktravelDistance tspeed truckdemandCharge truckchargerCapitalCost truckvehicleLifetime truckbatteryLifetime
+$load d r rmob l t td g gtor rmobtor demand speed sharingFactor travelDistance demandCharge chargerPower chargerCapitalCost chargerDistributionFactor conversionEfficiency solar wind hydro genCost demandLoad maxGen maxSolar maxWind transCap transCost personalEVChargeEnergyLB personalEVChargeEnergyUB personalEVChargePowerLB personalEVChargePowerUB distCorrection timeCorrection chargeRelocationRatio chargeRelocationCorrection fleetRatio batteryRatio vehicleLifetime batteryLifetime batteryCapitalCost vehicleCapitalCost discountRate chargerLifetime truckdemand truckchargerPower truckchargeRelocationRatio truckchargeRelocationCorrection truckfleetRatio truckbatteryRatio truckdistCorrection trucktimeCorrection truckchargerDistributionFactor trucktravelDistance tspeed truckdemandCharge truckvehicleLifetime truckbatteryLifetime
 $gdxin
 
 display

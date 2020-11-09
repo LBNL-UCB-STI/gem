@@ -170,7 +170,6 @@ plots.mobility(exper,all.inputs,res,plots.dir1)
 plots.dir <- pp(exper$input.dir,'/plotstruck/')
 make.dir(plots.dir)
 write.csv(exper$runs,pp(plots.dir,'runs.csv'),row.names=T)
-results <- list(); i<-1
 for(i in 1:nrow(exper$runs)) {
   # result <- gdx.to.data.tables(gdx(pp(exper$input.dir,'/runs/run-',i,'/results.gdx')))
   # result.baseGen <- gdx.to.data.tables(gdx(pp(exper$input.dir,'/runs/run-',i,'/results-baseGeneration.gdx')))
@@ -190,6 +189,6 @@ for(i in 1:nrow(exper$runs)) {
   # }
   make.dir(pp(plots.dir,'/run-',i,''))
 }
-res <- lapply(results,function(ll){ rbindlist(ll,fill=T) })
+#res <- lapply(results,function(ll){ rbindlist(ll,fill=T) })
 
 plots.truck(exper,all.inputs,res,plots.dir)
