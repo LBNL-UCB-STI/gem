@@ -60,7 +60,7 @@ parameters
 	vehicleLifetime(b,rmob)			  years
 	batteryLifetime(b,rmob)			  years
 	batteryCapitalCost			  USD per kWh 
-	batteryCapacity(b)			  avg per veh in kWh /b075 19.65
+	batteryCapacity(b)			  avg drive milage  per veh at the capacity in kWh /b075 19.65
 													b150 41.10
 													b225 64.35
 													b300 89.40
@@ -107,11 +107,11 @@ parameters
 	truckvehicleLifetime(tb,rmob)			  years
 	truckbatteryLifetime(tb,rmob)			  years
 
-        truckbatteryCapacity(tb)                    /tb0500 154.61
-                                                    tb0800 240
-                                                    tb1000 290
-                                                    tb1500 430
-                                                    tb2000 480/
+        truckbatteryCapacity(tb)                    /tb0250 500
+                                                    tb0400 800
+                                                    tb0500 1000
+                                                    tb0750 1500
+                                                    tb1000 2000/
         truckbatteryCapitalCost                     /150/
 ;
 
