@@ -60,7 +60,7 @@ parameters
 	vehicleLifetime(b,rmob)			  years
 	batteryLifetime(b,rmob)			  years
 	batteryCapitalCost			  USD per kWh 
-	batteryCapacity(b)			  avg per veh in kWh /b075 19.65
+	batteryCapacity(b)			  avg drive milage  per veh at the capacity in kWh /b075 19.65
 													b150 41.10
 													b225 64.35
 													b300 89.40
