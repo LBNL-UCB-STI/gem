@@ -1,0 +1,12 @@
+Name: truckbatteryCapitalCost
+Mode: combinatorial
+Factors:
+  - Name: truckbatteryCapitalCost
+    Levels:
+      - 25
+      - 50
+      - 75
+      - 100
+      - 125
+      - 150
+      - 250

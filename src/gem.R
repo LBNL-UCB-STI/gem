@@ -30,6 +30,7 @@ source('src/prep-inputs-grid.R')
 source('src/plots-mobility.R')
 source('input/defaults.R')
 source('src/plots-truck1.R')
+source('src/plots-simplified.R')
 
 #####################################################################################
 # PARSE COMMAND LINE OPTIONS 
@@ -41,8 +42,16 @@ option_list <- list(make_option(c("-p", "--plots"), action="store_true", default
                     make_option(c("-r", "--runsubset"), type="character", default='',help="Comma separate list of runs to execute [default %default]"),
                     make_option(c("-o", "--overwrite"), action="store_true", default=F,help="Overwrite an existing solution from GAMS [default %default]"))
 if(interactive()){
-#  args<-'input/experiments/fractionSAEVsAndSmartCharging.yaml'
+
+#truck experiments  
+#    args<-'input/experiments/chargerCost.yaml'
+#    args<-'input/experiments/truckb150ConversionEfficiency.yaml'
+#    args<-'input/experiments/truckbatteryCapitalCost.yaml'
   args<-'input/experiments/base.yaml'
+  
+  
+  
+#  args<-'input/experiments/fractionSAEVsAndSmartCharging.yaml'
   # args<-'input/experiments/smartMobility.yaml'
    # args<-'input/experiments/batteryLifetime.yaml'
    # args<-'input/experiments/sharingFactor.yaml'
@@ -74,6 +83,7 @@ if(args$runsubset==''){
 #####################################################################################
 # Pre-Process Inputs
 #####################################################################################
+
 if(!args$plots){ # only prep and run model if *not* in plot-only mode
   static.inputs <- prep.inputs.static()
   
@@ -162,33 +172,34 @@ for(i in 1:nrow(exper$runs)) {
 }
 res <- lapply(results,function(ll){ rbindlist(ll,fill=T) })
 
-plots.mobility(exper,all.inputs,res,plots.dir1)
+run.all(exper,all.inputs,res,plots.dir1)
 
 
+# 
+# #truck plot
+# plots.dir <- pp(exper$input.dir,'/plotstruck/')
+# make.dir(plots.dir)
+# write.csv(exper$runs,pp(plots.dir,'runs.csv'),row.names=T)
+# for(i in 1:nrow(exper$runs)) {
+#   # result <- gdx.to.data.tables(gdx(pp(exper$input.dir,'/runs/run-',i,'/results.gdx')))
+#   # result.baseGen <- gdx.to.data.tables(gdx(pp(exper$input.dir,'/runs/run-',i,'/results-baseGeneration.gdx')))
+#   # result <- merge.baseGen(result,result.baseGen)
+#   # for(key in names(result)){
+#   #   result[[key]][,run:=i]
+#   #   if('t'%in%names(result[[key]]) & args$trimdays){
+#   #     max.t <- max(result[[key]]$t)
+#   #     result[[key]] <- result[[key]][t>24 & t<=max.t-24]
+#   #     result[[key]][,t:=t-24]
+#   #   }
+#   #   if(i==1)results[[key]] <- list()
+#   #   results[[key]][[length(results[[key]])+1]] <- result[[key]]
+#   # }
+#   # if(args$trimdays){
+#   #   all.inputs[[i]]$sets$t <- all.inputs[[i]]$set$t[1:(length(all.inputs[[i]]$set$t)-48)]
+#   # }
+#   make.dir(pp(plots.dir,'/run-',i,''))
+# }
+# #res <- lapply(results,function(ll){ rbindlist(ll,fill=T) })
+# 
+# plots.truck(exper,all.inputs,res,plots.dir)
 
-#truck plot
-plots.dir <- pp(exper$input.dir,'/plotstruck/')
-make.dir(plots.dir)
-write.csv(exper$runs,pp(plots.dir,'runs.csv'),row.names=T)
-for(i in 1:nrow(exper$runs)) {
-  # result <- gdx.to.data.tables(gdx(pp(exper$input.dir,'/runs/run-',i,'/results.gdx')))
-  # result.baseGen <- gdx.to.data.tables(gdx(pp(exper$input.dir,'/runs/run-',i,'/results-baseGeneration.gdx')))
-  # result <- merge.baseGen(result,result.baseGen)
-  # for(key in names(result)){
-  #   result[[key]][,run:=i]
-  #   if('t'%in%names(result[[key]]) & args$trimdays){
-  #     max.t <- max(result[[key]]$t)
-  #     result[[key]] <- result[[key]][t>24 & t<=max.t-24]
-  #     result[[key]][,t:=t-24]
-  #   }
-  #   if(i==1)results[[key]] <- list()
-  #   results[[key]][[length(results[[key]])+1]] <- result[[key]]
-  # }
-  # if(args$trimdays){
-  #   all.inputs[[i]]$sets$t <- all.inputs[[i]]$set$t[1:(length(all.inputs[[i]]$set$t)-48)]
-  # }
-  make.dir(pp(plots.dir,'/run-',i,''))
-}
-#res <- lapply(results,function(ll){ rbindlist(ll,fill=T) })
-
-plots.truck(exper,all.inputs,res,plots.dir)

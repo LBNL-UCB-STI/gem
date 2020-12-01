@@ -90,20 +90,22 @@ parameters
 *	kwh per mile /	b075  b150  b225  b300	b400
 *	TRB Paper 2019	0.262 0.274 0.286 0.298	0.310 /									   
 *	2nd Paper 2020	0.31  0.324 0.338 0.351 0.353
-	truckconversionEfficiency(tb) 		kwh per mile /tb0250 0.341
-                                                    tb0400 0.353
-                                                    tb0500 0.361
-                                                    tb0750 0.371
-                                                    tb1000 0.379/									   
+	truckconversionEfficiency(tb) 		kwh per mile
+*	/tb0250 0.341
+*                                                    tb0400 0.353
+*                                                    tb0500 0.361
+*                                                    tb0750 0.371
+*                                                    tb1000 0.379/									   
 	trucktravelDistance(td,rmob)				avg miles per passenger 
 	tspeed(t,td,rmob)
 	truckdemandCharge(rmob) 				USD per kW month
 
-	truckchargerCapitalCost(tl)			  /tL0050 500
-	                                                   tL0100 650
-	                                                   tL0250 800
-	                                                   tL0500 900
-	                                                   tL1000 1000/ 	
+	truckchargerCapitalCost(tl)
+*	/tL0050 500
+*	                                                   tL0100 650
+*	                                                   tL0250 110
+*	                                                   tL0500 1850
+*	                                                   tL1000 3350/ 	
 	truckvehicleLifetime(tb,rmob)			  years
 	truckbatteryLifetime(tb,rmob)			  years
 
@@ -112,7 +114,8 @@ parameters
                                                     tb0500 1000
                                                     tb0750 1500
                                                     tb1000 2000/
-        truckbatteryCapitalCost                     /150/
+
+
 ;
 
 scalar
@@ -127,14 +130,15 @@ scalar
 	transLoss			Transmission efficiency /.972/
 
 	truckchargerVariableCost		O&M cost per kW per day /0.08/
-	truckvehicleCapitalCost 		USD /70000/
+			
 	truckvehiclePerYearCosts		USD for insurance /1000/
 	truckvehiclePerMileCosts		USD for insurance & maint /0.18/
 	truckdailyVehicleCost 		amortized cap /0/
 	truckdailyBatteryCost 		amortized cap per kWh /0/
-	trucksharingFactor               /1/
-	truckchargerLifetime             /10/
-
+	truckchargerLifetime
+        truckvehicleCapitalCost
+        trucksharingFactor
+        truckbatteryCapitalCost
 ;
 
 
@@ -179,7 +183,7 @@ positive variable
 
 
 $gdxin <<gdxName>>
-$load d r rmob l t td g gtor rmobtor demand speed sharingFactor travelDistance demandCharge chargerPower chargerCapitalCost chargerDistributionFactor conversionEfficiency solar wind hydro genCost demandLoad maxGen maxSolar maxWind transCap transCost personalEVChargeEnergyLB personalEVChargeEnergyUB personalEVChargePowerLB personalEVChargePowerUB distCorrection timeCorrection chargeRelocationRatio chargeRelocationCorrection fleetRatio batteryRatio vehicleLifetime batteryLifetime batteryCapitalCost vehicleCapitalCost discountRate chargerLifetime truckdemand truckchargerPower truckchargeRelocationRatio truckchargeRelocationCorrection truckfleetRatio truckbatteryRatio truckdistCorrection trucktimeCorrection truckchargerDistributionFactor trucktravelDistance tspeed truckdemandCharge truckvehicleLifetime truckbatteryLifetime
+$load d r rmob l t td g gtor rmobtor demand truckconversionEfficiency trucksharingFactor truckvehicleCapitalCost truckchargerLifetime truckbatteryCapitalCost truckchargerCapitalCost speed sharingFactor travelDistance demandCharge chargerPower chargerCapitalCost chargerDistributionFactor conversionEfficiency solar wind hydro genCost demandLoad maxGen maxSolar maxWind transCap transCost personalEVChargeEnergyLB personalEVChargeEnergyUB personalEVChargePowerLB personalEVChargePowerUB distCorrection timeCorrection chargeRelocationRatio chargeRelocationCorrection fleetRatio batteryRatio vehicleLifetime batteryLifetime batteryCapitalCost vehicleCapitalCost discountRate chargerLifetime truckdemand truckchargerPower truckchargeRelocationRatio truckchargeRelocationCorrection truckfleetRatio truckbatteryRatio truckdistCorrection trucktimeCorrection truckchargerDistributionFactor trucktravelDistance tspeed truckdemandCharge truckvehicleLifetime truckbatteryLifetime
 $gdxin
 
 display

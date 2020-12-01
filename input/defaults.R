@@ -64,3 +64,11 @@ renewableCF <- fread(pp(gem.raw.inputs,'gem_gridInputs_renewableCF.csv'))
 fuels <- data.frame('FuelType'=c('Wind','Waste Coal','Tire','Solar','Pumps','Pet. Coke','Oil','Nuclear','None','Non-Fossil','NaturalGas','MSW','LF Gas','Hydro','Geothermal','Fwaste','Coal','Biomass','Tires'),'Simplified'=c('Wind','Coal','Other','Solar','Other','Other','Other','Nuclear','Other','Other','Natural Gas','Other','Natural Gas','Hydro','Other','Other','Coal','Other','Other'))
 meritOrder <- c('Solar','Wind','Hydro','Other','Natural Gas','Coal','Nuclear')
 
+
+truckbatteryCapitalCost <- 150
+
+truckchargerLifetime <- 10
+
+truckvehicleCapitalCost <- 70000
+
+trucksharingFactor <- 1
