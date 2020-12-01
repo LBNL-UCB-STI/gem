@@ -17,15 +17,15 @@ prep.inputs.mobility.truck <- function(exper.row,param.names,common.inputs){
 
   ##### GENERIC PROCESSING OF SIMPLE PARAMS #####
 
-  # generic.params <- c('batteryCapitalCost','discountRate','chargerLifetime','vehicleCapitalCost','sharingFactor')
-  # 
-  # for(generic.param in generic.params){
-  #   if(generic.param %in% param.names){
-  #     streval(pp('inputs$parameters$',generic.param,' <- data.table(value=exper.row$',generic.param,')'))
-  #   }else{
-  #     streval(pp('inputs$parameters$',generic.param,' <- data.table(value=',generic.param,')'))
-  #   }
-  # }
+  generic.params <- c('truckbatteryCapitalCost','truckchargerLifetime','truckvehicleCapitalCost','trucksharingFactor')
+
+  for(generic.param in generic.params){
+    if(generic.param %in% param.names){
+      streval(pp('inputs$parameters$',generic.param,' <- data.table(value=exper.row$',generic.param,')'))
+    }else{
+      streval(pp('inputs$parameters$',generic.param,' <- data.table(value=',generic.param,')'))
+    }
+  }
 
   if('electrificationPenetration' %in% param.names){
     electrificationPenetration <- exper.row$electrificationPenetration
