@@ -102,7 +102,7 @@ prepData.all.heavyduty <- function(exper,all.inputs,res,plots.dir) {
 	by.r[,var.clean:=gsub(' tL| tL0| tL00|tb00| tb| tb0',' ',var.clean)]
 	by.r$var.clean <- factor(by.r$var.clean,levels=unique(by.r$var.clean)[mixedorder(unique(by.r$var.clean))])
 
-	output <- list('veh.mv'=veh.mv,'d.dot'=d.dot,'l.dot'=l.dot,'veh.ch'=veh.ch,'vehs'=vehs,'veh.ch'=veh.ch,'en'=en,'batt'=batt,'by.r'=by.r)
+	output <- list('veh.mv'=veh.mv,'td.dot'=td.dot,'l.dot'=l.dot,'veh.ch'=veh.ch,'vehs'=vehs,'veh.ch'=veh.ch,'en'=en,'batt'=batt,'by.r'=by.r)
 	return(output)
 }
 
