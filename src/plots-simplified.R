@@ -3,7 +3,7 @@ run.all <- function(exper,all.inputs,res,plots.dir) {
 	source('src/colors.R')
 
 	# Day-to-Year ratio based on travel demand
-	n.days.in.run <_ length(inputs$set$t)/24
+	n.days.in.run <- length(inputs$set$t)/24
 
 	# Prepping data inputs for plotting
 	lightduty.prepped <- prepData.all.lightduty(exper,inputs,res,plots.dir)
