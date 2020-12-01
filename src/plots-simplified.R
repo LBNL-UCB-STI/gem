@@ -11,11 +11,13 @@ run.all <- function(exper,all.inputs,res,plots.dir) {
 	generators.prepped <- prepData.generators(res)
 	maps.prepped <- prepData.maps()
 
+	day.axis.breaks <- seq(0,max(lightduty.prepped$veh.ch$t),by=24)
+
 	# Plotting all single run plots
-	for(run.i in u(vehs$run)) {
+	for(run.i in u(lightduty.prepped$vehs$run)) {
 		plot.grid.all(run.i,plots.dir,res,generators.prepped$geners)
-		plot.lightduty.all(run.i,plots.dir,lightduty.prepped$vehs,exper,all.inputs,lightduty.prepped$veh.ch,lightduty.prepped$personal.ev.ch,lightduty.prepped$en,lightduty.prepped$by.r)
-		plot.heavyduty.all(run.i,plots.dir,heavyduty.prepped$vehs,exper,all.inputs,heavyduty.prepped$veh.ch,heavyduty.prepped$en,heavyduty.prepped$by.r)
+		plot.lightduty.all(run.i,plots.dir,lightduty.prepped$vehs,exper,all.inputs,lightduty.prepped$veh.ch,lightduty.prepped$personal.ev.ch,lightduty.prepped$en,lightduty.prepped$by.r,day.axis.breaks)
+		plot.heavyduty.all(run.i,plots.dir,heavyduty.prepped$vehs,exper,all.inputs,heavyduty.prepped$veh.ch,heavyduty.prepped$en,heavyduty.prepped$by.r,day.axis.breaks)
 	}
 }
 
@@ -168,6 +170,7 @@ plot.grid.generation <- function(run.i,plots.dir,res,geners) {
 	to.plot[,consq.generation.neg:=ifelse(consq.generation<0,consq.generation,-1)]
 	to.plot <- to.plot[complete.cases(to.plot),]
 	cols <- c('Other'='#7fc97f','Coal'='gray27','Hydro'='#386cb0','Natural Gas'='gray73','Nuclear'='#fb9a99','Solar'='#ffff99','Wind'='lightskyblue')
+	pdf.scale <- 1
 	p <- ggplot(to.plot,aes(x=t,y=generation/1000,fill=Simplified))+
 		geom_area()+
 		xlab('Hour')+
@@ -193,6 +196,7 @@ plot.grid.emissions <- function(run.i,plots.dir,res,geners) {
 	to.plot <- to.plot[,list(emissions=sum(generationCO2*generation),base.emissions=sum(generationCO2*base.generation)),by=list(r,Simplified,t)]
 	to.plot[,consq.emissions:=emissions-base.emissions]
 	to.plot <- to.plot[complete.cases(to.plot),]
+	pdf.scale <- 1
 	p <- ggplot(to.plot,aes(x=t,y=emissions/1000,fill=Simplified))+
 		geom_area()+
 		xlab('Hour')+
@@ -221,18 +225,16 @@ plot.grid.emissions <- function(run.i,plots.dir,res,geners) {
 	ggsave(pp(plots.dir,'/run-',run.i,'/_emissions-cnsq-total-by-region-fuel-line.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
 }
 
-plot.lightduty.all <- function(run.i,plots.dir,vehs,exper,all.inputs,veh.ch,personal.ev.ch,en,by.r) {
-	plot.lightduty.numberOfVehicles(run.i,plots.dir,vehs)
-	plot.lightduty.charging(run.i,plots.dir,exper,all.inputs,veh.ch,personal.ev.ch)
-	plot.lightduty.personalVehs(run.i,plots.dir,all.inputs)
+plot.lightduty.all <- function(run.i,plots.dir,vehs,exper,all.inputs,veh.ch,personal.ev.ch,en,by.r,day.axis.breaks) {
+	plot.lightduty.numberOfVehicles(run.i,plots.dir,vehs,day.axis.breaks)
+	plot.lightduty.charging(run.i,plots.dir,exper,all.inputs,veh.ch,personal.ev.ch,day.axis.breaks)
+	plot.lightduty.personalVehs(run.i,plots.dir,all.inputs,personal.ev.ch,veh.ch,day.axis.breaks)
 	plot.lightduty.energyBalance(run.i,plots.dir,en)
 	plot.lightduty.fleetDetails(run.i,plots.dir,by.r)
 }
 
-plot.lightduty.numberOfVehicles <- function(run.i,plots.dir,vehs) {
-	day.axis.breaks <- seq(0,max(veh.ch$t),by=24)
-
-	to.plot <- melt(vehs[run==run.i],id.vars=c('b','t','rmob','run'))
+plot.lightduty.numberOfVehicles <- function(run.i,plots.dir,vehs,day.axis.breaks) {
+	to.plot <- data.table(melt(vehs[run==run.i],id.vars=c('b','t','rmob','run')))
 	to.plot[,variable.simp:=ifelse(grepl('vehiclesCharging',variable),pp('Charging: SAEV ',substr(b,2,5),'mi'),ifelse(variable=='vehiclesIdle',pp('Idle: SAEV ',substr(b,2,5),'mi'),pp('Moving: SAEV ',substr(b,2,5),'mi')))]
 	to.remove <- to.plot[,sum(value),by='variable.simp'][V1<1e-4]$variable.simp
 	to.plot <- to.plot[!variable.simp%in%to.remove]
@@ -264,9 +266,7 @@ plot.lightduty.numberOfVehicles <- function(run.i,plots.dir,vehs) {
 	}
 }
 
-plot.lightduty.charging <- function(run.i,plots.dir,exper,all.inputs,veh.ch,personal.ev.ch) {
-	day.axis.breaks <- seq(0,max(veh.ch$t),by=24)
-
+plot.lightduty.charging <- function(run.i,plots.dir,exper,all.inputs,veh.ch,personal.ev.ch,day.axis.breaks) {
 	p <- ggplot(veh.ch[run==run.i],aes(x=t,y=gw.charging,fill=fct_rev(charger.level)))+
 		geom_area()+
 		facet_wrap(~rmob,scales='free_y')+
@@ -276,10 +276,10 @@ plot.lightduty.charging <- function(run.i,plots.dir,exper,all.inputs,veh.ch,pers
 	pdf.scale <- 1
 	ggsave(pp(plots.dir,'/run-',run.i,'/_ld_charging-saevs.pdf'),p,width=10*pdf.scale,height=8*pdf.scale,units='in')
 	
-	to.plot <- rbindlist(list(veh.ch,personal.ev.ch),fill=T,use.names=T)[run==run.i]
+	to.plot <- data.table(rbindlist(list(veh.ch,personal.ev.ch),fill=T,use.names=T)[run==run.i])
 	to.plot[,gwh:=gw.charging]
 	to.plot[,ll:='']
-	if(exper$runs[run.i]$fractionSAEVs<1.0)to.plot <- disag.the.private.load(to.plot,all.inputs[[run.i]]$parameters$personalEVUnmanagedLoads)
+	to.plot <- disag.the.private.load(to.plot,all.inputs[[run.i]]$parameters$personalEVUnmanagedLoads)
 	to.plot[,l.ordered:=ifelse(substr(l,1,1)=='L',pp('a',l),l)]
 	to.plot[,col:=getPalette(l)[match(l.ordered,u(l.ordered))]]
 	the.ch.cols <- to.plot$col
@@ -304,8 +304,15 @@ plot.lightduty.charging <- function(run.i,plots.dir,exper,all.inputs,veh.ch,pers
 	ggsave(pp(plots.dir,'/run-',run.i,'/_ld_charging-all-agg.pdf'),p,width=10*pdf.scale,height=5*pdf.scale,units='in')
 }
 
-plot.lightduty.personalVehs <- function(run.i,plots.dir,all.inputs) {
-	day.axis.breaks <- seq(0,max(veh.ch$t),by=24)
+plot.lightduty.personalVehs <- function(run.i,plots.dir,all.inputs,personal.ev.ch,veh.ch,day.axis.breaks) {
+	to.plot <- rbindlist(list(veh.ch,personal.ev.ch),fill=T,use.names=T)[run==run.i]
+	to.plot[,gwh:=gw.charging]
+	to.plot[,ll:='']
+	to.plot <- disag.the.private.load(to.plot,all.inputs[[run.i]]$parameters$personalEVUnmanagedLoads)
+	to.plot[,l.ordered:=ifelse(substr(l,1,1)=='L',pp('a',l),l)]
+	to.plot[,col:=getPalette(l)[match(l.ordered,u(l.ordered))]]
+	the.ch.cols <- to.plot$col
+	names(the.ch.cols) <- to.plot$charger.level
 
 	personal.evs.total <- all.inputs[[run.i]]$parameters$personalEVFleetSize
 	personal.evs.total <- personal.evs.total[rep(1:nrow(personal.evs.total),length(u(personal.ev.ch$t)))]
@@ -335,7 +342,8 @@ plot.lightduty.personalVehs <- function(run.i,plots.dir,all.inputs) {
 	personal.evs.total[,Idle:=Total-Moving-Charging]
 	personal.evs.total <- personal.evs.total[,.(Moving=sum(Moving),Charging=sum(Charging),Idle=sum(Idle)),by=.(t)]
 	personal.evs.total[Idle<0,Idle:=0]
-	personal.evs.total <- melt(personal.evs.total,id='t',variable.name='Activity',value.name='Cars')
+	personal.evs.total <- data.table(melt(personal.evs.total,id='t',variable.name='Activity',value.name='Cars'))
+	names(personal.evs.total) <- c('t','Activity','Cars')
 	personal.evs.total$Activity <- factor(personal.evs.total$Activity,levels=c('Idle','Moving','Charging'))
 
 	p<-ggplot(personal.evs.total,aes(x=t,y=Cars/1000,fill=Activity))+
@@ -350,6 +358,7 @@ plot.lightduty.personalVehs <- function(run.i,plots.dir,all.inputs) {
 }
 
 plot.lightduty.energyBalance <- function(run.i,plots.dir,en) {
+	pdf.scale <- 1
 	p <- ggplot(en[run==run.i],aes(x=t,y=soc/10^6,colour=fct_rev(battery.level)))+
 		geom_line()+
 		xlab('Fleet Energy State (GWh)')+
@@ -369,6 +378,7 @@ plot.lightduty.energyBalance <- function(run.i,plots.dir,en) {
 }
 
 plot.lightduty.fleetDetails <- function(run.i,plots.dir,by.r) {
+	pdf.scale <- 1
 	p <- ggplot(by.r[run==run.i],aes(x=rmob,y=value/1000,fill=fct_rev(var.clean)))+
 		geom_bar(stat='identity')+
 		xlab('Region')+
@@ -411,17 +421,15 @@ plot.lightduty.fleetDetails <- function(run.i,plots.dir,by.r) {
 }
 
 
-plot.heavyduty.all <- function(run.i,plots.dir,vehs,exper,all.inputs,veh.ch,en,by.r) {
-	plot.heavyduty.numberOfVehicles(run.i,plots.dir,vehs)
-	plot.heavyduty.charging(run.i,plots.dir,exper,all.inputs,veh.ch,personal.ev.ch)
+plot.heavyduty.all <- function(run.i,plots.dir,vehs,exper,all.inputs,veh.ch,en,by.r,day.axis.breaks) {
+	plot.heavyduty.numberOfVehicles(run.i,plots.dir,vehs,day.axis.breaks)
+	plot.heavyduty.charging(run.i,plots.dir,exper,all.inputs,veh.ch)
 	plot.heavyduty.energyBalance(run.i,plots.dir,en)
 	plot.heavyduty.fleetDetails(run.i,plots.dir,by.r)
 }
 
-plot.heavyduty.numberOfVehicles <- function(run.i,plots.dir,vehs) {
-	day.axis.breaks <- seq(0,max(veh.ch$t),by=24)
-
-	to.plot <- melt(vehs[run==run.i],id.vars=c('tb','t','rmob','run'))
+plot.heavyduty.numberOfVehicles <- function(run.i,plots.dir,vehs,day.axis.breaks) {
+	to.plot <- data.table(melt(vehs[run==run.i],id.vars=c('tb','t','rmob','run')))
 	to.plot[,variable.simp:=ifelse(grepl('truckvehiclesCharging',variable),pp('Charging: SAEV ',substr(tb,3,7),'mi'),ifelse(variable=='truckvehiclesIdle',pp('Idle: SAEV ',substr(tb,3,7),'mi'),pp('Moving: SAEV ',substr(tb,3,7),'mi')))]
 	to.remove <- to.plot[,sum(value),by='variable.simp'][V1<1e-4]$variable.simp
 	to.plot <- to.plot[!variable.simp%in%to.remove]
@@ -454,8 +462,6 @@ plot.heavyduty.numberOfVehicles <- function(run.i,plots.dir,vehs) {
 }
 
 plot.heavyduty.charging <- function(run.i,plots.dir,exper,all.inputs,veh.ch) {
-	day.axis.breaks <- seq(0,max(veh.ch$t),by=24)
-
 	p <- ggplot(veh.ch[run==run.i],aes(x=t,y=gw.charging,fill=fct_rev(charger.level)))+
 		geom_area()+
 		facet_wrap(~rmob,scales='free_y')+
@@ -467,6 +473,7 @@ plot.heavyduty.charging <- function(run.i,plots.dir,exper,all.inputs,veh.ch) {
 }
 
 plot.heavyduty.energyBalance <- function(run.i,plots.dir,en) {
+	pdf.scale <- 1
 	p <- ggplot(en[run==run.i],aes(x=t,y=soc/10^6,colour=fct_rev(battery.level)))+
 		geom_line()+
 		xlab('Fleet Energy State (GWh)')+
@@ -486,6 +493,7 @@ plot.heavyduty.energyBalance <- function(run.i,plots.dir,en) {
 }
 
 plot.heavyduty.fleetDetails <- function(run.i,plots.dir,by.r) {
+	pdf.scale <- 1
 	p <- ggplot(by.r[run==run.i],aes(x=rmob,y=value/1000,fill=fct_rev(var.clean)))+
 		geom_bar(stat='identity')+
 		xlab('Region')+
