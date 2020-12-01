@@ -66,7 +66,7 @@ prepData.all.lightduty <- function(exper,all.inputs,res,plots.dir) {
 	return(output)
 }
 
-prepData.all.trucks <- function(exper,all.inputs,res,plots.dir) {
+prepData.all.heavyduty <- function(exper,all.inputs,res,plots.dir) {
 	# Vehicle Distribution
 	veh.mv <- data.table(cast(melt(res[['rmob-t-tb-td']],id.vars=c('t','tb','td','rmob','run'),measure.vars=c('truckvehiclesMoving')),tb + rmob + t + run ~ td))
 	td.dot <- str_replace(inputs$sets$td,"-",".")
