@@ -51,9 +51,9 @@ prep.inputs.mobility.truck <- function(exper.row,param.names,common.inputs){
   # 2nd Paper 2020	0.31  0.324 0.338 0.351 0.353
   conversion.efficiency.by.range <- c(.360,.373,.379,.391,.399)
   if('b150ConversionEfficiency' %in% param.names){
-    inputs$parameters$truckconversionEfficiency <- data.table(tb=c('tb0500','tb0800','tb1000','tb1500','tb2000'),value=conversion.efficiency.by.range*exper.row$b150ConversionEfficiency/.324)
+    inputs$parameters$truckconversionEfficiency <- data.table(tb=c('tb0250','tb0400','tb0500','tb0750','tb1000'),value=conversion.efficiency.by.range*exper.row$b150ConversionEfficiency/.324)
   }else{
-    inputs$parameters$truckconversionEfficiency <- data.table(tb=c('tb0500','tb0800','tb1000','tb1500','tb2000'),value=conversion.efficiency.by.range)
+    inputs$parameters$truckconversionEfficiency <- data.table(tb=c('tb0250','tb0400','tb0500','tb0750','tb1000'),value=conversion.efficiency.by.range)
   }
   # / b075 0.31
   # b150 0.324

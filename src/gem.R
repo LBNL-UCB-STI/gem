@@ -46,8 +46,8 @@ if(interactive()){
 #truck experiments  
 #    args<-'input/experiments/chargerCost.yaml'
 #    args<-'input/experiments/truckb150ConversionEfficiency.yaml'
-#    args<-'input/experiments/truckbatteryCapitalCost.yaml'
-  args<-'input/experiments/base.yaml'
+#   args<-'input/experiments/truckbatteryCapitalCost.yaml'
+     args<-'input/experiments/base.yaml'
   
   
   
@@ -147,9 +147,9 @@ if(!args$plots){ # only prep and run model if *not* in plot-only mode
 #####################################################################################
 # Post-Process Results
 #####################################################################################
-plots.dir1 <- pp(exper$input.dir,'/plots1/')
-make.dir(plots.dir1)
-write.csv(exper$runs,pp(plots.dir1,'runs.csv'),row.names=T)
+plots.dir <- pp(exper$input.dir,'/plots1/')
+make.dir(plots.dir)
+write.csv(exper$runs,pp(plots.dir,'runs.csv'),row.names=T)
 results <- list(); i<-1
 for(i in 1:nrow(exper$runs)) {
   result <- gdx.to.data.tables(gdx(pp(exper$input.dir,'/runs/run-',i,'/results.gdx')))
@@ -168,11 +168,11 @@ for(i in 1:nrow(exper$runs)) {
   if(args$trimdays){
     all.inputs[[i]]$sets$t <- all.inputs[[i]]$set$t[1:(length(all.inputs[[i]]$set$t)-48)]
   }
-  make.dir(pp(plots.dir1,'/run-',i,''))
+  make.dir(pp(plots.dir,'/run-',i,''))
 }
 res <- lapply(results,function(ll){ rbindlist(ll,fill=T) })
 
-run.all(exper,all.inputs,res,plots.dir1)
+run.all(exper,all.inputs,res,plots.dir)
 
 
 # 
