@@ -2,33 +2,23 @@
 
 Grid-integrated Electric Mobility model
 
-## Typical git workflow
+## Branch supporting manuscript under peer-review 2021
 
-Pull the latest:
+This branch contains a version of GEM that directly corresponds to a journal article currently under peer review (a link to the full manuscript will be added here when the article is published). 
 
-```bash
-git pull
-```
+The open-source code base can be freely inspected and run (provided the user has access to both a GAMS and a CPLEX license). We encourage anyone to submit an issue to the [issue tracker](https://github.com/LBNL-UCB-STI/gem/issues) if you have any feedback, corrections, or suggestions for future development.
 
-Work on your code.
+Kind regards, 
 
-Stage your changes:
+The Authors:
 
-```bash
-git add file1.R
-git add file2.R
-git add manyFiles*
-```
+* Colin Sheppard
+* Alan Jenn
+* Gordon Bauer
+* Jeffery Greenblatt
+* Brian Gerke
 
-Commit the staged files:
+## Instructions for running GEM
 
-```bash
-git commit -m "one sentence description of what changed"
-```
-
-Push all commits back to github:
-
-```bash
-git push
-```
+* step-by-step instructions to checkout repo / download data / install / execute
 
