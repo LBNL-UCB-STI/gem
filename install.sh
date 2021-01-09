@@ -1,4 +1,4 @@
-#!/usr/bin/env/Rscript
+#!/usr/bin/Rscript
 options(repos=structure(c(CRAN="https://ftp.osuosl.org/pub/cran/")))
 
 ## First specify the packages of interest
