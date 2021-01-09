@@ -79,7 +79,8 @@ prep.inputs.mobility <- function(exper.row,param.names,common.inputs){
   dem[,r:=pp(CDIVLS,'-',URBRURS)]
   dem[,':='(MILEBIN=NULL,CDIVLS=NULL,URBRURS=NULL,AVGDIST=NULL,NRAW=NULL,NWTD=NULL)]
   dem[,':='(day.type=WKTIME,WKTIME=NULL)]
-  dem <- melt(dem,id.vars=c('d','dist','season','transit','r','day.type'),variable.name='t',value.name='trips')
+  dem <- data.table(melt(dem,id.vars=c('d','dist','season','transit','r','day.type'),variable.name='t',value.name='trips'))
+  names(dem) <- c('d','dist','season','transit','r','day.type','t','trips')
   dem[,t:=as.numeric(unlist(lapply(str_split(t,"X"),function(x){x[2]})))]
   dem[,use.transit:=transit=='with']
   #ggplot(dem[,.(trips=sum(trips)),by=c('t','d','season','transit')],aes(x=t,y=trips,colour=d))+geom_line()+facet_grid(season~transit)

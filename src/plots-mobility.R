@@ -55,12 +55,21 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     by.r[,var.clean:=gsub(' L| L0| b| b0',' ',var.clean)]
     by.r$var.clean <- factor(by.r$var.clean,levels=unique(by.r$var.clean)[mixedorder(unique(by.r$var.clean))])
   
-    # Merit order
-    geners <- copy(generators)
-    geners$g <- as.character(geners$g)
-    geners$FuelType <- as.character(geners$FuelType)
-    geners <- merge(x=geners,y=fuels,by='FuelType',all.x=TRUE)
-    geners$Simplified <- factor(geners$Simplified,levels=meritOrder)
+  # Vehicle Distribution
+  veh.mv <- data.table(cast(melt(res[['b-d-rmob-t']],id.vars=c('t','b','d','rmob','run'),measure.vars=c('vehiclesMoving')),b + rmob + t + run ~ d))
+  d.dot <- str_replace(inputs$sets$d,"-",".")
+  streval(pp('veh.mv[,":="(',pp(pp('vehiclesMoving.',d.dot,'=`',inputs$sets$d,'`,`',inputs$sets$d,'`=NULL'),collapse=','),')]'))
+  l.dot <- str_replace(inputs$sets$l,"-",".")
+  veh.ch <- data.table(cast(melt(res[['b-l-rmob-t']],id.vars=c('t','b','l','rmob','run'),measure.vars=c('vehiclesCharging')),b + rmob + t + run ~ l))
+  streval(pp('veh.ch[,":="(',pp(pp('vehiclesCharging.',l.dot,'=`',inputs$sets$l,'`,`',inputs$sets$l,'`=NULL'),collapse=','),')]'))
+  vehs <- join.on(res[['b-rmob-t']],join.on(veh.mv,veh.ch,c('b','rmob','t','run')),c('b','rmob','t','run'))
+  veh.ch <- data.table(melt(res[['b-l-rmob-t']],id.vars=c('t','b','l','rmob','run'),measure.vars=c('vehiclesCharging')))
+  veh.ch[,kw:=unlist(lapply(str_split(l,'L'),function(ll){ as.numeric(ll[2])}))]
+  veh.ch[,gw.charging:=kw*value/1e6]
+  setkey(veh.ch,run,l,rmob,t)
+  veh.ch[,charger.level:=gsub('L|L0','',l)]
+  veh.ch[,charger.level:=paste(charger.level,'kW')]
+  veh.ch$charger.level <- factor(veh.ch$charger.level,levels=unique(veh.ch$charger.level)[mixedorder(unique(veh.ch$charger.level))])
   
     # Key for matching regions to shapefile region names
     region.key <- data.table(r=c('ENC','MAT-NL','MAT-NY','MTN','NENG','PAC-CA','PAC-NL','SAT-FL','SAT-NL','WNC','WSC-NL','WSC-TX','ESC'),NAME=c('East North Central','Middle Atlantic','New York','Mountain','New England','California','Pacific','Florida','South Atlantic','West North Central','West South Central','Texas','East South Central'))
@@ -474,7 +483,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   to.plot.fleet <- join.on(to.plot.fleet,res[['b']],c('run','b'),c('run','b'))
   to.plot.fleet[is.na(batteryCapacity),':='(batteryCapacity=batt.kwh,conversionEfficiency=personal.ev.conversion.eff)]
   to.plot.saev.hours <- streval(pp('vehs[,.(Charging=sum(',pp('vehiclesCharging.',all.inputs[[1]]$sets$l,collapse='+'),')/n.days.in.run,Moving=sum(',pp('vehiclesMoving.',str_replace_all(all.inputs[[1]]$sets$d,"-","."),collapse='+'),')/n.days.in.run,Idle=sum(vehiclesIdle)/n.days.in.run),by="run"]'))
-  to.plot.saev.hours <- melt(join.on(to.plot.saev.hours,to.plot.fleet[!is.na(bplus),.(n.veh=sum(value)),by='run'],'run','run'),id.vars=c('run','n.veh'))
+  to.plot.saev.hours <- data.table(melt(join.on(to.plot.saev.hours,to.plot.fleet[!is.na(bplus),.(n.veh=sum(value)),by='run'],'run','run'),id.vars=c('run','n.veh')))
   to.plot.saev.hours[,':='(metric='SAEV_Utilization',value=value/n.veh)]
   to.plot.saev.hours <- join.on(to.plot.saev.hours,run.params,'run','run')
   to.plot.saev.hours[,col:=getPalette(variable)[match(variable,u(variable))]]
@@ -534,7 +543,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   
   costs[,totalFleetCost:=vehicleMaintCost/n.days.in.run+fleetCost]
   costs[,totalEnergyCost:=demandChargeCost/n.days.in.run+energyCost/n.days.in.run]
-  to.plot.cost <- melt(costs,measure.vars=c('totalEnergyCost','totalFleetCost','infrastructureCost'),id.vars=c('run',param.names))[,.(value=sum(value)),by=c('variable','run',param.names)]
+  to.plot.cost <- data.table(melt(costs,measure.vars=c('totalEnergyCost','totalFleetCost','infrastructureCost'),id.vars=c('run',param.names)))[,.(value=sum(value)),by=c('variable','run',param.names)]
   to.plot.cost <- rbindlist(list(to.plot.cost,melt(join.on(join.on(infra.cost,veh.cost,'run','run'),run.params,'run','run'),measure.vars=c('privateInfrastructureCost','privateFleetCost'),id.vars=c('run',param.names))),fill=T)
   to.plot.cost[,max.value:=max(to.plot.cost[,.(val=sum(value)),by='run']$val)]
   to.plot.cost[,metric:='Cost']
@@ -787,7 +796,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     ggsave(pp(plots.dir,'_battery-cycles.pdf'),p,width=5*pdf.scale,height=4*pdf.scale,units='in')
     
     # Vehicle allocations
-    to.plot <- melt(vehs,id.vars=c('b','rmob','t',names(exper$runs)))
+    to.plot <- data.table(melt(vehs,id.vars=c('b','rmob','t',names(exper$runs))))
     to.plot <- to.plot[,.(value=sum(value)),by=c('b','t',names(exper$runs),'variable')]
 
     to.plot[,vehicle.activity:=gsub('\\.L0|\\.L','(',gsub('vehiclesCharging','Charging ',variable))]
@@ -903,7 +912,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     ggsave(pp(plots.dir,'/_generation-cnsq-total-by-fuel.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
     
     # Costs
-    to.plot <- melt(costs,measure.vars=c('demandChargeCost','vehicleMaintCost','infrastructureCost','fleetCost','energyCost'),id.vars=c('r',param.names))[,.(value=sum(value)),by=c('variable',param.names)]
+    to.plot <- data.table(melt(costs,measure.vars=c('demandChargeCost','vehicleMaintCost','infrastructureCost','fleetCost','energyCost'),id.vars=c('r',param.names)))[,.(value=sum(value)),by=c('variable',param.names)]
     cost.key <- data.table(variable=c('demandChargeCost','vehicleMaintCost','infrastructureCost','fleetCost','energyCost'),cost=c('Demand Charges','Maintenance','Infrastructure','Fleet Capital','Energy'))
     cost.key$cost <- factor(cost.key$cost,levels=c('Demand Charges','Maintenance','Infrastructure','Fleet Capital','Energy'))
     to.plot <- merge(x=to.plot,y=cost.key,by='variable',all.x=TRUE)
@@ -1010,7 +1019,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     ubs[,ub:=value]
     lbs <- join.on(lbs,run.params,'run','run')
     ubs <- join.on(ubs,run.params,'run','run')
-    to.plot <- melt(join.on(lbs,ubs,c('t','rmob','run'),c('t','rmob','run'),'ub'),id.vars=c('t','rmob','run',names(exper$runs)))[variable!='value']
+    to.plot <- data.table(melt(join.on(lbs,ubs,c('t','rmob','run'),c('t','rmob','run'),'ub'),id.vars=c('t','rmob','run',names(exper$runs))))[variable!='value']
     to.plot[,t:=to.number(t)]
     to.plot[,value:=value/1e6]
     p <- ggplot(to.plot[,.(value=sum(value)),by=c('t','variable',param.names)],aes(x=t,y=value,colour=variable))+geom_line()
@@ -1028,7 +1037,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     ubs[,ub:=value]
     lbs <- join.on(lbs,run.params,'run','run')
     ubs <- join.on(ubs,run.params,'run','run')
-    to.plot <- melt(join.on(lbs,ubs,c('t','rmob','run'),c('t','rmob','run'),'ub'),id.vars=c('t','rmob','run',names(exper$runs)))[variable!='value']
+    to.plot <- data.table(melt(join.on(lbs,ubs,c('t','rmob','run'),c('t','rmob','run'),'ub'),id.vars=c('t','rmob','run',names(exper$runs))))[variable!='value']
     to.plot[,t:=to.number(t)]
     to.plot[,value:=value/1e6]
     p <- ggplot(to.plot[,.(value=sum(value)),by=c('t','variable',param.names)],aes(x=t,y=value,colour=variable))+geom_line()
