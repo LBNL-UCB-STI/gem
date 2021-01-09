@@ -38,6 +38,7 @@ vehicleCapitalCost <- 30000
 b150ConversionEfficiency <- 0.324 # What is average conversion efficiency for a 150-mile BEV? kwh/mile, all other vehicle ranges
                                   # will be scaled proportionally assuming 0.324 as the default for BEV150
 privateBEVConversionEfficiency <- 0.325 # EVI-Pro default was 0.325, this will adjust charging load proportionally for private BEVs
+privateVehicleOccupancy <- 1.5
 scale.urban.form.factor <- 1.0
 includeTransitDemand <- 1 # 0 or 1
 fractionSAEVs <- 0.5

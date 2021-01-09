@@ -4,7 +4,7 @@
 # 
 # This master script will execute a batch experiment of runs of the GEM Model. 
 # It takes as argument a path to a yaml file as input which specifies the
-# factors and factor levels of the experiment. This it does the following:
+# factors and factor levels of the experiment. Then it does the following:
 #
 # Load Experiment: Read and process scenario / assumptions
 # Pre-Process Inputs
@@ -39,12 +39,14 @@ option_list <- list(make_option(c("-p", "--plots"), action="store_true", default
                     make_option(c("-r", "--runsubset"), type="character", default='',help="Comma separate list of runs to execute [default %default]"),
                     make_option(c("-o", "--overwrite"), action="store_true", default=F,help="Overwrite an existing solution from GAMS [default %default]"))
 if(interactive()){
-#  args<-'input/experiments/fractionSAEVsAndSmartCharging.yaml'
+ args<-'input/experiments/fractionSAEVsAndSmartCharging.yaml'
+  # args<-'input/experiments/fractionSAEVs.yaml'
  # args<-'input/experiments/base.yaml'
 #  args<-'input/experiments/smartMobility.yaml'
    # args<-'input/experiments/batteryLifetime.yaml'
+   # args<-'input/experiments/batteryCapitalCost.yaml'
    # args<-'input/experiments/sharingFactor.yaml'
-   args<-'input/experiments/vehicleCapitalCost.yaml'
+   # args<-'input/experiments/vehicleCapitalCost.yaml'
   # args<-'input/experiments/b150ConversionEfficiency.yaml'
   # args<-'input/experiments/conversionEfficiency.yaml'
   # args<-'input/experiments/electrificationPenetration.yaml'
@@ -141,7 +143,7 @@ results <- list(); i<-1
 for(i in 1:nrow(exper$runs)) {
   result <- gdx.to.data.tables(gdx(pp(exper$input.dir,'/runs/run-',i,'/results.gdx')))
   result.baseGen <- gdx.to.data.tables(gdx(pp(exper$input.dir,'/runs/run-',i,'/results-baseGeneration.gdx')))
-  result <- merge.baseGen(result,result.baseGen)
+  result <- merge.baseGen(result,result.baseGen); key<-names(result)[1]
   for(key in names(result)){
     result[[key]][,run:=i]
     if('t'%in%names(result[[key]]) & args$trimdays){
