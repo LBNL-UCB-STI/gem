@@ -1,19 +1,19 @@
-#!/bin/bash
-Rscript -e 'install.packages("stringr")'
-Rscript -e 'install.packages("data.table")'
-Rscript -e 'install.packages("ggplot2")'
-Rscript -e 'install.packages("optparse")'
-Rscript -e 'install.packages("yaml")'
-Rscript -e 'install.packages("reshape")'
-Rscript -e 'install.packages("grid")'
-Rscript -e 'install.packages("devtools")'
-Rscript -e 'library("devtools");install_github("lolow/gdxtools")'
-Rscript -e 'install.packages("lubridate")'
-Rscript -e 'install.packages("RColorBrewer")' 
-Rscript -e 'install.packages("forcats")'
-Rscript -e 'install.packages("gtools")'
-Rscript -e 'install.packages("sf")'
-Rscript -e 'install.packages("cowplot")'
-Rscript -e 'install.packages("tidyr")'
-Rscript -e 'install.packages("dplyr")'
-Rscript -e 'install.packages("maps")'
+#!/usr/bin/Rscript
+options(repos=structure(c(CRAN="https://ftp.osuosl.org/pub/cran/")))
+
+## First specify the packages of interest
+packages = c('stringr','data.table','ggplot2','optparse','yaml','reshape','grid','devtools','gdxtools','lubridate','RColorBrewer','forcats','gtools','sf','cowplot','tidyr','dplyr','maps')
+
+## Now load or install&load all
+package.check <- lapply(
+  packages,
+  FUN = function(x) {
+    is.installed <- require(x, character.only = TRUE)
+    if(x=='gdxtools'){
+      install_github("lolow/gdxtools")
+    }else if (!is.installed){
+      install.packages(x, dependencies = TRUE)
+    }
+    library(x, character.only = TRUE)
+  }
+)
