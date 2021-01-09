@@ -51,11 +51,22 @@ prep.inputs.personal.charging <- function(exper.row,param.names,common.inputs,in
     # Optionally load EVI charging and load profile data
     ###########################################################
     # Desired size of fleet. The 3.37 is the average number of trips per driver based on https://nhts.ornl.gov/assets/2017_nhts_summary_travel_trends.pdf
+    dates <- date.info(days,year)
+    transit.type <- ifelse(includeTransitDemand,'with_transit','no_transit')
     load.data.needed <- F
     for(the.region in common.inputs$sets$rmob){
-      # Look for the results in the gem cache, otherwise process and load
-      cache.file <- pp(workingDir,'/data/gem-cache/region-',the.region,'-privateFleetWeights-',privateFleetWeights,'-smart-',fractionSmartCharging,'.Rdata')
-      if(!file.exists(cache.file))load.data.needed<-T
+      for(season in u(toupper(dates$seasons))){
+        for(weekday.type in u(dates$day.types)){
+          # Look for the results in the gem cache, otherwise process and load
+          cache.dir <- pp(workingDir,'/data/gem-cache/',the.region,'/')
+          make.dir(cache.dir)
+          cache.dir <- pp(cache.dir,privateFleetWeights,'/')
+          make.dir(cache.dir)
+          cache.file <- pp(cache.dir,'smart-',fractionSmartCharging,'-season-',season,'-day-',str_replace_all(weekday.type,"/",""),'-transit-',transit.type,'.Rdata')
+          # cache.file <- pp(workingDir,'/data/gem-cache/',the.region,'/',privateFleetWeights,'/smart-',fractionSmartCharging,'.Rdata')
+          if(!file.exists(cache.file))load.data.needed<-T
+        }
+      }
     }
   
     if(load.data.needed){
@@ -146,7 +157,6 @@ prep.inputs.personal.charging <- function(exper.row,param.names,common.inputs,in
       # Create or load fleet characteristics weights for each DVMT value of interest
       ##############################################################################
       energy.and.power.constraints <- list()
-      dates <- date.info(days,year)
       season <- u(toupper(dates$seasons))[1]
       for(season in u(toupper(dates$seasons))){
         energy.and.power.constraints[[season]] <- list()

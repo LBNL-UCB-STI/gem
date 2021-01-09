@@ -17,6 +17,12 @@
 if(!exists('gem.project.directory')){
   my.cat('Error, you need to define the variable gem.project.directory in your user-level Rprofile (i.e. ~/.Rprofile). Make the varaible be the file path of the gem project directory.')
 }
+if(!exists('gams.executable.location')){
+  my.cat('Error, you need to define the variable gams.executable.location in your user-level Rprofile (i.e. ~/.Rprofile). Make the varaible be the file path to the "sysdir" sub-directory of the GAMS application.')
+}
+if(!exists('gem.raw.inputs')){
+  my.cat('Error, you need to define the variable gem.raw.inputs in your user-level Rprofile (i.e. ~/.Rprofile). Make the varaible be the file path of the gem-inputs-public directory.')
+}
 setwd(gem.project.directory)
 source('src/includes.R')
 igdx(gams.executable.location)
@@ -39,8 +45,8 @@ option_list <- list(make_option(c("-p", "--plots"), action="store_true", default
                     make_option(c("-r", "--runsubset"), type="character", default='',help="Comma separate list of runs to execute [default %default]"),
                     make_option(c("-o", "--overwrite"), action="store_true", default=F,help="Overwrite an existing solution from GAMS [default %default]"))
 if(interactive()){
-#  args<-'input/experiments/fractionSAEVsAndSmartCharging.yaml'
-   args<-'input/experiments/base.yaml'
+ args<-'input/experiments/fractionSAEVsAndSmartCharging.yaml'
+   # args<-'input/experiments/base.yaml'
   # args<-'input/experiments/smartMobility.yaml'
    # args<-'input/experiments/batteryLifetime.yaml'
    # args<-'input/experiments/batteryCapitalCost.yaml'
@@ -52,7 +58,7 @@ if(interactive()){
   args <- pp('--experiment=',args)
  args <- c(args,'-t') # don't add timestamp
  args <- c(args,'-p') # only plots
- args <- c(args,'-d') # trim one day off beginning and end of results
+ # args <- c(args,'-d') # trim one day off beginning and end of results
  #args <- c(args,'-o') # overwrite existing
 #args <- c(args,'--runsubset=16,17,18,19')
 #args <- c(args,'--runsubset=4') 
@@ -100,6 +106,8 @@ if(!args$plots){ # only prep and run model if *not* in plot-only mode
     all.inputs[[length(all.inputs)+1]] <- inputs
   }
   if(args$runsubset=='')save(all.inputs,file=pp(exper$input.dir,'/inputs.Rdata'))
+  # Save the defaults.R file for future reference
+  file.copy('input/defaults.R',exper$input.dir)
   
   #####################################################################################
   # Load GAMS and Run

@@ -23,7 +23,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     veh.ch <- data.table(cast(melt(res[['b-l-rmob-t']],id.vars=c('t','b','l','rmob','run'),measure.vars=c('vehiclesCharging')),b + rmob + t + run ~ l))
     streval(pp('veh.ch[,":="(',pp(pp('vehiclesCharging.',l.dot,'=`',inputs$sets$l,'`,`',inputs$sets$l,'`=NULL'),collapse=','),')]'))
     vehs <- join.on(res[['b-rmob-t']],join.on(veh.mv,veh.ch,c('b','rmob','t','run')),c('b','rmob','t','run'))
-    veh.ch <- melt(res[['b-l-rmob-t']],id.vars=c('t','b','l','rmob','run'),measure.vars=c('vehiclesCharging'))
+    veh.ch <- data.table::melt(res[['b-l-rmob-t']],id.vars=c('t','b','l','rmob','run'),measure.vars=c('vehiclesCharging'))
     veh.ch[,kw:=unlist(lapply(str_split(l,'L'),function(ll){ as.numeric(ll[2])}))]
     veh.ch[,gw.charging:=kw*value/1e6]
     setkey(veh.ch,run,l,rmob,t)
@@ -55,21 +55,21 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     by.r[,var.clean:=gsub(' L| L0| b| b0',' ',var.clean)]
     by.r$var.clean <- factor(by.r$var.clean,levels=unique(by.r$var.clean)[mixedorder(unique(by.r$var.clean))])
   
-  # Vehicle Distribution
-  veh.mv <- data.table(cast(melt(res[['b-d-rmob-t']],id.vars=c('t','b','d','rmob','run'),measure.vars=c('vehiclesMoving')),b + rmob + t + run ~ d))
-  d.dot <- str_replace(inputs$sets$d,"-",".")
-  streval(pp('veh.mv[,":="(',pp(pp('vehiclesMoving.',d.dot,'=`',inputs$sets$d,'`,`',inputs$sets$d,'`=NULL'),collapse=','),')]'))
-  l.dot <- str_replace(inputs$sets$l,"-",".")
-  veh.ch <- data.table(cast(melt(res[['b-l-rmob-t']],id.vars=c('t','b','l','rmob','run'),measure.vars=c('vehiclesCharging')),b + rmob + t + run ~ l))
-  streval(pp('veh.ch[,":="(',pp(pp('vehiclesCharging.',l.dot,'=`',inputs$sets$l,'`,`',inputs$sets$l,'`=NULL'),collapse=','),')]'))
-  vehs <- join.on(res[['b-rmob-t']],join.on(veh.mv,veh.ch,c('b','rmob','t','run')),c('b','rmob','t','run'))
-  veh.ch <- data.table(melt(res[['b-l-rmob-t']],id.vars=c('t','b','l','rmob','run'),measure.vars=c('vehiclesCharging')))
-  veh.ch[,kw:=unlist(lapply(str_split(l,'L'),function(ll){ as.numeric(ll[2])}))]
-  veh.ch[,gw.charging:=kw*value/1e6]
-  setkey(veh.ch,run,l,rmob,t)
-  veh.ch[,charger.level:=gsub('L|L0','',l)]
-  veh.ch[,charger.level:=paste(charger.level,'kW')]
-  veh.ch$charger.level <- factor(veh.ch$charger.level,levels=unique(veh.ch$charger.level)[mixedorder(unique(veh.ch$charger.level))])
+    # Vehicle Distribution
+    veh.mv <- data.table(cast(melt(res[['b-d-rmob-t']],id.vars=c('t','b','d','rmob','run'),measure.vars=c('vehiclesMoving')),b + rmob + t + run ~ d))
+    d.dot <- str_replace(inputs$sets$d,"-",".")
+    streval(pp('veh.mv[,":="(',pp(pp('vehiclesMoving.',d.dot,'=`',inputs$sets$d,'`,`',inputs$sets$d,'`=NULL'),collapse=','),')]'))
+    l.dot <- str_replace(inputs$sets$l,"-",".")
+    veh.ch <- data.table(cast(melt(res[['b-l-rmob-t']],id.vars=c('t','b','l','rmob','run'),measure.vars=c('vehiclesCharging')),b + rmob + t + run ~ l))
+    streval(pp('veh.ch[,":="(',pp(pp('vehiclesCharging.',l.dot,'=`',inputs$sets$l,'`,`',inputs$sets$l,'`=NULL'),collapse=','),')]'))
+    vehs <- join.on(res[['b-rmob-t']],join.on(veh.mv,veh.ch,c('b','rmob','t','run')),c('b','rmob','t','run'))
+    veh.ch <- data.table(melt(res[['b-l-rmob-t']],id.vars=c('t','b','l','rmob','run'),measure.vars=c('vehiclesCharging')))
+    veh.ch[,kw:=unlist(lapply(str_split(l,'L'),function(ll){ as.numeric(ll[2])}))]
+    veh.ch[,gw.charging:=kw*value/1e6]
+    setkey(veh.ch,run,l,rmob,t)
+    veh.ch[,charger.level:=gsub('L|L0','',l)]
+    veh.ch[,charger.level:=paste(charger.level,'kW')]
+    veh.ch$charger.level <- factor(veh.ch$charger.level,levels=unique(veh.ch$charger.level)[mixedorder(unique(veh.ch$charger.level))])
   
     # Key for matching regions to shapefile region names
     region.key <- data.table(r=c('ENC','MAT-NL','MAT-NY','MTN','NENG','PAC-CA','PAC-NL','SAT-FL','SAT-NL','WNC','WSC-NL','WSC-TX','ESC'),NAME=c('East North Central','Middle Atlantic','New York','Mountain','New England','California','Pacific','Florida','South Atlantic','West North Central','West South Central','Texas','East South Central'))
@@ -93,6 +93,12 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
       rbindlist(list(df[l!='Private EVs'],private.disag),fill=T)
     }
   
+    # Merit order
+    geners <- copy(generators)
+    geners$g <- as.character(geners$g)
+    geners$FuelType <- as.character(geners$FuelType)
+    geners <- merge(x=geners,y=fuels,by='FuelType',all.x=TRUE)
+    geners$Simplified <- factor(geners$Simplified,levels=meritOrder)
     geners[,g:=as.numeric(g)]
     res[['g-t']][,g:=as.numeric(g)]
     generation <- merge(x=res[['g-t']],y=geners,by='g',all.x=TRUE)
@@ -127,7 +133,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     # pdf.scale <- 1
     # ggsave(pp(plots.dir,'/run-',run.i,'/_num-vehs.pdf'),p,width=10*pdf.scale,height=8*pdf.scale,units='in')
     
-    to.plot <- melt(vehs[run==run.i],id.vars=c('b','t','rmob','run'))
+    to.plot <- data.table::melt(vehs[run==run.i],id.vars=c('b','t','rmob','run'))
     to.plot[,variable.simp:=ifelse(grepl('vehiclesCharging',variable),pp('Charging: SAEV ',substr(b,2,5),'mi'),ifelse(variable=='vehiclesIdle',pp('Idle: SAEV ',substr(b,2,5),'mi'),pp('Moving: SAEV ',substr(b,2,5),'mi')))]
     to.remove <- to.plot[,sum(value),by='variable.simp'][V1<1e-4]$variable.simp
     to.plot <- to.plot[!variable.simp%in%to.remove]
@@ -221,7 +227,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     personal.evs.total[,Idle:=Total-Moving-Charging]
     personal.evs.total <- personal.evs.total[,.(Moving=sum(Moving),Charging=sum(Charging),Idle=sum(Idle)),by=.(t)]
     personal.evs.total[Idle<0,Idle:=0]
-    personal.evs.total <- melt(personal.evs.total,id='t',variable.name='Activity',value.name='Cars')
+    personal.evs.total <- data.table::melt(personal.evs.total,id='t',variable.name='Activity',value.name='Cars')
     personal.evs.total$Activity <- factor(personal.evs.total$Activity,levels=c('Idle','Moving','Charging'))
 
     p<-ggplot(personal.evs.total,aes(x=t,y=Cars/1000,fill=Activity))+
@@ -368,7 +374,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
       toPlot.pie <- toPlot.pie[complete.cases(toPlot.pie),]
       toPlot.pie <- dcast(toPlot.pie,r~Simplified,value.var='consq.generation')
       toPlot.pie[is.na(toPlot.pie)] <- 0
-      toPlot.pie <- melt(toPlot.pie,id='r',variable.name='Simplified',value.name='consq.generation')
+      toPlot.pie <- data.table::melt(toPlot.pie,id='r',variable.name='Simplified',value.name='consq.generation')
       toPlot.pie <- merge(x=toPlot.pie,y=region.key,by='r')
       toPlot.pie[,NAME:=gsub(' ','\n',NAME)]
 
@@ -544,7 +550,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   costs[,totalFleetCost:=vehicleMaintCost/n.days.in.run+fleetCost]
   costs[,totalEnergyCost:=demandChargeCost/n.days.in.run+energyCost/n.days.in.run]
   to.plot.cost <- data.table(melt(costs,measure.vars=c('totalEnergyCost','totalFleetCost','infrastructureCost'),id.vars=c('run',param.names)))[,.(value=sum(value)),by=c('variable','run',param.names)]
-  to.plot.cost <- rbindlist(list(to.plot.cost,melt(join.on(join.on(infra.cost,veh.cost,'run','run'),run.params,'run','run'),measure.vars=c('privateInfrastructureCost','privateFleetCost'),id.vars=c('run',param.names))),fill=T)
+  to.plot.cost <- rbindlist(list(to.plot.cost,data.table::melt(join.on(join.on(infra.cost,veh.cost,'run','run'),run.params,'run','run'),measure.vars=c('privateInfrastructureCost','privateFleetCost'),id.vars=c('run',param.names))),fill=T)
   to.plot.cost[,max.value:=max(to.plot.cost[,.(val=sum(value)),by='run']$val)]
   to.plot.cost[,metric:='Cost']
   to.plot.cost[,variable.short:=variable]
@@ -669,11 +675,16 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     write.csv(forPlot[r%in%regions],file=pp(sub.dir,'/generation_',code,'.csv'))
   }
   make.2d.charging.plot <- function(ch.sub,code,freeCols){
-    p <- ggplot(ch.sub[t-24>min(day.axis.breaks)&t-24<=max(day.axis.breaks)],aes(x=t-24,y=gwh,fill=charger.level))+geom_area(stat='identity')+scale_x_continuous(breaks=day.axis.breaks)+scale_fill_manual(values = the.ch.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x='Hour',y='Charging Power (GW)',title=pp('Charging Power',ifelse(code=='','',' when '),code),fill='')+theme_bw()
+    if(max(ch.sub$t) > 24){
+      p <- ggplot(ch.sub[t-24>min(day.axis.breaks)&t-24<=max(day.axis.breaks)],aes(x=t-24,y=gwh,fill=charger.level))+geom_area(stat='identity')+scale_x_continuous(breaks=day.axis.breaks)+scale_fill_manual(values = the.ch.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x='Hour',y='Charging Power (GW)',title=pp('Charging Power',ifelse(code=='','',' when '),code),fill='')+theme_bw()
+      write.csv(ch.sub[t-24>min(day.axis.breaks)&t-24<=max(day.axis.breaks)],file=pp(plots.dir,'_charging_2d',ifelse(code=='','',pp('_',code)),'.csv'))
+    }else{
+      p <- ggplot(ch.sub[t>min(day.axis.breaks)&t<=max(day.axis.breaks)],aes(x=t,y=gwh,fill=charger.level))+geom_area(stat='identity')+scale_x_continuous(breaks=day.axis.breaks)+scale_fill_manual(values = the.ch.cols)+theme(axis.text.x = element_text(angle = 30, hjust = 1))+labs(x='Hour',y='Charging Power (GW)',title=pp('Charging Power',ifelse(code=='','',' when '),code),fill='')+theme_bw()
+      write.csv(ch.sub[t>min(day.axis.breaks)&t<=max(day.axis.breaks)],file=pp(plots.dir,'_charging_2d',ifelse(code=='','',pp('_',code)),'.csv'))
+    }
     p <- p + streval(pp('facet_grid(',freeCols[1],'~',freeCols[2],')'))
     pdf.scale <- 1
     ggsave(pp(plots.dir,'_charging_2d',ifelse(code=='','',pp('_',code)),'.pdf'),p,width=14*pdf.scale,height=8*pdf.scale,units='in')
-    write.csv(ch.sub[t-24>min(day.axis.breaks)&t-24<=max(day.axis.breaks)],file=pp(plots.dir,'_charging_2d',ifelse(code=='','',pp('_',code)),'.csv'))
   }
   make.2d.metric.plot <- function(all.sub,code,freeCols){
     all.sub <- join.on(all.sub,all.sub[,.(val=sum(value,na.rm=T)),by=c('run','metric')][,.(max.value=max(val,na.rm=T)),by=c('metric')],'metric','metric')
@@ -789,6 +800,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
   }
   
   if(length(param.names)==1){
+    pdf.scale <- 1
     cycles.per.day <- join.on(en[,.(energy.used=sum(en.mob)),by=c('run','t')][,.(energy.used=sum(energy.used)),by='run'],to.plot.fleet[!is.na(bplus),.(batteryCapacity=sum(batteryCapacity*value)),by='run'],'run','run')
     cycles.per.day[,n.cycles:=energy.used/batteryCapacity/n.days.in.run]
     cycles.per.day <- join.on(cycles.per.day,run.params,'run','run')
@@ -955,7 +967,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     }
 
     ## Flagged, modified but maybe we can visualize differently? Can we also do PMT? ##
-    p <- ggplot(melt(vmt.by.region,id.vars=c('rmob','battery.level',param.names),measure.vars='daily.vmt.per.vehicle'),aes(x=rmob,y=value,fill=battery.level))+
+    p <- ggplot(data.table::melt(vmt.by.region,id.vars=c('rmob','battery.level',param.names),measure.vars='daily.vmt.per.vehicle'),aes(x=rmob,y=value,fill=battery.level))+
       geom_bar(stat='identity',position='dodge')+
       xlab('Region')+
       ylab('Total vehicle miles traveled (mi)')+
@@ -968,7 +980,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     ## Not sure exactly what the "value" represents ##
     vmt.by.region[,lifetime.target:=200e3/(daily.vmt.per.vehicle*365)]
     vmt.by.region[,lifetime.error:=lifetime.target-assumed.lifetime.value]
-    p <- ggplot(melt(vmt.by.region,id.vars=c('rmob','battery.level',param.names),measure.vars='lifetime.target'),aes(x=rmob,y=value,fill=battery.level))+
+    p <- ggplot(data.table::melt(vmt.by.region,id.vars=c('rmob','battery.level',param.names),measure.vars='lifetime.target'),aes(x=rmob,y=value,fill=battery.level))+
       geom_bar(stat='identity',position='dodge')+
       xlab('Region')+
       #ylab('???')+
@@ -978,7 +990,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     streval(pp('p <- p + facet_wrap(~',param.names,')'))
     ggsave(pp(plots.dir,'_vehicle-lifetime-targets.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')  
     if(F){
-      towrite <- melt(vmt.by.region,id.vars=c('rmob','b',param.names),measure.vars='lifetime.target')
+      towrite <- data.table::melt(vmt.by.region,id.vars=c('rmob','b',param.names),measure.vars='lifetime.target')
       towrite[is.na(value),value:=mean(towrite$value,na.rm=T)]
       towrite[value<=0.5,value:=0.5]
       towrite.prev <- data.table(read.csv(pp(gem.raw.inputs,'/rise-scaling-factors/vehicleLifetimes/vehicleLifetime.csv')))
@@ -1002,7 +1014,7 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
       p <- ggplot(all[iter>=11],aes(x=factor(iter),y=value,fill=b))+geom_bar(position='dodge',stat='identity')+facet_wrap(~rmob)
       ggsave(pp(gem.raw.inputs,'/rise-scaling-factors/vehicleLifetimes/vehicleLifetimeTargets.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')  
       ## Not sure exactly what the "value" represents ##
-      p <- ggplot(melt(vmt.by.region,id.vars=c('rmob','battery.level'),measure.vars='lifetime.error'),aes(x=rmob,y=value,fill=battery.level))+
+      p <- ggplot(data.table::melt(vmt.by.region,id.vars=c('rmob','battery.level'),measure.vars='lifetime.error'),aes(x=rmob,y=value,fill=battery.level))+
         geom_bar(stat='identity',position='dodge')+
         xlab('Region')+
         #ylab('???')+
@@ -1056,5 +1068,6 @@ plots.mobility <- function(exper,all.inputs,res,plots.dir){
     streval(pp('p <- p + facet_wrap(~',param.names,')'))
     ggsave(pp(plots.dir,'_private-ev-charging2.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')  
   }
+  
 }
 
