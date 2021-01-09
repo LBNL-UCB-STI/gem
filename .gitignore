@@ -8,3 +8,4 @@ experiments/*
 .Rdata
 .Rproj.user
 *.Rproj
+R_libs
