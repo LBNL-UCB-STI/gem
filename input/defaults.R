@@ -1,26 +1,9 @@
 
 #### Common ####
-# days <- 352:358
-#days <- c(1) 
-#days <- c(74:81,147:154,260:267,351:358) # 8 per week
-#days <- c(74:80,147:153,260:266,351:357) # 7 per week
-#days <- c(74:77,79,148:152,260:264,351:355) # 5 per week, 4 weekday, 1 weekend
-# DEFAULT TIME PERIOD FOR PAPERS / FINAL ANALYSIS
-#days <- c(74:77,148:150,260:262,351:354) # 3 per week, 2 weekday, 1 weekend plus 2 for buffer on ends
+days <- c(1) 
 # DEFAULT TIME PERIOD FOR PAPERS / FINAL ANALYSIS CORRECTED
 days <- c(70:73,176:178,260:262,351:354) # 3 per week, 2 weekday, 1 weekend plus 2 for buffer on ends
-# days <- c(70:71) # 3 per week, 2 weekday, 1 weekend plus 2 for buffer on ends
 
-#days <- c(75:76,149:150,261:262,352:353) # 2 per week, 2 weekday
-
-#days <- c(75,149,261,352) # 1 per week, 1 weekday
-#days <- c(75,149,261) # 1 per week, 1 weekday
-#days <- c(74:77,79)
-#days <- c(148:152) 
-#days <- c(74:77,79,148:152)
-#days <- c(260:264)
-#days <- c(351:355)
-#days <- c(260:264,351:355)
 group.days <- 0 # set this to 0 to run all "days" at once, set to non-zero to run "grouped.days" at a time over the full range of "days" overlap occurs for one day on end-points
 
 year <- 2040
@@ -38,6 +21,7 @@ vehicleCapitalCost <- 30000
 b150ConversionEfficiency <- 0.324 # What is average conversion efficiency for a 150-mile BEV? kwh/mile, all other vehicle ranges
                                   # will be scaled proportionally assuming 0.324 as the default for BEV150
 privateBEVConversionEfficiency <- 0.325 # EVI-Pro default was 0.325, this will adjust charging load proportionally for private BEVs
+privateVehicleOccupancy <- 1.5
 scale.urban.form.factor <- 1.0
 includeTransitDemand <- 1 # 0 or 1
 fractionSAEVs <- 0.5
