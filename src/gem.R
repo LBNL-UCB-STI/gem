@@ -44,10 +44,10 @@ option_list <- list(make_option(c("-p", "--plots"), action="store_true", default
 if(interactive()){
 
 #truck experiments  
-#    args<-'input/experiments/chargerCost.yaml'
+    args<-'input/experiments/chargerCost.yaml'
 #    args<-'input/experiments/truckb150ConversionEfficiency.yaml'
 #   args<-'input/experiments/truckbatteryCapitalCost.yaml'
-     args<-'input/experiments/base.yaml'
+#     args<-'input/experiments/base.yaml'
   
   
   
