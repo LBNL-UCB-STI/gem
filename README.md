@@ -16,6 +16,42 @@ The Grid-integrated Electric Mobility (GEM) model is an open-source modeling pla
 
 ## Running the Model
 
+The GEM model can be fully run in console environment (e.g. cmd.exe in Windows or Terminal in MacOS) using Rscript (https://www.rdocumentation.org/packages/utils/versions/3.6.2/topics/Rscript).  A list of commands can be shown with the help command:
+
+```
+Rscript ./src.gem.R --help
+```
+
+The help option will dispaly the following message:
+
+```
+Usage: gem.R [exp-file]
+
+Options:                                                                                                                                                                                                         
+        -p, --plots 
+        Only run code that produces plots, requires results to be already present in outputs [default FALSE]
+
+        -t, --notimestamp
+        Don't add timestamp to outputs directory [default FALSE]
+
+        -d, --trimdays
+        Trim a day off beginning and end of simulation results to avoid edge effects [default FALSE] 
+
+        -e EXP, --experiment=EXP
+        Path to experiment file [default input/experiments/base.yaml] 
+
+        -r RUNSUBSET, --runsubset=RUNSUBSET
+        Comma separate list of runs to execute [default ]
+        
+        -o, --overwrite
+        Overwrite an existing solution from GAMS [default FALSE]
+       
+        -h, --help
+        Show this help message and exit                                                                                                                                                                                                                 
+```
+
+Options include: -p
+
 ## License
 
 See the file LICENSE for the modified BSD license terms.
