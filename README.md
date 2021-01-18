@@ -6,7 +6,18 @@ The Grid-integrated Electric Mobility (GEM) model is an open-source modeling pla
 
 ## Installation and Setup
 
-GEM is run on both the R platform (https://www.r-project.org/), which acts as a data parser and plotting device for the model. The optimization backbone of GEM employs the General Algebraic Modeling System, also called GAMS (https://www.gams.com/).  While R is an open-source software and readily available, GAMS is a commercial platform and a license is required to operate it.  Additionally, the optimization routine in GEM requires a quadratic convex program solver; we employ CPLEX which also requires a license (https://www.ibm.com/analytics/cplex-optimizer and https://www.gams.com/latest/docs/S_MAIN.html).  We recommend 
+GEM is run on both the R platform (https://www.r-project.org/), which acts as a data parser and plotting device for the model. The optimization backbone of GEM employs the General Algebraic Modeling System, also called GAMS (https://www.gams.com/).  While R is an open-source software and readily available, GAMS is a commercial platform and a license is required to operate it.  Additionally, the optimization routine we run in GAMS requires a quadratic convex program solver; we employ CPLEX which also requires a license (https://www.ibm.com/analytics/cplex-optimizer and https://www.gams.com/latest/docs/S_MAIN.html).  It is recommended that the latest versions of both the R and GAMS platform be installed.
+
+GEM requires the following packages in R for its operation: `<stringr>`, `<data.table>`, `<ggplot2>`, `<optparse>`, `<yaml>`, `<reshape>`, `<grid>`, `<gdxtools>`, `<lubridate>`, `<RColorBrewer>`, `<forcats>`, `<gtools>`, `<sf>`, `<cowplot>`, `<tidyr>`, `<dplyr>`, and `<maps>`.
+
+Lastly, a .RProfile (see https://support.rstudio.com/hc/en-us/articles/360047157094-Managing-R-with-Rprofile-Renviron-Rprofile-site-Renviron-site-rsession-conf-and-repos-conf) must be initialized to point GEM to pre-specified directories (for the project directory, input files directory, and GAMS executable directory).  The following is an example of defining the directory locations in a .RProfile file:
+
+```
+gem.project.directory <- 'relative/path/to/gem/'
+gem.raw.inputs <- 'relative/path/to/gem-inputs-public/'
+gams.executable.location <- 'relative/path/to/GAMS/win64/25.1/'
+```
+
 
 ## Platform Description
 
