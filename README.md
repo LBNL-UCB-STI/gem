@@ -1,10 +1,16 @@
 # Grid-integrated Electric Mobility (GEM) Model
 
+## Table of contents
+
+## Platform description
+
 The Grid-integrated Electric Mobility (GEM) model is an open-source modeling platform developed by researchers at Lawrence Berkeley National Laboratory, UC Davis, and UC Berkeley.  This modeling system simulates the operation of both the mobility sector and the electricity sector on a national scale in the United States.  The framework of GEM is unique in that it optimizes the development of a fully autonomous, electric, and shared mobility system while dynamically accounting for the relationship with a high resolution grid model.
 
-## Table of Contents
+![plot](./readme_images/forPaper_model-approach-1.png)
 
-## Installation and Setup
+For a full description of GEM with in-depth explanation of its optimization structure, please refer to: **paper reference here**
+
+## Installation and setup
 
 GEM is run on both the R platform (https://www.r-project.org/), which acts as a data parser and plotting device for the model. The optimization backbone of GEM employs the General Algebraic Modeling System, also called GAMS (https://www.gams.com/).  While R is an open-source software and readily available, GAMS is a commercial platform and a license is required to operate it.  Additionally, the optimization routine we run in GAMS requires a quadratic convex program solver; we employ CPLEX which also requires a license (https://www.ibm.com/analytics/cplex-optimizer and https://www.gams.com/latest/docs/S_MAIN.html).  It is recommended that the latest versions of both the R and GAMS platform be installed.
 
@@ -18,23 +24,12 @@ gem.raw.inputs <- 'relative/path/to/gem-inputs-public/'
 gams.executable.location <- 'relative/path/to/GAMS/win64/25.1/'
 ```
 
-
-## Platform Description
-
-![plot](./readme_images/forPaper_model-approach-1.png)
-
-## GAMS Optimization Walkthrough
-
-## Data Description
-
-## Parameter Setup
-
-## Running the Model
+## Running the model
 
 The GEM model can be fully run in console environment (e.g. cmd.exe in Windows or Terminal in MacOS) using Rscript (https://www.rdocumentation.org/packages/utils/versions/3.6.2/topics/Rscript).  A list of commands can be shown with the help command:
 
 ```
-Rscript ./src.gem.R --help
+Rscript ./src/gem.R --help
 ```
 
 The help option will dispaly the following message:
@@ -65,7 +60,64 @@ Options:
         Show this help message and exit                                                                                                                                                                                                                 
 ```
 
+An example base scenario run, using a pre-defined base experiment:
 
+```
+Rscript ./src/gem.R -e input/experiments/base.yaml
+```
+
+## Setting up experiments with .yaml files
+
+The base configuration has a set of default parameter values with no experimental variation in any of the input parameters.  As a result, the `base.yaml` experiment file is the simplest possible run as follows:
+
+```
+Name: Base
+Mode: combinatorial
+Factors:
+  - Name: Base
+    Levels:
+      - Base
+```
+
+Users can choose to conduct a sensitivity analysis on parameter values.  Below is an example of a .yaml file that varies the value of the carbon tax in the model at five different levels.  When this specific experiment file is called, the model will run a total of five times, each with a different value for the carbon tax:
+
+```
+Name: carbonTax
+Mode: combinatorial
+Factors:
+  - Name: carbonTax
+    Levels:
+      - 25
+      - 50
+      - 100
+      - 150
+      - 200
+```
+
+It is also possible to run a sensitivity analysis across multiple parameters.  Below is an example of three different parameters (fraction of shared, autonomous, and electric vehicles in the model, fraction of privately owned EVs that use smart charging, and a scaling factor for quantity of renewable generation on the electric grid).  When running .yaml experiment files with multiple parameters being varied, it is important to note that the model will run for **every** combination of parameter values (in this case a total of 5x4x2=40 runs):
+
+```
+Name: fracSAEVsAndSmartChargingAndRE
+Mode: combinatorial
+Factors:
+  - Name: fractionSAEVs
+    Levels:
+      - 0.0
+      - 0.25
+      - 0.5
+      - 0.75
+      - 1.0
+  - Name: fractionSmartCharging
+    Levels:
+      - 0.0
+      - 0.25
+      - 0.5
+      - 1.0
+  - Name: renewableScalingFactor
+    Levels:
+      - 1.0
+      - 3.0
+```
 
 ## License
 
