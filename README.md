@@ -6,7 +6,11 @@ The Grid-integrated Electric Mobility (GEM) model is an open-source modeling pla
 
 ## Installation and Setup
 
+GEM is run on both the R platform (https://www.r-project.org/), which acts as a data parser and plotting device for the model. The optimization backbone of GEM employs the General Algebraic Modeling System, also called GAMS (https://www.gams.com/).  While R is an open-source software and readily available, GAMS is a commercial platform and a license is required to operate it.  Additionally, the optimization routine in GEM requires a quadratic convex program solver; we employ CPLEX which also requires a license (https://www.ibm.com/analytics/cplex-optimizer and https://www.gams.com/latest/docs/S_MAIN.html).  We recommend 
+
 ## Platform Description
+
+![plot](./readme_images/forPaper_model-approach-1.png)
 
 ## GAMS Optimization Walkthrough
 
@@ -50,7 +54,7 @@ Options:
         Show this help message and exit                                                                                                                                                                                                                 
 ```
 
-Options include: -p
+
 
 ## License
 
