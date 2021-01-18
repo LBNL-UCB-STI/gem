@@ -14,18 +14,26 @@
 # Argument: experiment-definition-file
 #####################################################################################
 
+
+#####################################################################################
+# INITIALIZING DIRECTORIES AND PACKAGES
+#####################################################################################
+
 if(!exists('gem.project.directory')){
-  my.cat('Error, you need to define the variable gem.project.directory in your user-level Rprofile (i.e. ~/.Rprofile). Make the varaible be the file path of the gem project directory.')
+  my.cat('Error, you need to define the variable gem.project.directory in your user-level Rprofile (i.e. ~/.Rprofile). Make the variable be the file path of the gem project directory.')
 }
 if(!exists('gams.executable.location')){
-  my.cat('Error, you need to define the variable gams.executable.location in your user-level Rprofile (i.e. ~/.Rprofile). Make the varaible be the file path to the "sysdir" sub-directory of the GAMS application.')
+  my.cat('Error, you need to define the variable gams.executable.location in your user-level Rprofile (i.e. ~/.Rprofile). Make the variable be the file path to the "sysdir" sub-directory of the GAMS application.')
 }
 if(!exists('gem.raw.inputs')){
-  my.cat('Error, you need to define the variable gem.raw.inputs in your user-level Rprofile (i.e. ~/.Rprofile). Make the varaible be the file path of the gem-inputs-public directory.')
+  my.cat('Error, you need to define the variable gem.raw.inputs in your user-level Rprofile (i.e. ~/.Rprofile). Make the variable be the file path of the gem-inputs-public directory.')
 }
 setwd(gem.project.directory)
 source('src/includes.R')
+
+# igdx is a function that points to the location of the GAMS executable
 igdx(gams.executable.location)
+
 source('src/load-experiment.R')
 source('src/prep-inputs-static.R')
 source('src/prep-inputs-common.R')
@@ -38,30 +46,28 @@ source('input/defaults.R')
 #####################################################################################
 # PARSE COMMAND LINE OPTIONS 
 #####################################################################################
+
+# The "option_list" provides a list of options when running the model externally in a console environment (e.g. CMD in Windows or Terminal in MacOS)
+
 option_list <- list(make_option(c("-p", "--plots"), action="store_true", default=F,help="Only run code that produces plots, requires results to be already present in outputs [default %default]"),
                     make_option(c("-t", "--notimestamp"), action="store_true", default=F,help="Don't add timestamp to outputs directory [default %default]"),
                     make_option(c("-d", "--trimdays"), action="store_true", default=F,help="Trim a day off beginning and end of simulation results to avoid edge effects [default %default]"),
                     make_option(c("-e", "--experiment"), type="character", default='input/experiments/base.yaml',help="Path to experiment file [default %default]",metavar="exp"),
                     make_option(c("-r", "--runsubset"), type="character", default='',help="Comma separate list of runs to execute [default %default]"),
                     make_option(c("-o", "--overwrite"), action="store_true", default=F,help="Overwrite an existing solution from GAMS [default %default]"))
+
+# Set the scenario run as a yaml file in the "input/experiments" folder (the first argument within the if statement).
+# Each experiment sets a sensitivity sweep on either one or two parameters, multi-dimensional sensitivity sweeps will run all combinations of parameter values
+
 if(interactive()){
- args<-'input/experiments/fractionSAEVsAndSmartCharging.yaml'
-   # args<-'input/experiments/base.yaml'
-  # args<-'input/experiments/smartMobility.yaml'
-   # args<-'input/experiments/batteryLifetime.yaml'
-   # args<-'input/experiments/batteryCapitalCost.yaml'
-   # args<-'input/experiments/sharingFactor.yaml'
-   # args<-'input/experiments/vehicleCapitalCost.yaml'
-  # args<-'input/experiments/b150ConversionEfficiency.yaml'
-  # args<-'input/experiments/conversionEfficiency.yaml'
-  # args<-'input/experiments/electrificationPenetration.yaml'
+  args <- 'input/experiments/base.yaml'
   args <- pp('--experiment=',args)
- args <- c(args,'-t') # don't add timestamp
- args <- c(args,'-p') # only plots
- # args <- c(args,'-d') # trim one day off beginning and end of results
- #args <- c(args,'-o') # overwrite existing
-#args <- c(args,'--runsubset=16,17,18,19')
-#args <- c(args,'--runsubset=4') 
+  args <- c(args,'-t') # don't add timestamp
+  args <- c(args,'-p') # only plots
+  # args <- c(args,'-d') # trim one day off beginning and end of results
+  #args <- c(args,'-o') # overwrite existing
+  #args <- c(args,'--runsubset=16,17,18,19')
+  #args <- c(args,'--runsubset=4') 
   args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=F,args=args)
 }else{
   args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=F)
@@ -80,10 +86,14 @@ if(args$runsubset==''){
 # Pre-Process Inputs
 #####################################################################################
 if(!args$plots){ # only prep and run model if *not* in plot-only mode
+  
+  # Within this if statement and for loop below, the inputs are prepared for the model
+  # Inputs are built from functions among several categories: common inputs, mobility, charging, and grid.  These functions can be found in their respective "prep-inputs-XYZ.R" files
+  # Inputs are written to a .gdx file via the "write.gdx" function.  The gdx file serves as the input format for the GAMS optimization model
+
   static.inputs <- prep.inputs.static()
   
   all.inputs <- list()
-  
   i <- runs.to.run[1]
   for(i in runs.to.run){
     cat(pp('Prepping inputs for run ',i,'\n'))
@@ -98,13 +108,15 @@ if(!args$plots){ # only prep and run model if *not* in plot-only mode
     inputs$sets <- c(common.inputs$sets,inputs.mobility$sets,inputs.grid$sets,inputs.personal.charging$sets)
     inputs$parameters <- c(common.inputs$parameters,inputs.mobility$parameters,inputs.grid$parameters,inputs.personal.charging$parameters)
   
-    #print(inputs)
     make.dir(pp(exper$input.dir,'/runs'))
     make.dir(pp(exper$input.dir,'/runs/run-',i))
     write.gdx(pp(exper$input.dir,'/runs/run-',i,'/inputs.gdx'),params=lapply(inputs$parameters,as.data.frame,stringsAsFactors=F),sets=lapply(inputs$sets,as.data.frame,stringsAsFactors=F))
     save(inputs,file=pp(exper$input.dir,'/runs/run-',i,'/inputs.Rdata'))
     all.inputs[[length(all.inputs)+1]] <- inputs
   }
+
+  # Below, the inputs are saved as a .Rdata file so when a scenario is run again, the input preparation process is not needed
+
   if(args$runsubset=='')save(all.inputs,file=pp(exper$input.dir,'/inputs.Rdata'))
   # Save the defaults.R file for future reference
   file.copy('input/defaults.R',exper$input.dir)
@@ -113,6 +125,8 @@ if(!args$plots){ # only prep and run model if *not* in plot-only mode
   # Load GAMS and Run
   #####################################################################################
   
+  # Below, the code initializes the optimization model and runs GAMS via the "gams" function
+
   for(i in runs.to.run) {
     Sys.sleep(0.1) # Allow console statements to print to screen before continuing
     if(args$overwrite | !file.exists(pp(exper$input.dir,'/runs/run-',i,'/results.gdx'))){
@@ -136,6 +150,9 @@ if(!args$plots){ # only prep and run model if *not* in plot-only mode
       cat(pp(Sys.time(),'\n'))
     }
   }
+
+# If the model has already been run, then the inputs can simply be loaded from the .Rdata file
+
 }else{
   load(file=pp(exper$input.dir,'/inputs.Rdata'))
 }
@@ -146,6 +163,9 @@ if(!args$plots){ # only prep and run model if *not* in plot-only mode
 plots.dir <- pp(exper$input.dir,'/plots/')
 make.dir(plots.dir)
 write.csv(exper$runs,pp(plots.dir,'runs.csv'),row.names=T)
+
+# Below the results are parsed from gdx outputs in the GAM run into the res object
+
 results <- list(); i<-1
 for(i in 1:nrow(exper$runs)) {
   result <- gdx.to.data.tables(gdx(pp(exper$input.dir,'/runs/run-',i,'/results.gdx')))
@@ -167,5 +187,7 @@ for(i in 1:nrow(exper$runs)) {
   make.dir(pp(plots.dir,'/run-',i,''))
 }
 res <- lapply(results,function(ll){ rbindlist(ll,fill=T) })
+
+# plots.mobility will take the results and provide a series of plotted outputs
 
 plots.mobility(exper,all.inputs,res,plots.dir)
