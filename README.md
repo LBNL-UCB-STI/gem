@@ -24,6 +24,12 @@ gem.raw.inputs <- 'relative/path/to/gem-inputs-public/'
 gams.executable.location <- 'relative/path/to/GAMS/win64/25.1/'
 ```
 
+## Directory structure
+
+The following diagram shows the directory organizational structure of the GEM model:
+
+![plot](./readme_images/directory_diagram-1.png)
+
 ## Running the model
 
 The GEM model can be fully run in console environment (e.g. cmd.exe in Windows or Terminal in MacOS) using Rscript (https://www.rdocumentation.org/packages/utils/versions/3.6.2/topics/Rscript).  A list of commands can be shown with the help command:
