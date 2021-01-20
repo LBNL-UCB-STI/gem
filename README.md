@@ -38,7 +38,7 @@ The GEM model can be fully run in console environment (e.g. cmd.exe in Windows o
 Rscript ./src/gem.R --help
 ```
 
-The help option will dispaly the following message:
+The help option will display the following message:
 
 ```
 Usage: gem.R [exp-file]
