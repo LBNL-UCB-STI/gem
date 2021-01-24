@@ -1,7 +1,5 @@
 # Grid-integrated Electric Mobility (GEM) Model
 
-## Table of contents
-
 ## Branch supporting manuscript under peer-review 2021
 
 This branch contains a version of GEM that directly corresponds to a journal article currently under peer review. The open-source code base can be freely inspected and run (provided the user has access to both a GAMS and a CPLEX license). We encourage anyone to submit an issue to the [issue tracker](https://github.com/LBNL-UCB-STI/gem/issues) if you have any feedback, corrections, or suggestions for future development.
@@ -15,6 +13,15 @@ The Authors:
 * Gordon Bauer
 * Jeffery Greenblatt
 * Brian Gerke
+
+## Table of contents
+
+    * [Platform description](#platform-description)
+    * [Installation and setup](#installation-and-setup)
+    * [Directory structure](#directory-structure)
+    * [Running the model](#running-the-model)
+    * [Setting up experiments with .yaml files](#setting-up-experiments-with-yaml-files)
+    * [License](#license)
 
 ## Platform description
 
