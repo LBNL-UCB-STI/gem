@@ -1,3 +1,4 @@
+# Loading all required packages for GEM
 
 library('stringr')
 library('data.table')
@@ -16,8 +17,9 @@ library('cowplot')
 library('tidyr')
 library('dplyr')
 library('maps')
-#library('gdxrrw')
 
+# gdx.to.data.tables function parses the .gdx output file from the GAMS optimization and prepares
+# them as data.table outputs in R.
 gdx.to.data.tables <- function(mygdx){
   keys <- all_items(mygdx)$set
   keydims <- c()
@@ -57,6 +59,7 @@ gdx.to.data.tables <- function(mygdx){
   res
 }
 
+# date.info function parses a specific date/time format
 date.info <- function(days,year){
   wdays <- weekdays(to.posix(pp(year,'-01-01 00:00:00+00'))+24*3600*(days-1))
   months <- month(to.posix(pp(year,'-01-01 00:00:00+00'))+24*3600*(days-1))
@@ -88,22 +91,28 @@ make.dir <-
     if(!file.exists(dir))dir.create(dir,showWarnings=FALSE)
   }
 
+# pp function is equivalent to paste0 (abbreviation for expediency)
 pp <- function(...,sep='',collapse=NULL){
   paste(...,sep=sep,collapse=collapse)
 }
 
+# streval function parses a character object to be evaluated as code
 streval <- function(toeval){
 	eval.parent(parse(text=toeval))
 }
 
+# to.posix function parses a date-time character into a POSIXct format: YYYY/MM/DD
 to.posix <- function(x,fmt="%Y-%m-%d",tz=""){
   as.POSIXct(strptime(x,fmt,tz))
 }
 
+# u function is equivalent to unique (abbreviation for expediency)
 u <- function(x,...){
   unique(x,...)
 }
 
+# join.on is a merge function that allows for merging of data.tables without affecting the original table
+# The function optimizes the join on keys that can be set as arguments into the function
 join.on <- function(dt1,dt2,keys1,keys2=NULL,include.from.dt2=NULL,included.prefix='',allow.cartesian=F){
   dt1 <- copy(dt1)
   dt2 <- copy(dt2)
@@ -131,8 +140,14 @@ join.on <- function(dt1,dt2,keys1,keys2=NULL,include.from.dt2=NULL,included.pref
   return(res.dt)
 }
 
+# roundC function takes a numeric input and returns a character output that "prettifies" a number to 
+# reduce the number of digits displayed
 roundC <- function(x,dg=1){ formatC(x,format='f',digits=dg) }
 
+# merge.baseGen is a function that merges two input results (from a given scenario run)
+# for the grid parameters/variables.  The two runs consist of the experiment results and
+# the results from the grid operation in the absence of any mobility demand in order to
+# determine the consequential results.
 merge.baseGen <- function(result,result.baseGen) {
   result$`g-t` <- merge(x=result$`g-t`,y=result.baseGen$`g-t`,by=c('g','t'))
   names(result$`g-t`) <- c('g','t','generation','base.generation')
@@ -141,12 +156,18 @@ merge.baseGen <- function(result,result.baseGen) {
   return(result)
 }
 
+# to.number function converts a number from character format into a numberic format
 to.number <- function(x){ as.numeric(substr(as.character(x),2,nchar(as.character(x)))) }
 
+# print.lst.status function is a diagnostic tool that returns a specific output from the
+# GAMS output known as the listing (.lst) file.  The function will provide a solver and model
+# status that describes whether or not the results are normally completed and whether the
+# results are globally/locally optimal.
 print.lst.status <- function(file) {
   lst.file <- readLines(file)
   print(grep('SOLVER STATUS',lst.file,value=TRUE))
   print(grep('MODEL STATUS',lst.file,value=TRUE))
 }
 
+# my.cat function concatenates and prints messages (more efficient than print)
 my.cat <- function (message, ...){ cat(paste(message, "\n", sep = ""), ...) }
