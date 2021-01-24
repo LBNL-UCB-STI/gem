@@ -16,12 +16,15 @@ The Authors:
 
 ## Table of contents
 
-    * [Platform description](#platform-description)
-    * [Installation and setup](#installation-and-setup)
-    * [Directory structure](#directory-structure)
-    * [Running the model](#running-the-model)
-    * [Setting up experiments with .yaml files](#setting-up-experiments-with-yaml-files)
-    * [License](#license)
+   * [Grid-integrated Electric Mobility (GEM) Model](#grid-integrated-electric-mobility-gem-model)
+      * [Branch supporting manuscript under peer-review 2021](#branch-supporting-manuscript-under-peer-review-2021)
+      * [Table of contents](#table-of-contents)
+      * [Platform description](#platform-description)
+      * [Installation and setup](#installation-and-setup)
+      * [Directory structure](#directory-structure)
+      * [Running the model](#running-the-model)
+      * [Setting up experiments with .yaml files](#setting-up-experiments-with-yaml-files)
+      * [License](#license)
 
 ## Platform description
 
