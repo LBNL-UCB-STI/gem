@@ -62,9 +62,9 @@ if(interactive()){
  #args <- c(args,'-o') # overwrite existing
 #args <- c(args,'--runsubset=16,17,18,19')
 #args <- c(args,'--runsubset=4') 
-  args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=F,args=args)
+  args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [options]"),positional_arguments=F,args=args)
 }else{
-  args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [exp-file]"),positional_arguments=F)
+  args <- parse_args(OptionParser(option_list = option_list,usage = "gem.R [options]"),positional_arguments=F)
 }
 
 #####################################################################################
