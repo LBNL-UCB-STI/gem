@@ -2,6 +2,15 @@
 
 ## Table of contents
 
+   * [Grid-integrated Electric Mobility (GEM) Model](#grid-integrated-electric-mobility-gem-model)
+      * [Table of contents](#table-of-contents)
+      * [Platform description](#platform-description)
+      * [Installation and setup](#installation-and-setup)
+      * [Directory structure](#directory-structure)
+      * [Running the model](#running-the-model)
+      * [Setting up experiments with .yaml files](#setting-up-experiments-with-yaml-files)
+      * [License](#license)
+
 ## Platform description
 
 The Grid-integrated Electric Mobility (GEM) model is an open-source modeling platform developed by researchers at Lawrence Berkeley National Laboratory, UC Davis, and UC Berkeley.  This modeling system simulates the operation of both the mobility sector and the electricity sector on a national scale in the United States.  The framework of GEM is unique in that it optimizes the development of a fully autonomous, electric, and shared mobility system while dynamically accounting for the relationship with a high resolution grid model.
