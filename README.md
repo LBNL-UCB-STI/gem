@@ -40,6 +40,8 @@ GEM is run on both the R platform (https://www.r-project.org/), which acts as a 
 
 GEM requires the following packages in R for its operation: `stringr`, `data.table`, `ggplot2`, `optparse`, `yaml`, `reshape`, `grid`, `gdxtools`, `lubridate`, `RColorBrewer`, `forcats`, `gtools`, `sf`, `cowplot`, `tidyr`, `dplyr`, and `maps`.
 
+We have packaged input data that represents the base scenario for our 2021 manuscript study. [Download this data here (27 MB).](https://github.com/LBNL-UCB-STI/gem/releases/download/v0.1/gem-inputs-public.zip) As noted below, you need to set a parameter to point to this raw input directory once extracted.
+
 Lastly, a .RProfile (see https://support.rstudio.com/hc/en-us/articles/360047157094-Managing-R-with-Rprofile-Renviron-Rprofile-site-Renviron-site-rsession-conf-and-repos-conf) must be initialized to point GEM to pre-specified directories (for the project directory, input files directory, and GAMS executable directory).  The following is an example of defining the directory locations in a .RProfile file:
 
 ```
