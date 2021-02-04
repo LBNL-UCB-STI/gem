@@ -2,7 +2,8 @@
 #### Common ####
 days <- c(1) 
 # DEFAULT TIME PERIOD FOR PAPERS / FINAL ANALYSIS CORRECTED
-days <- c(70:73,176:178,260:262,351:354) # 3 per week, 2 weekday, 1 weekend plus 2 for buffer on ends
+#days <- c(70:73,176:178,260:262,351:354) # 3 per week, 2 weekday, 1 weekend plus 2 for buffer on ends
+days <- 70:73
 
 group.days <- 0 # set this to 0 to run all "days" at once, set to non-zero to run "grouped.days" at a time over the full range of "days" overlap occurs for one day on end-points
 
