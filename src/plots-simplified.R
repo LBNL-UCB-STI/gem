@@ -841,6 +841,8 @@ plot.heavyduty.fleetDetails <- function(run.i,plots.dir,by.r) {
 }
 
 make.1d.fleet.and.chargers.plot <- function(sub,code,freeCol,sub.dir,energy.by.r.l){
+	print(sub)
+	print(freeCol)
 	to.plot <- sub[,.(value=value,percent=value/sum(value)*100,l=l,variable=var.clean,trips=sum(totalSAEVTrips)/n.days.in.run),by=c('run','rmob','group',freeCol)]
 	to.plot[,urb:=ifelse(grepl('RUR$',rmob),'Rural','Urban')]
 	to.remove <- to.plot[,sum(value),by=c('variable')][V1==0]$variable
@@ -943,7 +945,9 @@ make.1d.plots <- function(plots.dir,all,res,by.r,the.cols,factor.labels,metric.u
 				by.r.sub <- streval(pp('by.r[',pp(param.names[the.param.inds],'==',unlist(param.combs[comb.i]),collapse=' & '),']'))
 				by.r.sub <- join.on(by.r.sub,res[['d-rmob-t']][,.(totalSAEVTrips=sum(demand,na.rm=T)),by=c('run','rmob')],c('run','rmob'),c('run','rmob'))
 				energy.by.r.l <- res[['b-l-rmob-t']][run%in%u(by.r.sub$run),.(energyCharged=sum(energyCharged)),by=c('run','l','rmob')]
-				if(sum(by.r.sub$value)>0)make.1d.fleet.and.chargers.plot(by.r.sub,code,the.free.col,pp(plots.dir,'/_metrics_1d/',code),energy.by.r.l)
+				if(sum(by.r.sub$value)>0&param.names[the.param.inds]%in%names(by.r.sub)) {
+					make.1d.fleet.and.chargers.plot(by.r.sub,code,the.free.col,pp(plots.dir,'/_metrics_1d/',code),energy.by.r.l)
+				}
 			}
 		}
 	}
