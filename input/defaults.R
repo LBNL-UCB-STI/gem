@@ -31,6 +31,9 @@ electrificationPenetration <- 1.0 # how many of total trips are electrified
 battery.capital.cost <- 150 # $/kWh
 charger.levels <- c(10,20,50,100,250) # kW
 truckcharger.levels <- c(50,100,250,500,1000) #kW
+truckbattery.levels <- c(250,400,500,750,1000)
+tb250cost <- 150
+tblinear <- 0
 chargerLifetime <- 10
 sharingFactor <- 1.5
 vmtReboundFactor <- 1.0 # scales VMT in the system, imperfectly, by scaling # trips for SAEVs and energy for private charging
@@ -42,6 +45,7 @@ privateBEVConversionEfficiency <- 0.325 # EVI-Pro default was 0.325, this will a
 scale.urban.form.factor <- 1.0
 includeTransitDemand <- 1 # 0 or 1
 fractionSAEVs <- 0.5
+truckfractionSAEVs <- 0.5
 fractionSmartCharging <- 0.5
 privateFleetWeights <- "fleet_weights_base" # name (without extension) of file in {gem.raw.inputs}/NREL-EVI-Pro-Preprocessed-Profiles/data
 congestion <- 'Freeflow'

@@ -44,12 +44,13 @@ option_list <- list(make_option(c("-p", "--plots"), action="store_true", default
 if(interactive()){
 
 #truck experiments  
-#    args<-'input/experiments/chargerCost.yaml'
+    args<-'input/experiments/chargerCost.yaml'
+#    args<-'input/experiments/truckfractionSAEVs.yaml'
 #    args<-'input/experiments/truckb150ConversionEfficiency.yaml'
 #   args<-'input/experiments/truckbatteryCapitalCost.yaml'
-     args<-'input/experiments/base.yaml'
-  
-  
+#     args<-'input/experiments/base.yaml'
+#  args<-'input/experiments/batteryCost.yaml'
+#  args<-'input/experiments/trucksharingFactor.yaml'
   
 #  args<-'input/experiments/fractionSAEVsAndSmartCharging.yaml'
   # args<-'input/experiments/smartMobility.yaml'
@@ -147,7 +148,7 @@ if(!args$plots){ # only prep and run model if *not* in plot-only mode
 #####################################################################################
 # Post-Process Results
 #####################################################################################
-plots.dir <- pp(exper$input.dir,'/plots1/')
+ plots.dir <- pp(exper$input.dir,'/plots1/')
 make.dir(plots.dir)
 write.csv(exper$runs,pp(plots.dir,'runs.csv'),row.names=T)
 results <- list(); i<-1
