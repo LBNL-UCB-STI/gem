@@ -25,6 +25,7 @@ source('src/prep-inputs-static.R')
 source('src/prep-inputs-common.R')
 source('src/prep-inputs-mobility.R')
 source('src/prep-inputs-mobility-truck.R')
+source('src/prep-inputs-mobility-bike.R')
 source('src/prep-inputs-personal-charging.R')
 source('src/prep-inputs-grid.R')
 source('src/plots-mobility.R')
@@ -44,11 +45,12 @@ option_list <- list(make_option(c("-p", "--plots"), action="store_true", default
 if(interactive()){
 
 #truck experiments  
-    args<-'input/experiments/chargerCost.yaml'
+#    args<-'input/experiments/chargerCost.yaml'
 #    args<-'input/experiments/truckfractionSAEVs.yaml'
 #    args<-'input/experiments/truckb150ConversionEfficiency.yaml'
 #   args<-'input/experiments/truckbatteryCapitalCost.yaml'
 #     args<-'input/experiments/base.yaml'
+     args<-'input/experiments/biketocarfactor.yaml'
 #  args<-'input/experiments/batteryCost.yaml'
 #  args<-'input/experiments/trucksharingFactor.yaml'
 #    args<-'input/experiments/truckb150ConversionEfficiency.yaml'
@@ -100,13 +102,14 @@ if(!args$plots){ # only prep and run model if *not* in plot-only mode
   
     common.inputs <- c(static.inputs,prep.inputs.common(exper$run[i],exper$param.names))
     exper.row <- exper$run[i]
+    inputs.bike <- prep.inputs.mobility.bike(exper$run[i],exper$param.names,common.inputs)
     inputs.mobility <- prep.inputs.mobility(exper$run[i],exper$param.names,common.inputs)
     inputs.truck <- prep.inputs.mobility.truck(exper$run[i],exper$param.names,common.inputs)
     inputs.personal.charging <- prep.inputs.personal.charging(exper$run[i],exper$param.names,common.inputs,inputs.mobility)
     inputs.grid <- prep.inputs.grid(exper$run[i],exper$param.names,common.inputs) 
   
-    inputs$sets <- c(common.inputs$sets,inputs.mobility$sets,inputs.grid$sets,inputs.personal.charging$sets,inputs.truck$sets)
-    inputs$parameters <- c(common.inputs$parameters,inputs.mobility$parameters,inputs.grid$parameters,inputs.personal.charging$parameters,inputs.truck$parameters)
+    inputs$sets <- c(common.inputs$sets,inputs.mobility$sets,inputs.grid$sets,inputs.personal.charging$sets,inputs.truck$sets,inputs.bike$sets)
+    inputs$parameters <- c(common.inputs$parameters,inputs.mobility$parameters,inputs.grid$parameters,inputs.personal.charging$parameters,inputs.truck$parameters,inputs.bike$parameters)
   
     #print(inputs)
     make.dir(pp(exper$input.dir,'/runs'))
@@ -151,7 +154,7 @@ if(!args$plots){ # only prep and run model if *not* in plot-only mode
 #####################################################################################
 # Post-Process Results
 #####################################################################################
- plots.dir <- pp(exper$input.dir,'/plots1/')
+plots.dir <- pp(exper$input.dir,'/plots1/')
 make.dir(plots.dir)
 write.csv(exper$runs,pp(plots.dir,'runs.csv'),row.names=T)
 results <- list(); i<-1

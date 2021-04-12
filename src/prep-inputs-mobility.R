@@ -73,6 +73,9 @@ prep.inputs.mobility <- function(exper.row,param.names,common.inputs){
     dem <- rbindlist(dfs)
     save(dem,file=pp(gem.raw.inputs,'nhts/','dist_hour_hists.Rdata'))
   }
+  if('biketocarfactor'%in%param.names){
+    biketocarfactor <- exper.row$biketocarfactor
+  }
   load(pp(gem.raw.inputs,'nhts/dist_hour_hists.Rdata'))
   dem[,dist:=AVGDIST]
   dem[,d:=MILEBIN]
@@ -83,12 +86,21 @@ prep.inputs.mobility <- function(exper.row,param.names,common.inputs){
   names(dem) <- c('d','dist','season','transit','r','day.type','t','trips')
   dem[,t:=as.numeric(unlist(lapply(str_split(t,"X"),function(x){x[2]})))]
   dem[,use.transit:=transit=='with']
+  
+  dem[d=='0-2',trips:= trips*(1-biketocar[1])*biketocarfactor]
+  dem[d=='2-5',trips:= trips*(1-biketocar[2])*biketocarfactor]
+  dem[d=='5-10',trips:= trips*(1-biketocar[2])*biketocarfactor]
+  dem[d=='10-20',trips:= trips*(1-biketocar[2])*biketocarfactor]
+  
+
+  #dem[d=='0-2',trips:= trips*0.5]
   #ggplot(dem[,.(trips=sum(trips)),by=c('t','d','season','transit')],aes(x=t,y=trips,colour=d))+geom_line()+facet_grid(season~transit)
 
 
   #for a truly weighted average distance by bin, weight the day.type
   dem[,weighted.trips:=trips*ifelse(day.type=="TU/WE/TH",3,2)]
 
+  
   # Day of the week for the days in the simulated year 
   dates <- date.info(days,year)
   all.dem <- list()

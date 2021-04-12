@@ -48,22 +48,30 @@ run.all <- function(exper,all.inputs,res,plots.dir) {
 	# Prepping data inputs for plotting
 	lightduty.prepped <- prepData.all.lightduty(exper,inputs,res,plots.dir)
 	heavyduty.prepped <- prepData.all.heavyduty(exper,inputs,res,plots.dir)
+	bike.prepped <- prepData.all.bike(exper,inputs,res,plots.dir)
 	generators.prepped <- prepData.generators(res)
 	maps.prepped <- prepData.maps()
 	costs.prepped <- prepData.costs(res,generators.prepped$gen.cost,inputs)
 
 	day.axis.breaks <- seq(0,max(lightduty.prepped$veh.ch$t),by=24)
-
+  run.i = 1
 	# Plotting all single run plots
 	for(run.i in u(lightduty.prepped$vehs$run)) {
 		plot.grid.all(run.i,plots.dir,res,generators.prepped$geners)
 		plot.lightduty.all(run.i,plots.dir,lightduty.prepped$vehs,exper,all.inputs,lightduty.prepped$veh.ch,lightduty.prepped$personal.ev.ch,lightduty.prepped$en,lightduty.prepped$by.r,day.axis.breaks)
 		plot.heavyduty.all(run.i,plots.dir,heavyduty.prepped$trcks,exper,all.inputs,heavyduty.prepped$trck.ch,heavyduty.prepped$en.trck,heavyduty.prepped$by.r.trck,day.axis.breaks)
+		plot.bike.all(run.i,plots.dir,bike.prepped$bikes,exper,all.inputs,bike.prepped$bike.ch,bike.prepped$en.bike,bike.prepped$by.r.bike,day.axis.breaks)
 	}
 
 	all.factors.prepped <- prepData.factor.all(all.inputs,inputs,res,lightduty.prepped$by.r,heavyduty.prepped$by.r.trck,lightduty.prepped$veh.ch,heavyduty.prepped$trck.ch,lightduty.prepped$personal.ev.ch,costs.prepped,lightduty.prepped$vmt.by.region,heavyduty.prepped$vmt.by.region.trck,generators.prepped$geners,lightduty.prepped$vehs)
-
+	bike.all.factors.prepped <- prepData.factor.all.bike(all.inputs,inputs,res,bike.prepped$by.r.bike,bike.prepped$bike.ch,costs.prepped,bike.prepped$vmt.by.region.bike,generators.prepped$geners,lightduty.prepped$vehs)
+	
+	
 	make.1d.plots(plots.dir,all.factors.prepped$all,res,lightduty.prepped$by.r,all.factors.prepped$the.cols,all.factors.prepped$factor.labels,all.factors.prepped$metric.units,all.factors.prepped$to.plot.ch.agg,all.factors.prepped$the.ch.cols)
+	make.1d.plots.bike(plots.dir,bike.all.factors.prepped$all,res,bike.prepped$by.r.bike,bike.all.factors.prepped$the.cols,bike.all.factors.prepped$factor.labels,bike.all.factors.prepped$metric.units,bike.all.factors.prepped$to.plot.ch.agg,bike.all.factors.prepped$the.ch.cols)
+	
+	
+	
 	make.2d.plots(all.factors.prepped$all,all.factors.prepped$to.plot.ch.agg,all.factors.prepped$the.cols,all.factors.prepped$the.ch.cols)
 }
 
@@ -182,6 +190,61 @@ prepData.all.heavyduty <- function(exper,inputs,res,plots.dir) {
 	return(output)
 }
 
+prepData.all.bike <- function(exper,inputs,res,plots.dir) {
+  # Vehicle Distribution
+  bike.mv <- data.table(cast(melt(res[['bb-bd-rmob-t']],id.vars=c('t','bb','bd','rmob','run'),measure.vars=c('bikevehiclesMoving')),bb + rmob + t + run ~ bd))
+  bdd <- str_replace(inputs$sets$bd,"\\+","")
+  bd.dot <- str_replace(bdd,"-",".")
+  streval(pp('bike.mv[,":="(',pp(pp('bikevehiclesMoving.',bd.dot,'=`',inputs$sets$bd,'`,`',inputs$sets$bd,'`=NULL'),collapse=','),')]'))
+  bl.dot <- str_replace(inputs$sets$bl,"-",".")
+  bike.ch <- data.table(cast(melt(res[['bb-bl-rmob-t']],id.vars=c('t','bb','bl','rmob','run'),measure.vars=c('bikevehiclesCharging')),bb + rmob + t + run ~ bl))
+  streval(pp('bike.ch[,":="(',pp(pp('bikevehiclesCharging.',bl.dot,'=`',inputs$sets$bl,'`,`',inputs$sets$bl,'`=NULL'),collapse=','),')]'))
+  bikes <- join.on(res[['bb-rmob-t']],join.on(bike.mv,bike.ch,c('bb','rmob','t','run')),c('bb','rmob','t','run'))
+  bike.ch <- data.table(melt(res[['bb-bl-rmob-t']],id.vars=c('t','bb','bl','rmob','run'),measure.vars=c('bikevehiclesCharging')))
+  bike.ch[,kw:=unlist(lapply(str_split(bl,'bL'),function(ll){ as.numeric(ll[2])}))]
+  bike.ch[,gw.charging:=kw*value/1e6]
+  setkey(bike.ch,run,bl,rmob,t)
+  bike.ch[,charger.level:=gsub('bL','',bl)]
+  bike.ch[,charger.level:=paste(charger.level,'kW')]
+  bike.ch$charger.level <- factor(bike.ch$charger.level,levels=unique(bike.ch$charger.level)[mixedorder(unique(bike.ch$charger.level))])
+  
+  # Energy balance
+  en.bike <- join.on(join.on(res[['bb-bl-rmob-t']],res[['bb-bl-rmob']],c('bl','rmob','bb','run'),c('bl','rmob','bb','run'))[,.(en.ch=sum(bikeenergyCharged)),by=c('t','rmob','bb','run')],res[['bb-bd-rmob-t']][,.(en.mob=sum(bikeenergyConsumed)),by=c('t','rmob','bb','run')],c('bb','rmob','t','run'),c('bb','rmob','t','run'))
+  batt.bike <- join.on(res[['bb-rmob']],res[['bb']],c('bb','run'),c('bb','run'))
+  batt.bike[,soc:=bikefleetSize*bikebatteryCapacity]
+  en.bike <- join.on(en.bike,batt.bike,c('bb','rmob','run'),c('bb','rmob','run'),'soc')
+  #en[t>0,soc:=0]
+  setkey(en.bike,bb,rmob,t)
+  en.bike[,soc:=soc+cumsum(en.ch-en.mob),by=c('bb','rmob','run')]
+  en.bike[,battery.level:=gsub('bb','',bb)]
+  en.bike[,battery.level:=paste(battery.level,'mi')]
+  en.bike$battery.level <- factor(en.bike$battery.level,levels=unique(en.bike$battery.level)[mixedorder(unique(en.bike$battery.level))])
+  
+  # Fleet size and num chargers
+  by.r.bike <- rbindlist(list(res[['bl-rmob']][,':='(run=run,variable=bl,value=bikenumChargers,group='Chargers')],res[['bb-rmob']][,':='(run=run,variable=bb,value=bikefleetSize,group='Fleet')]),fill=T)
+  setkey(by.r.bike,run,variable)
+  by.r.bike[,var.clean:=ifelse(grepl('bL',variable),paste('Chgr:',variable,'kW'),paste('Bat:',variable,'mi'))]
+  by.r.bike[,var.clean:=gsub(' bL| bb',' ',var.clean)]
+  by.r.bike$var.clean <- factor(by.r.bike$var.clean,levels=unique(by.r.bike$var.clean)[mixedorder(unique(by.r.bike$var.clean))])
+  
+  #VMT
+  vmt.bike <- join.on(res[['bb-bd-rmob-t']],res[['bd-rmob']],c('bd','rmob','run'),c('bd','rmob','run'),'biketravelDistance')
+  vmt.bike <- join.on(vmt.bike,res[['bd-rmob-t']],c('bd','t','rmob','run'),c('bd','t','rmob','run'),'bspeed')
+  vmt.bike[,vmt.bike:=bikevehiclesMoving*biketravelDistance]
+  vmt.bike[,pmt:=bikedemandAllocated*biketravelDistance]
+  fleet.bike <- res[['bb-rmob']]
+  vmt.by.region.bike <- join.on(join.on(fleet.bike,vmt.bike[,.(vmt.bike=sum(vmt.bike),pmt=sum(pmt)),by=c('rmob','bb','run')],c('rmob','bb','run'),c('rmob','bb','run')),inputs$parameters$bikevehicleLifetime[,.(value=mean(value)),by=c('bb','rmob')],c('rmob','bb'),c('rmob','bb'),'value','assumed.lifetime.')
+  n.days <- max(vmt.bike$t)/24
+  vmt.by.region.bike[,daily.vmt.per.vehicle:=vmt.bike/bikefleetSize/n.days]
+  vmt.by.region.bike[,daily.pmt:=pmt/n.days]
+  vmt.by.region.bike[,battery.level:=gsub('bb','',bb)]
+  vmt.by.region.bike[,battery.level:=paste(battery.level,'mi')]
+  vmt.by.region.bike$battery.level <- factor(vmt.by.region.bike$battery.level,levels=unique(vmt.by.region.bike$battery.level)[mixedorder(unique(vmt.by.region.bike$battery.level))])
+  
+  output <- list('bike.mv'=bike.mv,'bd.dot'=bd.dot,'bl.dot'=bl.dot,'bike.ch'=bike.ch,'bikes'=bikes,'bike.ch'=bike.ch,'en.bike'=en.bike,'batt.bike'=batt.bike,'by.r.bike'=by.r.bike,'vmt.bike'=vmt.bike,'vmt.by.region.bike'=vmt.by.region.bike)
+  return(output)
+}
+
 prepData.generators <- function(res) {
 	# Merit order
 	geners <- copy(generators)
@@ -244,6 +307,155 @@ prepData.factor.all <- function(all.inputs,inputs,res,by.r,by.r.trck,veh.ch,trck
 
 	return(list('metric.units'=metric.units,'factor.labels'=factor.labels,'all'=all,'the.cols'=the.cols,'to.plot.ch.agg'=factor.charging.prepped$to.plot.ch.agg,'the.ch.cols'=factor.charging.prepped$the.ch.cols))
 }
+
+
+prepData.factor.all.bike <- function(all.inputs,inputs,res,by.r,veh.ch,costs,vmt.by.region,geners,vehs) {
+  param.names <- exper$param.names
+  run.params <- copy(exper$runs)[,run:=1:.N]
+  n.days.in.run <- length(inputs$set$t)/24
+  
+#  factor.fleets.prepped <- prepData.factor.fleets(param.names,run.params,all.inputs,by.r,res)
+
+  to.plot.fleet <- merge(x=by.r,y=run.params,by='run')
+  to.plot.fleet <- to.plot.fleet[group=='Fleet',.(value=sum(bikefleetSize),bplus=pp('bike_BEV',substr(bb,2,nchar(bb)))),by=c('run',param.names,'bb')]
+  names(to.plot.fleet)[names(to.plot.fleet)=='bb'] <- 'b'
+  not.needed <- to.plot.fleet[,sum(value),by='b'][V1<=1]$b
+  to.plot.fleet <- to.plot.fleet[!b%in%not.needed]
+  to.plot.fleet[,variable:=ifelse(is.na(bplus),b,bplus)]
+  to.plot.fleet[,metric:='Fleet Size']
+  
+  
+  to.plot.fleet[,col:=getPalette(b)[match(to.plot.fleet$b,u(to.plot.fleet$b))]]
+  to.plot.fleet <- join.on(to.plot.fleet,res[['bb']],c('run','b'),c('run','bb'))
+#  to.plot.fleet <- join.on(to.plot.fleet,res[['tb']],c('run','b'),c('run','tb'))
+#  to.plot.fleet[is.na(batteryCapacity)&grepl('Private',b,fixed=TRUE),':='(batteryCapacity=batt.kwh,conversionEfficiency=personal.ev.conversion.eff)]
+#  to.plot.fleet[is.na(batteryCapacity)&grepl('bb',b,fixed=TRUE),':='(batteryCapacity=bikebatteryCapacity,conversionEfficiency=bikeconversionEfficiency)]
+  names(to.plot.fleet)[names(to.plot.fleet)=='bikebatteryCapacity'] <- 'batteryCapacity'
+  names(to.plot.fleet)[names(to.plot.fleet)=='bikeconversionEfficiency'] <- 'conversionEfficiency'
+  
+  factor.utilization.prepped <- prepData.factor.utilization(param.names,run.params,inputs,all.inputs,to.plot.fleet,vehs,n.days.in.run)
+  
+#  factor.chargers.prepped <- prepData.factor.chargers(param.names,run.params,all.inputs,by.r,by.r.trck)
+  
+  to.plot.chargers <- merge(x=by.r,y=run.params,by='run')
+  to.plot.chargers <- to.plot.chargers[group=='Chargers',.(value=sum(bikenumChargers)),by=c('run',param.names,'bl')]
+  to.plot.chargers[,level.kw:=as.numeric(substr(bl,2,nchar(bl)))]
+  to.plot.chargers[,variable:=pp('bike_Chgr_',ifelse(level.kw<=20,'AC','DC'))]
+  
+  
+  to.plot.chargers[,l:=ifelse(grepl('bike',variable,fixed=TRUE),paste0('bike',str_pad(trunc(level.kw),4,pad='0')),l)]
+  to.plot.chargers <- to.plot.chargers[,.(value=sum(value),l=l[1]),by=c('run','variable',param.names)]
+  to.plot.chargers[,metric:='# Chargers']
+  to.plot.chargers[is.na(l),l:=variable]
+  to.plot.chargers[,l.ordered:=ifelse(substr(l,1,1)=='b',pp('a',l),l)]
+  to.plot.chargers[,col:=getPalette(l)[match(l.ordered,u(l.ordered))]]
+  
+  
+  #factor.charging.prepped <- prepData.factor.charging(param.names,run.params,veh.ch,trck.ch,personal.ev.ch,inputs)
+  to.plot.ch <- merge(x=veh.ch,y=run.params,by='run')
+  to.plot.ch <- join.on(to.plot.ch,to.plot.ch[,.(gw=sum(gw.charging,na.rm=T)),by=c('run','t')][,.(peak.t=t[which.max(gw)]),by='run'],'run','run')
+  #to.plot.ch[is.na(l),l:=bl]
+  names(to.plot.ch)[names(to.plot.ch)=='bl'] <- 'l'
+  
+  to.plot.peak.ch <- to.plot.ch[t==peak.t,.(value=sum(gw.charging,na.rm=T)),by=c('run','l',param.names)]
+  to.plot.peak.ch[,level.kw:=ifelse(grepl('bL',l,fixed=TRUE),as.numeric(substr(l,3,nchar(l))),as.numeric(substr(l,2,nchar(l))))]
+  to.plot.peak.ch[,variable:=ifelse(grepl('bL',l,fixed=TRUE),'bike_Load_DC',pp('SAEV_Load_',ifelse(level.kw<=20,'AC','DC')))]
+  to.plot.peak.ch <- to.plot.peak.ch[,.(value=sum(value),l=l[1],level.kw=level.kw[1]),by=c('run',param.names,'variable')]
+  to.plot.peak.ch[,metric:='Peak Load']
+  to.plot.peak.ch[,l.ordered:=ifelse(substr(l,1,1)=='b',pp('a',l),l)]
+  to.plot.peak.ch[,col:=getPalette(l)[match(l.ordered,u(l.ordered))]]
+  
+  to.plot.ch.agg <- to.plot.ch[,.(gwh=sum(gw.charging,na.rm=T)),by=c('run',param.names,'charger.level','l','t')]
+#  to.plot.ch.agg <- disag.the.private.load(to.plot.ch.agg,inputs$parameters$personalEVUnmanagedLoads)
+  to.plot.ch.agg[,l.ordered:=ifelse(substr(l,1,1)=='b',pp('a',l),l)]
+  to.plot.ch.agg[,col:=getPalette(l)[match(l.ordered,u(l.ordered))]]
+  the.ch.cols <- to.plot.ch.agg$col
+  names(the.ch.cols) <- to.plot.ch.agg$charger.level
+  
+  
+#  factor.costs.prepped <- prepData.factor.costs(param.names,run.params,inputs,factor.chargers.prepped$personal.chargers,costs,factor.fleets.prepped$personal.evs,vmt.by.region,n.days.in.run)
+
+  
+  costs[,biketotalFleetCost:=bikefleetCost]
+  costs[,totalEnergyCost:=demandChargeCost/n.days.in.run+energyCost/n.days.in.run]
+  to.plot.cost <- merge(x=costs,y=run.params,by='run')
+  to.plot.cost <- data.table(melt(to.plot.cost,measure.vars=c('biketotalFleetCost','bikeinfrastructureCost'),id.vars=c('run',param.names)))[,.(value=sum(value)),by=c('variable','run',param.names)]
+  to.plot.cost[,max.value:=max(to.plot.cost[,.(val=sum(value)),by='run']$val)]
+  to.plot.cost[,metric:='Cost']
+  to.plot.cost[,variable.short:=variable]
+  to.plot.cost[,value:=value*weekday.to.year.factor]
+  cost.key <- data.table(variable=c('bikeinfrastructureCost','biketotalFleetCost'),cost.key=c('bike Infrastructure','bike Fleet'))
+  to.plot.cost <- join.on(to.plot.cost,cost.key,'variable.short','variable')
+  to.plot.cost[,variable:=pp('Cost: ',cost.key)]
+  to.plot.cost[,col:=getPalette(variable.short)[match(variable.short,u(variable.short))]]
+  to.plot.cost.per.pass.mile <- join.on(copy(to.plot.cost),vmt.by.region[,.(daily.pmt=sum(daily.pmt)),by='run'],'run','run')
+  to.plot.cost.per.pass.mile[,metric:='Cost_per_Passenger_Mile']
+  to.plot.cost.per.pass.mile[,value:=value/(daily.pmt*weekday.to.year.factor)]
+  to.plot.cost.per.capita <- copy(to.plot.cost)
+  to.plot.cost.per.capita[,metric:='Cost_per_Capita']
+  to.plot.cost.per.capita[,value:=value/330e6] # 2020 US Population
+  
+  
+#  factor.emissions.prepped <- prepData.factor.emissions(param.names,run.params,vmt.by.region,vmt.by.region.trck,res,geners,factor.fleets.prepped$to.plot.fleet,n.days.in.run)
+  dailyDiscount <- discountRate/365
+  bike.lifetimes <- vmt.by.region[,.(vehicleLifetime=bikevehicleLifetime[1],batteryLifetime=bikebatteryLifetime[1]),by=c('run','bb')]
+  bike.lifetimes[,veh.amort.ratio:=dailyDiscount*(1+dailyDiscount)^(vehicleLifetime*365) / ((1+dailyDiscount)^(vehicleLifetime*365) - 1)]
+  bike.lifetimes[,batt.amort.ratio:=dailyDiscount*(1+dailyDiscount)^(batteryLifetime*365) / ((1+dailyDiscount)^(batteryLifetime*365) - 1)]
+  names(bike.lifetimes)[names(bike.lifetimes)=='bb'] <- 'b'
+  if(is.character(res[['g-t']]$g[1]))res[['g-t']][,g:=as.numeric(g)]
+  if(is.character(geners$g[1]))geners[,g:=as.numeric(g)]
+  
+
+  
+  all.lifetimes <- bike.lifetimes
+  
+  to.plot.em <- join.on(res[['g-t']],geners,'g','g')[!Simplified%in%c('Solar','Wind','Hydro','Pumps','Nuclear','Geothermal')]
+  to.plot.em[is.na(Simplified) | Simplified=='Biomass',Simplified:='Other']
+  to.plot.em <- to.plot.em[,list(emissions=sum(generationCO2*generation),base.emissions=sum(generationCO2*base.generation)),by=c('run','Simplified')]
+  to.plot.em[,value:=(emissions-base.emissions)/n.days.in.run]
+  
+  privateVehicleLifetime <- 11*365
+  privateBatteryLifetime <- privateVehicleLifetime
+  veh.manuf.em <- to.plot.fleet[,.(n=sum(value),batteryCapacity=batteryCapacity[1]),by=c('run','b')]
+  veh.manuf.em <- join.on(veh.manuf.em,all.lifetimes,c('run','b'),c('run','b'))
+  veh.manuf.em[is.na(vehicleLifetime),':='(vehicleLifetime=privateVehicleLifetime/365,batteryLifetime=privateBatteryLifetime/365,veh.amort.ratio=dailyDiscount*(1+dailyDiscount)^(privateVehicleLifetime) / ((1+dailyDiscount)^(privateVehicleLifetime) - 1),batt.amort.ratio=dailyDiscount*(1+dailyDiscount)^(privateBatteryLifetime) / ((1+dailyDiscount)^(privateBatteryLifetime) - 1))]
+  veh.manuf.em[,value:=n*7.1*veh.amort.ratio+n*0.11*batteryCapacity*batt.amort.ratio] # 7.1 and 0.11 are tons per vehicle
+  veh.manuf.em[,Simplified:='Vehicle Manufacture']
+  to.plot.em <- rbindlist(list(to.plot.em,veh.manuf.em[,.(value=sum(value)),by=c('Simplified','run')]),use.names=T,fill=T)
+  to.plot.em[,value:=value*weekday.to.year.factor]
+  #to.plot.em<- to.plot.em[complete.cases(to.plot.em),]
+  to.plot.em[,metric:='Emissions']
+  to.plot.em[,variable:=factor(as.character(Simplified))]
+  to.plot.em <- join.on(to.plot.em,run.params,'run','run')
+  to.plot.em[,col:=getPalette(variable)[match(variable,u(variable))]]
+  to.plot.em.per.pass.mile <- join.on(copy(to.plot.em),vmt.by.region[,.(daily.pmt=sum(daily.pmt)),by='run'],'run','run')
+  to.plot.em.per.pass.mile[,metric:='Emissions_per_Passenger_Mile']
+  to.plot.em.per.pass.mile[,value:=value/(daily.pmt*weekday.to.year.factor)]
+  to.plot.em.per.capita <- copy(to.plot.em)
+  to.plot.em.per.capita[,metric:='Emissions_per_Capita']
+  to.plot.em.per.capita[,value:=value/330e6] # 2020 US Population
+  
+  
+  
+    
+  metric.units <- data.table(metric=c('Fleet Size','# Chargers','Peak Load','Emissions','Emissions_per_Passenger_Mile','Emissions_per_Capita','Cost','Cost_per_Passenger_Mile','Cost_per_Capita','SAEV_Utilization','HDV_Utilization','Person_Trips_per_SAEV'),
+                             scale.factor=c(1e6,1e6,1,1e6,1e-6,1,1e9,1,1,1,1,1),
+                             label=c('Millions of Vehicles','Millions of Chargers','Peak Load (GW)','Emissions (Million Tonnes CO2eq)','Emissions (grams CO2eq per Passenger-Mile)','Emissions (Tonnes CO2eq per Capita)','Cost (Billions of $)','Cost ($ per Passenger-Mile)','Cost ($ per Capita)','Vehicle-Hours per Day','Vehicle-Hours per Day','Person-trips per SAEV per Day'))
+  factor.labels <- c('fractionSAEVs'='Fraction SAEVs in Fleet','fractionSmartCharging'='Fraction Smart Charging in Private Fleet','renewableScalingFactor'='Solar & Wind Capacity Scaling Factor')
+  for(param.name in param.names){
+    if(!param.name %in% names(factor.labels)){
+      factor.labels <- c(factor.labels,streval(pp("c('",param.name,"'='",param.name,"')")))
+    }
+  }
+  
+  all <- rbindlist(list(to.plot.fleet,to.plot.chargers,to.plot.peak.ch,to.plot.em,to.plot.em.per.pass.mile,to.plot.em.per.capita,to.plot.cost,to.plot.cost.per.pass.mile,to.plot.cost.per.capita,factor.utilization.prepped$to.plot.saev.hours,factor.utilization.prepped$to.plot.trips.per.saev),fill=T)
+  all[,metric:=factor(metric,levels = c('Fleet Size','# Chargers','Peak Load','Cost','Emissions','Emissions_per_Passenger_Mile','Emissions_per_Capita','Cost_per_Passenger_Mile','Cost_per_Capita','SAEV_Utilization','Person_Trips_per_SAEV'))]
+  the.cols <- all$col
+  names(the.cols) <- all$variable
+  
+  return(list('metric.units'=metric.units,'factor.labels'=factor.labels,'all'=all,'the.cols'=the.cols,'to.plot.ch.agg'=to.plot.ch.agg,'the.ch.cols'=the.ch.cols))
+}
+
 
 prepData.factor.fleets <- function(param.names,run.params,all.inputs,by.r,by.r.trck,res) {
 	personal.ev.conversion.eff <- 0.325
@@ -840,6 +1052,120 @@ plot.heavyduty.fleetDetails <- function(run.i,plots.dir,by.r) {
 	}
 }
 
+plot.bike.all <- function(run.i,plots.dir,vehs,exper,all.inputs,veh.ch,en,by.r,day.axis.breaks) {
+  plot.bike.numberOfVehicles(run.i,plots.dir,vehs,day.axis.breaks)
+  plot.bike.charging(run.i,plots.dir,exper,all.inputs,veh.ch)
+  plot.bike.energyBalance(run.i,plots.dir,en)
+  plot.bike.fleetDetails(run.i,plots.dir,by.r)
+}
+
+plot.bike.numberOfVehicles <- function(run.i,plots.dir,vehs,day.axis.breaks) {
+  to.plot <- data.table(melt(vehs[run==run.i],id.vars=c('bb','t','rmob','run')))
+  to.plot[,variable.simp:=ifelse(grepl('bikevehiclesCharging',variable),pp('Charging: SAEV ',substr(bb,3,7),'mi'),ifelse(variable=='bikevehiclesIdle',pp('Idle: SAEV ',substr(bb,3,7),'mi'),pp('Moving: SAEV ',substr(bb,3,7),'mi')))]
+  to.remove <- to.plot[,sum(value),by='variable.simp'][V1<1e-4]$variable.simp
+  to.plot <- to.plot[!variable.simp%in%to.remove]
+  to.plot[,variable.simp:=factor(variable.simp,c(rev(u(to.plot$variable.simp))))]
+  if(nrow(to.plot)>0){
+    setkey(to.plot,variable.simp)
+    p<-ggplot(to.plot[,.(value=sum(value)),by=c('t','variable.simp')],aes(x=t,y=value/1000,fill=variable.simp))+
+      geom_area()+
+      xlab('Hour')+
+      ylab('Number of bikes (thousands)')+
+      scale_fill_manual(name = 'bike activity',values = getPalette(to.plot$variable.simp),guide=guide_legend(reverse=F))+
+      scale_x_continuous(breaks=day.axis.breaks)+
+      theme_bw()
+    pdf.scale <- 1
+    ggsave(pp(plots.dir,'/run-',run.i,'/_bd_num-vehs-simple-2.pdf'),p,width=10*pdf.scale,height=5*pdf.scale,units='in')
+    
+    to.plot[,variable.simp:=ifelse(grepl('vehiclesCharging',variable),'Charging',ifelse(variable=='vehiclesIdle','Idle','Moving'))]
+    to.plot[,variable.simp:=factor(variable.simp,c('Idle','Moving','Charging'))]
+    setkey(to.plot,variable.simp)
+    p <- ggplot(to.plot,aes(x=t,y=value/1000,fill=variable.simp))+
+      geom_area()+
+      xlab('Hour')+
+      ylab('Number of bikes (thousands)')+
+      facet_wrap(~rmob,scales='free_y')+
+      scale_x_continuous(breaks=day.axis.breaks)+
+      scale_fill_manual(name = 'bike activity',values = getPalette(to.plot$variable.simp),guide=guide_legend(reverse=F))+
+      theme_bw()
+    ggsave(pp(plots.dir,'/run-',run.i,'/_bd_num-vehs-simple.pdf'),p,width=10*pdf.scale,height=8*pdf.scale,units='in')
+  }
+}
+
+plot.bike.charging <- function(run.i,plots.dir,exper,all.inputs,veh.ch) {
+  p <- ggplot(veh.ch[run==run.i,.(gw.charging=sum(gw.charging)),by=.(t,charger.level,rmob)],aes(x=t,y=gw.charging,fill=fct_rev(charger.level)))+
+    geom_area()+
+    facet_wrap(~rmob,scales='free_y')+
+    scale_fill_manual(values = getPalette(veh.ch$charger.level),guide=guide_legend(reverse=F))+
+    labs(x='Hour',y='Load (GW)',fill='Charger Level')+
+    theme_bw()
+  pdf.scale <- 1
+  ggsave(pp(plots.dir,'/run-',run.i,'/_bd_charging.pdf'),p,width=10*pdf.scale,height=8*pdf.scale,units='in')
+}
+
+plot.bike.energyBalance <- function(run.i,plots.dir,en) {
+  pdf.scale <- 1
+  p <- ggplot(en[run==run.i],aes(x=t,y=soc/10^6,colour=fct_rev(battery.level)))+
+    geom_line()+
+    xlab('Fleet Energy State (GWh)')+
+    ylab('Hour')+
+    facet_wrap(~rmob,scales='free_y')+
+    scale_colour_manual(name='Vehicle battery size',values = rev(getPalette(en$battery.level)),guide=guide_legend(reverse=F))+
+    theme_bw() 
+  ggsave(pp(plots.dir,'/run-',run.i,'/_bd_soc.pdf'),p,width=10*pdf.scale,height=8*pdf.scale,units='in')
+  p <- ggplot(en,aes(x=t,y=soc/10^6,fill=fct_rev(battery.level)))+
+    geom_area()+
+    xlab('Hour')+
+    ylab('Fleet Energy State (GWh)')+
+    facet_wrap(~rmob,scales='free_y')+
+    scale_fill_manual(name='Vehicle battery size',values=rev(getPalette(en$battery.level)),guide=guide_legend(reverse=F))+
+    theme_bw()
+  ggsave(pp(plots.dir,'/run-',run.i,'/_bd_soc-bar.pdf'),p,width=10*pdf.scale,height=8*pdf.scale,units='in')
+}
+
+plot.bike.fleetDetails <- function(run.i,plots.dir,by.r) {
+  pdf.scale <- 1
+  p <- ggplot(by.r[run==run.i],aes(x=rmob,y=value/1000,fill=fct_rev(var.clean)))+
+    geom_bar(stat='identity')+
+    xlab('Region')+
+    ylab('Count (thousands)')+
+    facet_wrap(~group,scales='free_y')+
+    theme_bw()+
+    theme(axis.text.x = element_text(angle = 50, hjust = 1))+
+    scale_fill_manual(name='Charger/Battery Level',values = rev(getPalette(by.r$var.clean)),guide=guide_legend(reverse=F))
+  ggsave(pp(plots.dir,'/run-',run.i,'/_bd_fleet-size-and-type.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
+  
+  to.plot <- by.r[run==run.i,.(value=value,percent=value/sum(value)*100,variable=var.clean),by=c('rmob','group')]
+  to.plot[,urb:=ifelse(grepl('RUR$',rmob),'Rural','Urban')]
+  geo.ordered <- cbind(c(sapply(c('-RUR','-URB'),function(x){ pp(c('PAC-NL','PAC-CA','MTN','WNC','WSC-NL','WSC-TX','ENC','ESC','NENG','MAT-NL','MAT-NY','SAT-NL','SAT-FL'),x) })))[,1]
+  to.plot[,rmob:=factor(rmob,geo.ordered)]
+  setkey(to.plot,rmob,variable)
+  
+  p <- ggplot(to.plot,aes(x=factor(rmob),y=percent,fill=fct_rev(variable)))+
+    geom_bar(stat='identity')+
+    xlab('Region')+
+    ylab('Percent')+
+    facet_grid(group~urb,scales='free_x', space ='free_x')+
+    theme_bw()+
+    theme(axis.text.x = element_text(angle = 50, hjust = 1))+
+    scale_fill_manual(name='Charger/Battery Level',values = rev(getPalette(to.plot$variable)),guide=guide_legend(reverse=F))
+  ggsave(pp(plots.dir,'/run-',run.i,'/_bd_fleet-size-and-type-percent.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
+  
+  to.remove <- to.plot[,sum(value),by='variable'][V1==0]$variable
+  to.plot <- to.plot[!variable%in%to.remove,.(value=sum(value)/1e6,percent=value/sum(value)*100),by=c('group','variable','urb')]
+  
+  if(nrow(to.plot)>0){
+    p <- ggplot(to.plot,aes(x=urb,y=value,fill=variable))+
+      geom_bar(stat='identity')+
+      xlab('Regional Type')+
+      ylab('Count in Millions')+
+      facet_wrap(~group,scales='free_y')+ 
+      theme_bw()+
+      scale_fill_manual(name='Charger/Battery Level',values = getPalette(to.plot$variable),guide=guide_legend(reverse=F))
+    ggsave(pp(plots.dir,'/run-',run.i,'/_bd_fleet-size-and-type-agg.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
+  }
+}
+
 make.1d.fleet.and.chargers.plot <- function(sub,code,freeCol,sub.dir,energy.by.r.l){
 	print(sub)
 	print(freeCol)
@@ -951,6 +1277,39 @@ make.1d.plots <- function(plots.dir,all,res,by.r,the.cols,factor.labels,metric.u
 			}
 		}
 	}
+}
+
+make.1d.plots.bike <- function(plots.dir,all,res,by.r,the.cols,factor.labels,metric.units,to.plot.ch.agg,the.ch.cols) {
+  run.params <- copy(exper$runs)[,run:=1:.N]
+  param.names <- exper$param.names
+  
+  make.dir(pp(plots.dir,'/_metrics_1d_bike'))
+  if(length(param.names)==1){
+    make.1d.metric.plot(all,'',param.names[1],pp(plots.dir,'/_metrics_1d_bike'),the.cols,factor.labels,metric.units)
+  } else{
+    param.inds <- data.table(t(combn(length(param.names),length(param.names)-1)))
+    for(param.ind.i in 1:nrow(param.inds)) {
+      the.param.inds <- unlist(param.inds[param.ind.i])
+      param.vals <- sapply(the.param.inds,function(i){ exper$yaml$Factors[[i]]$Levels })
+      param.combs <- data.table(expand.grid(param.vals))
+      names(param.combs) <- param.names[the.param.inds]
+      the.free.col <- param.names[(1:length(param.names))[!(1:length(param.names)%in%the.param.inds)]]
+      for(comb.i in 1:nrow(param.combs)) {
+        code <- pp(param.names[the.param.inds],unlist(param.combs[comb.i]),collapse='_')
+        my.cat(pp('Fixing levels to: ',code))
+        all.sub <- streval(pp('all[',pp(param.names[the.param.inds],'==',unlist(param.combs[comb.i]),collapse=' & '),']'))
+        make.1d.metric.plot(all.sub,code,the.free.col,pp(plots.dir,'/_metrics_1d_bike/',code),the.cols,factor.labels,metric.units)
+        ch.sub <- streval(pp('to.plot.ch.agg[',pp(param.names[the.param.inds],'==',unlist(param.combs[comb.i]),collapse=' & '),']'))
+        make.1d.charging.plot(ch.sub,code,the.free.col,pp(plots.dir,'/_metrics_1d_bike/',code),factor.labels,the.ch.cols)
+        by.r.sub <- streval(pp('by.r[',pp(param.names[the.param.inds],'==',unlist(param.combs[comb.i]),collapse=' & '),']'))
+        by.r.sub <- join.on(by.r.sub,res[['d-rmob-t']][,.(totalSAEVTrips=sum(demand,na.rm=T)),by=c('run','rmob')],c('run','rmob'),c('run','rmob'))
+        energy.by.r.l <- res[['b-l-rmob-t']][run%in%u(by.r.sub$run),.(energyCharged=sum(energyCharged)),by=c('run','l','rmob')]
+        if(sum(by.r.sub$value)>0&param.names[the.param.inds]%in%names(by.r.sub)) {
+          make.1d.fleet.and.chargers.plot(by.r.sub,code,the.free.col,pp(plots.dir,'/_metrics_1d_bike/',code),energy.by.r.l)
+        }
+      }
+    }
+  }
 }
 
 make.2d.plots <- function(all,to.plot.ch.agg,the.cols,the.ch.cols) {

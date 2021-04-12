@@ -26,6 +26,10 @@ set
 	tb                                truck battery capacity /tb0250,tb0400,tb0500,tb0750,tb1000/
 	td                                truck travel distance
 	tl                                truck charger level /tL0050,tL0100,tL0250,tL0500,tL1000/
+
+	bb                                bike battery capacity /bb40/
+	bd                                bike travel distance
+	bl                                bike charger level /bL1/
 ;
 
 alias (t,tp);
@@ -108,7 +112,7 @@ parameters
 *	                                                   tL1000 3350/ 	
 	truckvehicleLifetime(tb,rmob)			  years
 	truckbatteryLifetime(tb,rmob)			  years
-
+        truckbatteryCapitalCost(tb)
         truckbatteryCapacity(tb)                    /tb0250 500
                                                     tb0400 800
                                                     tb0500 1000
@@ -116,6 +120,26 @@ parameters
                                                     tb1000 2000/
 
 
+	bikedemand(t,bd,rmob)			Demand by distance type time and region
+	bikechargerPower(bl)				kW per charger 
+	bikechargeRelocationRatio(rmob)		increase in energy consumption due to charging relocation
+        bikechargeRelocationCorrection(bb,bl,rmob)	decrease in charger power due to relocation
+	bikefleetRatio(rmob)			ratio of optimal to actual fleet size
+	bikebatteryRatio(rmob)			ratio of optimal to actual battery range
+        bikedistCorrection(rmob)			one + distance dead head ratio
+	biketimeCorrection(rmob)			one + time dead head ratio
+*	sharingFactor				Avg person per vehicle trip 
+	bikechargerDistributionFactor(bl)		increased chargers needed to serve vehs 
+	bikeconversionEfficiency(bb) 		kwh per mile									   
+	biketravelDistance(bd,rmob)				avg miles per passenger 
+	bspeed(t,bd,rmob)
+	bikedemandCharge(rmob) 				USD per kW month
+
+	bikechargerCapitalCost(bl)
+	bikevehicleLifetime(bb,rmob)			  years
+	bikebatteryLifetime(bb,rmob)			  years
+        bikebatteryCapitalCost(bb)
+        bikebatteryCapacity(bb)                    /bb40 100/
 ;
 
 scalar
@@ -138,7 +162,18 @@ scalar
 	truckchargerLifetime
         truckvehicleCapitalCost
         trucksharingFactor
-        truckbatteryCapitalCost
+
+
+        bikechargerVariableCost		O&M cost per kW per day /0/
+			
+	bikevehiclePerYearCosts		USD for insurance /0/
+	bikevehiclePerMileCosts		USD for insurance & maint /0/
+	bikedailyVehicleCost 		amortized cap /0/
+	bikedailyBatteryCost 		amortized cap per kWh /0/
+	bikechargerLifetime
+        bikevehicleCapitalCost
+        bikesharingFactor
+        bikechargercost                  Bike charger cost per vehicle /10/
 ;
 
 
@@ -159,7 +194,6 @@ positive variable
 	numChargers(l,rmob) 			Total no. infrastructure
 	infrastructureCost(rmob) 		Total daily infrastructure cost
 	fleetCost(rmob) 				Total daily fleet cost
-	truckfleetCost(rmob)			Total daily truck fleet cost
 	demandAllocated(t,b,d,rmob) 	Demand as allocated by battery type
 	generation(g,t)					Power generation by each generator
 	trans(r,t,o)					Power transmission between regions
@@ -179,11 +213,25 @@ positive variable
 	truckfleetCost(rmob) 				Total daily fleet cost
 	truckdemandAllocated(t,tb,td,rmob) 	Demand as allocated by battery type
 
-;
 
+        bikeenergyCharged(t,bb,bl,rmob) 		Nominal energy charged kWh (before adjustment by chargeRelocationCorrection)
+	bikeenergyConsumed(t,bb,bd,rmob) 		Energy consumed kWh
+	bikedemandChargeCost(t,rmob) 		Cost USD
+	bikevehicleMaintCost(t,rmob) 		Cost USD
+	bikefleetSize(bb,rmob) 				Total no. in fleet
+	bikevehiclesCharging(t,bb,bl,rmob) 	No. charging
+	bikevehiclesMoving(t,bb,bd,rmob) 		No. serving mobility
+	bikevehiclesIdle(t,bb,rmob)			No. parked
+	bikenumChargers(bl,rmob) 			Total no. infrastructure
+	bikeinfrastructureCost(rmob) 		Total daily infrastructure cost
+	bikefleetCost(rmob) 				Total daily fleet cost
+	bikedemandAllocated(t,bb,bd,rmob) 	Demand as allocated by battery type
+;
 
 $gdxin <<gdxName>>
 $load d r rmob l t td g gtor rmobtor demand truckconversionEfficiency trucksharingFactor truckvehicleCapitalCost truckchargerLifetime truckbatteryCapitalCost truckchargerCapitalCost speed sharingFactor travelDistance demandCharge chargerPower chargerCapitalCost chargerDistributionFactor conversionEfficiency solar wind hydro genCost demandLoad maxGen maxSolar maxWind transCap transCost personalEVChargeEnergyLB personalEVChargeEnergyUB personalEVChargePowerLB personalEVChargePowerUB distCorrection timeCorrection chargeRelocationRatio chargeRelocationCorrection fleetRatio batteryRatio vehicleLifetime batteryLifetime batteryCapitalCost vehicleCapitalCost discountRate chargerLifetime truckdemand truckchargerPower truckchargeRelocationRatio truckchargeRelocationCorrection truckfleetRatio truckbatteryRatio truckdistCorrection trucktimeCorrection truckchargerDistributionFactor trucktravelDistance tspeed truckdemandCharge truckvehicleLifetime truckbatteryLifetime
+$load bd bikedemand bikechargerPower bikechargeRelocationRatio bikechargeRelocationCorrection bikefleetRatio bikebatteryRatio bikedistCorrection biketimeCorrection bikechargerDistributionFactor bikeconversionEfficiency biketravelDistance bspeed bikedemandCharge bikechargerCapitalCost bikevehicleLifetime bikebatteryLifetime bikebatteryCapitalCost bikechargerLifetime bikevehicleCapitalCost bikesharingFactor
+
 $gdxin
 
 display
@@ -202,7 +250,6 @@ equations
 	obj 				Objective Function
 	cDemandChargeCost 		Cost equality
 	cVehicleMaintCost 		Cost equality
-	cTruckMaintCost			Cost equality
 	cDemandAllocation 		Our allocated demand must meet the exogenous value
 	cEnergyToMeetDemand		Mobility demand function
 	cChargingUpperBound		Cannot charge more than has been consumed
@@ -214,9 +261,7 @@ equations
 	cNumMoving 			Vehicles to serve demand
 	cFleetDispatch 			Fleet dispatch
 	cInfrastructureCost		Infrastructure cost
-	cTruckInfrastructureCost	Truck Infrastructure cost
 	cFleetCost			Fleet cost
-	cTruckFleetCost		Truck Fleet cost
 	cMaxDemand 			Inequality to capture max demand for a day
 	cGeneration			Generation must equal load
 	cMaxSolar			Solar generation cannot exceed sun supply
@@ -227,7 +272,9 @@ equations
 	cPersonalEVChargePowerLB
 	cPersonalEVChargePowerUB
 
-
+	cTruckFleetCost		Truck Fleet cost
+	cTruckInfrastructureCost	Truck Infrastructure cost
+	cTruckMaintCost			Cost equality
 	cTruckDemandAllocation 		Our allocated demand must meet the exogenous value
 	cTruckEnergyToMeetDemand		Mobility demand function
 	cTruckChargingUpperBound		Cannot charge more than has been consumed
@@ -237,12 +284,27 @@ equations
 	cTruckNumCharging 			Num veh charging proportional to energy delivered
 	cTruckMaxCharging 			Charging infrastructure limit
 	cTruckNumMoving 			Vehicles to serve demand
-	cTruckFleetDispatch 			Fleet dispatch	
+	cTruckFleetDispatch 			Fleet dispatch
+
+
+	cBikeFleetCost		Truck Fleet cost
+	cBikeInfrastructureCost	Truck Infrastructure cost
+	cBikeMaintCost			Cost equality
+	cBikeDemandAllocation 		Our allocated demand must meet the exogenous value
+	cBikeEnergyToMeetDemand		Mobility demand function
+	cBikeChargingUpperBound		Cannot charge more than has been consumed
+	cBikeChargingLowerBound		Cannot consume more than bat cap of fleet must charge to keep up
+	cBikeNoChargeAtStart 		First hour no charging
+	cBikeTerminalSOC			End the day with same energy in batteries as beginning
+	cBikeNumCharging 			Num veh charging proportional to energy delivered
+	cBikeMaxCharging 			Charging infrastructure limit
+	cBikeNumMoving 			Vehicles to serve demand
+	cBikeFleetDispatch 			Fleet dispatch		
 ;
 
 
 obj..
-	systemCost =e= sum(rmob,sum(t,demandChargeCost(t,rmob)+vehicleMaintCost(t,rmob)+truckvehicleMaintCost(t,rmob))+card(t)/24*(infrastructureCost(rmob)+truckinfrastructureCost(rmob))+card(t)/24*fleetCost(rmob)+card(t)/24*truckfleetCost(rmob))+sum((g,t),generation(g,t)*genCost(g))+sum((r,t,o),trans(r,t,o)*transCost(r,o));
+	systemCost =e= sum(rmob,sum(t,demandChargeCost(t,rmob)+vehicleMaintCost(t,rmob)+truckvehicleMaintCost(t,rmob)+bikevehicleMaintCost(t,rmob))+card(t)/24*infrastructureCost(rmob)+card(t)/24*truckinfrastructureCost(rmob)+card(t)/24*bikeinfrastructureCost(rmob)+card(t)/24*fleetCost(rmob)+card(t)/24*truckfleetCost(rmob)+card(t)/24*bikefleetCost(rmob))+sum((g,t),generation(g,t)*genCost(g))+sum((r,t,o),trans(r,t,o)*transCost(r,o));
 
 cDemandChargeCost(t,rmob)..
 	demandChargeCost(t,rmob) - maxDemand(rmob)*demandCharge(rmob)/30.4/24 =e= 0;
@@ -253,17 +315,26 @@ cVehicleMaintCost(t,rmob)..
 cTruckMaintCost(t,rmob)..
 	truckvehicleMaintCost(t,rmob) - truckvehiclePerMileCosts*sum((tb,td),truckvehiclesMoving(t,tb,td,rmob)*tspeed(t,td,rmob)) =e= 0;
 
+cBikeMaintCost(t,rmob)..
+	bikevehicleMaintCost(t,rmob) - bikevehiclePerMileCosts*sum((bb,bd),bikevehiclesMoving(t,bb,bd,rmob)*bspeed(t,bd,rmob)) =e= 0;
+
 cInfrastructureCost(rmob)..
 	infrastructureCost(rmob) - sum(l,numChargers(l,rmob)*(chargerCapitalCost(l) * dailyDiscountRate * (1 + dailyDiscountRate)**(chargerLifetime*365) / ((1 +  dailyDiscountRate)**(chargerLifetime*365) - 1))*chargerDistributionFactor(l)*chargerPower(l)) =e= 0;
 
 cTruckInfrastructureCost(rmob)..
 	truckinfrastructureCost(rmob) - sum(tl,trucknumChargers(tl,rmob)*(truckchargerCapitalCost(tl) * dailyDiscountRate * (1 + dailyDiscountRate)**(truckchargerLifetime*365) / ((1 +  dailyDiscountRate)**(truckchargerLifetime*365) - 1))*truckchargerDistributionFactor(tl)*truckchargerPower(tl)) =e= 0;
 
+cBikeInfrastructureCost(rmob)..
+	bikeinfrastructureCost(rmob) - sum(bb,bikefleetSize(bb,rmob))*bikechargercost =e= 0;
+
 cFleetCost(rmob)..
     sum(b,fleetCost(rmob) * ((1 + dailyDiscountRate)**(vehicleLifetime(b,rmob)*365) - 1) * ((1 +  dailyDiscountRate)**(batteryLifetime(b,rmob)*365) - 1)) - sum(b,fleetSize(b,rmob) * fleetRatio(rmob) * (vehiclePerYearCosts / 365 * ((1 +  dailyDiscountRate)**(vehicleLifetime(b,rmob)*365) - 1) + vehicleCapitalCost * dailyDiscountRate * (1 + dailyDiscountRate)**(vehicleLifetime(b,rmob)*365)) * ((1 +  dailyDiscountRate)**(batteryLifetime(b,rmob)*365) - 1)) + sum(b,batteryRatio(rmob) * batteryCapacity(b) * batteryCapitalCost * dailyDiscountRate * (1 + dailyDiscountRate)**(batteryLifetime(b,rmob)*365) * ((1 +  dailyDiscountRate)**(vehicleLifetime(b,rmob)*365) - 1)) =e= 0;
 
 cTruckFleetCost(rmob)..
-	sum(tb,truckfleetCost(rmob) * ((1 + dailyDiscountRate)**(truckvehicleLifetime(tb,rmob)*365) - 1) * ((1 +  dailyDiscountRate)**(truckbatteryLifetime(tb,rmob)*365) - 1)) - sum(tb,truckfleetSize(tb,rmob) * truckfleetRatio(rmob) * (truckvehiclePerYearCosts / 365 * ((1 +  dailyDiscountRate)**(truckvehicleLifetime(tb,rmob)*365) - 1) + truckvehicleCapitalCost * dailyDiscountRate * (1 + dailyDiscountRate)**(truckvehicleLifetime(tb,rmob)*365)) * ((1 + dailyDiscountRate)**(truckbatteryLifetime(tb,rmob)*365) - 1)) + sum(tb,truckbatteryRatio(rmob) * truckbatteryCapacity(tb) * truckbatteryCapitalCost * dailyDiscountRate * (1 + dailyDiscountRate)**(truckbatteryLifetime(tb,rmob)*365) * ((1 + dailyDiscountRate)**(truckvehicleLifetime(tb,rmob)*365) - 1))  =e= 0;
+	sum(tb,truckfleetCost(rmob) * ((1 + dailyDiscountRate)**(truckvehicleLifetime(tb,rmob)*365) - 1) * ((1 +  dailyDiscountRate)**(truckbatteryLifetime(tb,rmob)*365) - 1)) - sum(tb,truckfleetSize(tb,rmob) * truckfleetRatio(rmob) * (truckvehiclePerYearCosts / 365 * ((1 +  dailyDiscountRate)**(truckvehicleLifetime(tb,rmob)*365) - 1) + truckvehicleCapitalCost * dailyDiscountRate * (1 + dailyDiscountRate)**(truckvehicleLifetime(tb,rmob)*365)) * ((1 + dailyDiscountRate)**(truckbatteryLifetime(tb,rmob)*365) - 1)) + sum(tb,truckbatteryRatio(rmob) * truckbatteryCapacity(tb) * truckbatteryCapitalCost(tb) * dailyDiscountRate * (1 + dailyDiscountRate)**(truckbatteryLifetime(tb,rmob)*365) * ((1 + dailyDiscountRate)**(truckvehicleLifetime(tb,rmob)*365) - 1))  =e= 0;
+
+cBikeFleetCost(rmob)..
+	sum(bb,bikefleetCost(rmob) * ((1 + dailyDiscountRate)**(bikevehicleLifetime(bb,rmob)*365) - 1) * ((1 +  dailyDiscountRate)**(bikebatteryLifetime(bb,rmob)*365) - 1)) - sum(bb,bikefleetSize(bb,rmob) * bikefleetRatio(rmob) * (bikevehiclePerYearCosts / 365 * ((1 +  dailyDiscountRate)**(bikevehicleLifetime(bb,rmob)*365) - 1) + bikevehicleCapitalCost * dailyDiscountRate * (1 + dailyDiscountRate)**(bikevehicleLifetime(bb,rmob)*365)) * ((1 + dailyDiscountRate)**(bikebatteryLifetime(bb,rmob)*365) - 1)) + sum(bb,bikebatteryRatio(rmob) * bikebatteryCapacity(bb) * bikebatteryCapitalCost(bb) * dailyDiscountRate * (1 + dailyDiscountRate)**(bikebatteryLifetime(bb,rmob)*365) * ((1 + dailyDiscountRate)**(bikevehicleLifetime(bb,rmob)*365) - 1))  =e= 0;
 
 cDemandAllocation(t,d,rmob)..
 	demand(t,d,rmob) - sum(b,demandAllocated(t,b,d,rmob)) =e= 0;
@@ -271,11 +342,17 @@ cDemandAllocation(t,d,rmob)..
 cTruckDemandAllocation(t,td,rmob)..
 	truckdemand(t,td,rmob) - sum(tb,truckdemandAllocated(t,tb,td,rmob)) =e= 0;
 
+cBikeDemandAllocation(t,bd,rmob)..
+	bikedemand(t,bd,rmob) - sum(bb,bikedemandAllocated(t,bb,bd,rmob)) =e= 0;	
+
 cEnergyToMeetDemand(t,b,d,rmob)..
 	energyConsumed(t,b,d,rmob) / chargeRelocationRatio(rmob) * sharingFactor / (distCorrection(rmob) * conversionEfficiency(b) * travelDistance(d,rmob)) - demandAllocated(t,b,d,rmob) =e= 0;
 
 cTruckEnergyToMeetDemand(t,tb,td,rmob)..
 	truckenergyConsumed(t,tb,td,rmob)  * trucksharingFactor   -  truckchargeRelocationRatio(rmob)* truckdemandAllocated(t,tb,td,rmob)* (truckdistCorrection(rmob)*truckconversionEfficiency(tb) * trucktravelDistance(td,rmob)) =e= 0;
+
+cBikeEnergyToMeetDemand(t,bb,bd,rmob)..
+	bikeenergyConsumed(t,bb,bd,rmob)  * bikesharingFactor   -  bikechargeRelocationRatio(rmob)*bikedemandAllocated(t,bb,bd,rmob)* (bikedistCorrection(rmob)*bikeconversionEfficiency(bb) * biketravelDistance(bd,rmob)) =e= 0;
 
 cNumMoving(t,b,d,rmob)..
 	demandAllocated(t,b,d,rmob) * travelDistance(d,rmob) * timeCorrection(rmob) - vehiclesMoving(t,b,d,rmob) * sharingFactor * deltaT * speed(t,d,rmob) =e= 0;
@@ -283,11 +360,17 @@ cNumMoving(t,b,d,rmob)..
 cTruckNumMoving(t,tb,td,rmob)..
 	truckdemandAllocated(t,tb,td,rmob) * trucktravelDistance(td,rmob) * trucktimeCorrection(rmob) - truckvehiclesMoving(t,tb,td,rmob) * trucksharingFactor * deltaT * tspeed(t,td,rmob) =e= 0;
 
+cBikeNumMoving(t,bb,bd,rmob)..
+	bikedemandAllocated(t,bb,bd,rmob) * biketravelDistance(bd,rmob) * biketimeCorrection(rmob) - bikevehiclesMoving(t,bb,bd,rmob) * bikesharingFactor * deltaT * bspeed(t,bd,rmob) =e= 0;
+
 cNumCharging(t,b,l,rmob)..
 	energyCharged(t,b,l,rmob) / (chargerPower(l)*chargeRelocationCorrection(b,l,rmob)) - vehiclesCharging(t,b,l,rmob) =e= 0;
 
 cTruckNumCharging(t,tb,tl,rmob)..
 	truckenergyCharged(t,tb,tl,rmob)  - truckvehiclesCharging(t,tb,tl,rmob) * truckchargerPower(tl)*truckchargeRelocationCorrection(tb,tl,rmob) =e= 0;
+
+cBikeNumCharging(t,bb,bl,rmob)..
+	bikeenergyCharged(t,bb,bl,rmob)  - bikevehiclesCharging(t,bb,bl,rmob) * bikechargerPower(bl)*bikechargeRelocationCorrection(bb,bl,rmob) =e= 0;
 
 cChargingUpperBound(t,b,rmob)..
 	sum(tp$(ord(tp) le ord(t)),sum(d,energyConsumed(tp,b,d,rmob)))-sum(tp$(ord(tp) le ord(t)),sum(l,energyCharged(tp,b,l,rmob))) =g= 0;
@@ -301,11 +384,20 @@ cTruckChargingUpperBound(t,tb,rmob)..
 cTruckChargingLowerBound(t,tb,rmob)..
 	truckfleetSize(tb,rmob) * truckbatteryCapacity(tb) - sum(tp$(ord(tp) le ord(t)),sum(td,truckenergyConsumed(tp,tb,td,rmob)))+sum(tp$(ord(tp) lt ord(t)),sum(tl,truckenergyCharged(tp,tb,tl,rmob))) =g= 0;
 
+cBikeChargingUpperBound(t,bb,rmob)..
+	sum(tp$(ord(tp) le ord(t)),sum(bd,bikeenergyConsumed(tp,bb,bd,rmob)))-sum(tp$(ord(tp) le ord(t)),sum(bl,bikeenergyCharged(tp,bb,bl,rmob))) =g= 0;
+
+cBikeChargingLowerBound(t,bb,rmob)..
+	bikefleetSize(bb,rmob) * bikebatteryCapacity(bb) - sum(tp$(ord(tp) le ord(t)),sum(bd,bikeenergyConsumed(tp,bb,bd,rmob)))+sum(tp$(ord(tp) lt ord(t)),sum(bl,bikeenergyCharged(tp,bb,bl,rmob))) =g= 0;
+
 cNoChargeAtStart(b,l,rmob)..
 	sum(t$(ord(t) eq 1),energyCharged(t,b,l,rmob)) =e= 0;
 	
 cTruckNoChargeAtStart(tb,tl,rmob)..
 	sum(t$(ord(t) eq 1),truckenergyCharged(t,tb,tl,rmob)) =e= 0;
+
+cBikeNoChargeAtStart(bb,bl,rmob)..
+	sum(t$(ord(t) eq 1),bikeenergyCharged(t,bb,bl,rmob)) =e= 0;
 
 cTerminalSOC(b,rmob)..
 	sum(t,sum(d,energyConsumed(t,b,d,rmob)))-sum(t,sum(l,energyCharged(t,b,l,rmob))) =e= 0;
@@ -313,11 +405,17 @@ cTerminalSOC(b,rmob)..
 cTruckTerminalSOC(tb,rmob)..
 	sum(t,sum(td,truckenergyConsumed(t,tb,td,rmob)))-sum(t,sum(tl,truckenergyCharged(t,tb,tl,rmob))) =e= 0;
 
+cBikeTerminalSOC(bb,rmob)..
+	sum(t,sum(bd,bikeenergyConsumed(t,bb,bd,rmob)))-sum(t,sum(bl,bikeenergyCharged(t,bb,bl,rmob))) =e= 0;
+
 cFleetDispatch(t,b,rmob)..
 	fleetSize(b,rmob) - sum(l, vehiclesCharging(t,b,l,rmob)) - sum(d,vehiclesMoving(t,b,d,rmob)) - vehiclesIdle(t,b,rmob)  =e= 0;
 
 cTruckFleetDispatch(t,tb,rmob)..
 	truckfleetSize(tb,rmob) - sum(tl, truckvehiclesCharging(t,tb,tl,rmob)) - sum(td,truckvehiclesMoving(t,tb,td,rmob)) - truckvehiclesIdle(t,tb,rmob)  =e= 0;
+
+cBikeFleetDispatch(t,bb,rmob)..
+	bikefleetSize(bb,rmob) - sum(bl, bikevehiclesCharging(t,bb,bl,rmob)) - sum(bd,bikevehiclesMoving(t,bb,bd,rmob)) - bikevehiclesIdle(t,bb,rmob)  =e= 0;
 
 cMaxCharging(t,l,rmob)..
 	numChargers(l,rmob) - sum(b,vehiclesCharging(t,b,l,rmob)) =g= 0;
@@ -325,11 +423,14 @@ cMaxCharging(t,l,rmob)..
 cTruckMaxCharging(t,tl,rmob)..
 	trucknumChargers(tl,rmob) - sum(tb,truckvehiclesCharging(t,tb,tl,rmob)) =g= 0;
 
+cBikeMaxCharging(t,bl,rmob)..
+	bikenumChargers(bl,rmob) - sum(bb,bikevehiclesCharging(t,bb,bl,rmob)) =g= 0;
+
 cMaxDemand(t,rmob)..
-	maxDemand(rmob) - sum((b,l),energyCharged(t,b,l,rmob)) / deltaT -  sum((tb,tl),truckenergyCharged(t,tb,tl,rmob)) / deltaT - personalEVPower(t,rmob)/deltaT =g= 0;
+	maxDemand(rmob) - sum((b,l),energyCharged(t,b,l,rmob)) / deltaT -  sum((tb,tl),truckenergyCharged(t,tb,tl,rmob)) / deltaT - sum((bb,bl),bikeenergyCharged(t,bb,bl,rmob)) / deltaT - personalEVPower(t,rmob)/deltaT =g= 0;
 
 cGeneration(t,r)..
-	sum(g$gtor(g,r),generation(g,t))+(sum(o,trans(o,t,r))*transLoss-sum(p,trans(r,t,p)))-demandLoad(r,t)-sum(rmob$rmobtor(r,rmob),personalEVPower(t,rmob)/1000)-sum((b,l),sum(rmob$rmobtor(r,rmob),energyCharged(t,b,l,rmob)/1000)) - sum((tb,tl),sum(rmob$rmobtor(r,rmob),truckenergyCharged(t,tb,tl,rmob)/1000)) =g= 0;
+	sum(g$gtor(g,r),generation(g,t))+(sum(o,trans(o,t,r))*transLoss-sum(p,trans(r,t,p)))-demandLoad(r,t)-sum(rmob$rmobtor(r,rmob),personalEVPower(t,rmob)/1000)-sum((b,l),sum(rmob$rmobtor(r,rmob),energyCharged(t,b,l,rmob)/1000)) - sum((tb,tl),sum(rmob$rmobtor(r,rmob),truckenergyCharged(t,tb,tl,rmob)/1000))-sum((bb,bl),sum(rmob$rmobtor(r,rmob),bikeenergyCharged(t,bb,bl,rmob)/1000)) =g= 0;
 
 cMaxSolar(t,r)..
 	maxSolar(r,t)-sum(solar$gtor(solar,r),generation(solar,t)) =g= 0;
@@ -355,7 +456,7 @@ cPersonalEVChargeEnergyUB(t,rmob)..
 
 
 model
-	combinedModel /obj,cDemandAllocation,cDemandChargeCost,cVehicleMaintCost,cTruckMaintCost,cEnergyToMeetDemand,cChargingUpperBound,cChargingLowerBound,cNoChargeAtStart,cTerminalSOC,cNumCharging,cMaxCharging,cNumMoving,cFleetDispatch,cInfrastructureCost,cTruckInfrastructureCost,cMaxDemand,cGeneration,cMaxSolar,cMaxWind,cPersonalEVChargeEnergyLB,cPersonalEVChargeEnergyUB,cPersonalEVChargePowerLB,cPersonalEVChargePowerUB,cTruckDemandAllocation,cTruckEnergyToMeetDemand,cTruckChargingUpperBound,cTruckChargingLowerBound,cTruckNoChargeAtStart,cTruckTerminalSOC,cTruckNumCharging,cTruckMaxCharging,cTruckNumMoving,cTruckFleetDispatch,cFleetCost,cTruckFleetCost/
+	combinedModel /obj,cDemandAllocation,cDemandChargeCost,cVehicleMaintCost,cTruckMaintCost,cEnergyToMeetDemand,cChargingUpperBound,cChargingLowerBound,cNoChargeAtStart,cTerminalSOC,cNumCharging,cMaxCharging,cNumMoving,cFleetDispatch,cInfrastructureCost,cTruckInfrastructureCost,cMaxDemand,cGeneration,cMaxSolar,cMaxWind,cPersonalEVChargeEnergyLB,cPersonalEVChargeEnergyUB,cPersonalEVChargePowerLB,cPersonalEVChargePowerUB,cTruckDemandAllocation,cTruckEnergyToMeetDemand,cTruckChargingUpperBound,cTruckChargingLowerBound,cTruckNoChargeAtStart,cTruckTerminalSOC,cTruckNumCharging,cTruckMaxCharging,cTruckNumMoving,cTruckFleetDispatch,cFleetCost,cTruckFleetCost,cBikeMaintCost,cBikeInfrastructureCost,cBikeFleetCost,cBikeDemandAllocation,cBikeFleetDispatch,cBikeMaxCharging,cBikeTerminalSOC,cBikeNoChargeAtStart,cBikeChargingLowerBound,cBikeChargingUpperBound,cBikeNumCharging,cBikeNumMoving,cBikeEnergyToMeetDemand/
 *	combinedModel /obj,cDemandAllocation,cDemandChargeCost,cVehicleMaintCost,cEnergyToMeetDemand,cChargingUpperBound,cChargingLowerBound,cNoChargeAtStart,cTerminalSOC,cNumCharging,cMaxCharging,cNumMoving,cFleetDispatch,cInfrastructureCost,cFleetCost,cMaxDemand,cGeneration,cMaxSolar,cMaxWind,cPersonalEVChargeEnergyLB,cPersonalEVChargeEnergyUB,cPersonalEVChargePowerLB,cPersonalEVChargePowerUB/
 
 options

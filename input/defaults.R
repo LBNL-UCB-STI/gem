@@ -76,3 +76,20 @@ truckchargerLifetime <- 10
 truckvehicleCapitalCost <- 70000
 
 trucksharingFactor <- 1
+
+
+#### bikes ####
+bikebatteryCapitalCost <- 10
+bikechargerLifetime <- 10
+bikevehicleCapitalCost <- 1000
+bikesharingFactor <- 1 # ??
+bikeelectrificationPenetration <- 1.0 #how many trips are electrified
+bikevmtReboundFactor <- 1.0 # scales VMT in the system, imperfectly, by scaling # trips for SAEVs and energy for private charging
+bikefractionSAEVs <- 0.5
+bikecharger.levels <- 1 #kW
+bikebattery.levels <- 40 #mi
+bikebatteryCapitalCost <- 200 #usd
+bikechargerCapitalCost <- 100 #usd
+
+biketocar <- c(0.036,0.013,0.005,0.004,0.002)
+biketocarfactor <- 1
