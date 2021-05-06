@@ -173,7 +173,7 @@ scalar
 	bikechargerLifetime
         bikevehicleCapitalCost
         bikesharingFactor
-        bikechargercost                  Bike charger cost per vehicle /10/
+        bikechargercost                  Bike charger cost per charger usd 
 ;
 
 
@@ -230,7 +230,7 @@ positive variable
 
 $gdxin <<gdxName>>
 $load d r rmob l t td g gtor rmobtor demand truckconversionEfficiency trucksharingFactor truckvehicleCapitalCost truckchargerLifetime truckbatteryCapitalCost truckchargerCapitalCost speed sharingFactor travelDistance demandCharge chargerPower chargerCapitalCost chargerDistributionFactor conversionEfficiency solar wind hydro genCost demandLoad maxGen maxSolar maxWind transCap transCost personalEVChargeEnergyLB personalEVChargeEnergyUB personalEVChargePowerLB personalEVChargePowerUB distCorrection timeCorrection chargeRelocationRatio chargeRelocationCorrection fleetRatio batteryRatio vehicleLifetime batteryLifetime batteryCapitalCost vehicleCapitalCost discountRate chargerLifetime truckdemand truckchargerPower truckchargeRelocationRatio truckchargeRelocationCorrection truckfleetRatio truckbatteryRatio truckdistCorrection trucktimeCorrection truckchargerDistributionFactor trucktravelDistance tspeed truckdemandCharge truckvehicleLifetime truckbatteryLifetime
-$load bd bikedemand bikechargerPower bikechargeRelocationRatio bikechargeRelocationCorrection bikefleetRatio bikebatteryRatio bikedistCorrection biketimeCorrection bikechargerDistributionFactor bikeconversionEfficiency biketravelDistance bspeed bikedemandCharge bikechargerCapitalCost bikevehicleLifetime bikebatteryLifetime bikebatteryCapitalCost bikechargerLifetime bikevehicleCapitalCost bikesharingFactor
+$load bd bikechargercost bikedemand bikechargerPower bikechargeRelocationRatio bikechargeRelocationCorrection bikefleetRatio bikebatteryRatio bikedistCorrection biketimeCorrection bikechargerDistributionFactor bikeconversionEfficiency biketravelDistance bspeed bikedemandCharge bikechargerCapitalCost bikevehicleLifetime bikebatteryLifetime bikebatteryCapitalCost bikechargerLifetime bikevehicleCapitalCost bikesharingFactor
 
 $gdxin
 
@@ -325,7 +325,7 @@ cTruckInfrastructureCost(rmob)..
 	truckinfrastructureCost(rmob) - sum(tl,trucknumChargers(tl,rmob)*(truckchargerCapitalCost(tl) * dailyDiscountRate * (1 + dailyDiscountRate)**(truckchargerLifetime*365) / ((1 +  dailyDiscountRate)**(truckchargerLifetime*365) - 1))*truckchargerDistributionFactor(tl)*truckchargerPower(tl)) =e= 0;
 
 cBikeInfrastructureCost(rmob)..
-	bikeinfrastructureCost(rmob) - sum(bb,bikefleetSize(bb,rmob))*bikechargercost =e= 0;
+	bikeinfrastructureCost(rmob) - sum((bb,bl),bikefleetSize(bb,rmob)*bikechargercost*bikechargerCapitalCost(bl)) =e= 0;
 
 cFleetCost(rmob)..
     sum(b,fleetCost(rmob) * ((1 + dailyDiscountRate)**(vehicleLifetime(b,rmob)*365) - 1) * ((1 +  dailyDiscountRate)**(batteryLifetime(b,rmob)*365) - 1)) - sum(b,fleetSize(b,rmob) * fleetRatio(rmob) * (vehiclePerYearCosts / 365 * ((1 +  dailyDiscountRate)**(vehicleLifetime(b,rmob)*365) - 1) + vehicleCapitalCost * dailyDiscountRate * (1 + dailyDiscountRate)**(vehicleLifetime(b,rmob)*365)) * ((1 +  dailyDiscountRate)**(batteryLifetime(b,rmob)*365) - 1)) + sum(b,batteryRatio(rmob) * batteryCapacity(b) * batteryCapitalCost * dailyDiscountRate * (1 + dailyDiscountRate)**(batteryLifetime(b,rmob)*365) * ((1 +  dailyDiscountRate)**(vehicleLifetime(b,rmob)*365) - 1)) =e= 0;
@@ -424,7 +424,7 @@ cTruckMaxCharging(t,tl,rmob)..
 	trucknumChargers(tl,rmob) - sum(tb,truckvehiclesCharging(t,tb,tl,rmob)) =g= 0;
 
 cBikeMaxCharging(t,bl,rmob)..
-	bikenumChargers(bl,rmob) - sum(bb,bikevehiclesCharging(t,bb,bl,rmob)) =g= 0;
+	bikenumChargers(bl,rmob) - sum(bb,bikevehiclesCharging(t,bb,bl,rmob))*bikechargercost =g= 0;
 
 cMaxDemand(t,rmob)..
 	maxDemand(rmob) - sum((b,l),energyCharged(t,b,l,rmob)) / deltaT -  sum((tb,tl),truckenergyCharged(t,tb,tl,rmob)) / deltaT - sum((bb,bl),bikeenergyCharged(t,bb,bl,rmob)) / deltaT - personalEVPower(t,rmob)/deltaT =g= 0;

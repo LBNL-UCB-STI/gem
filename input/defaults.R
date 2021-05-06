@@ -88,8 +88,9 @@ bikevmtReboundFactor <- 1.0 # scales VMT in the system, imperfectly, by scaling 
 bikefractionSAEVs <- 0.5
 bikecharger.levels <- 1 #kW
 bikebattery.levels <- 40 #mi
-bikebatteryCapitalCost <- 200 #usd
-bikechargerCapitalCost <- 100 #usd
+#bikebatteryCapitalCost <- 10 #usd
+bikechargerCapitalCost <- 10 #usd
+bikechargercost <- 0.25 #coefficient
 
 biketocar <- c(0.036,0.013,0.005,0.004,0.002)
 biketocarfactor <- 1

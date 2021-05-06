@@ -1061,7 +1061,7 @@ plot.bike.all <- function(run.i,plots.dir,vehs,exper,all.inputs,veh.ch,en,by.r,d
 
 plot.bike.numberOfVehicles <- function(run.i,plots.dir,vehs,day.axis.breaks) {
   to.plot <- data.table(melt(vehs[run==run.i],id.vars=c('bb','t','rmob','run')))
-  to.plot[,variable.simp:=ifelse(grepl('bikevehiclesCharging',variable),pp('Charging: SAEV ',substr(bb,3,7),'mi'),ifelse(variable=='bikevehiclesIdle',pp('Idle: SAEV ',substr(bb,3,7),'mi'),pp('Moving: SAEV ',substr(bb,3,7),'mi')))]
+  to.plot[,variable.simp:=ifelse(grepl('bikevehiclesCharging',variable),pp('Charging'),ifelse(variable=='bikevehiclesIdle',pp('Idle'),pp('Moving')))]
   to.remove <- to.plot[,sum(value),by='variable.simp'][V1<1e-4]$variable.simp
   to.plot <- to.plot[!variable.simp%in%to.remove]
   to.plot[,variable.simp:=factor(variable.simp,c(rev(u(to.plot$variable.simp))))]

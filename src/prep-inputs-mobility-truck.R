@@ -30,8 +30,8 @@ prep.inputs.mobility.truck <- function(exper.row,param.names,common.inputs){
   if('electrificationPenetration' %in% param.names){
     electrificationPenetration <- exper.row$electrificationPenetration
   }
-  if('fractionSAEVs' %in% param.names){
-    fractionSAEVs <- exper.row$fractionSAEVs
+  if('truckfractionSAEVs' %in% param.names){
+    truckfractionSAEVs <- exper.row$truckfractionSAEVs
   }
   if('vmtReboundFactor' %in% param.names){
     vmtReboundFactor <- exper.row$vmtReboundFactor
@@ -103,7 +103,7 @@ prep.inputs.mobility.truck <- function(exper.row,param.names,common.inputs){
   all.dem[,':='(value=trips,trips=NULL,rmob=r,r=NULL)]
   all.dem[t==tail(common.inputs$sets$t,1),value:=0]
   all.dem.unscaled <- all.dem[,list(t,td=pp('td',td),rmob,value=value)]
-  all.dem <- all.dem[,list(t,td=pp('td',td),rmob,value=value*fractionSAEVs*electrificationPenetration*vmtReboundFactor)]
+  all.dem <- all.dem[,list(t,td=pp('td',td),rmob,value=value*truckfractionSAEVs*electrificationPenetration*vmtReboundFactor)]
   inputs$parameters$truckdemand <- all.dem
   inputs$parameters$truckdemandUnscaled <- all.dem.unscaled
   newdemand <- data.table(read.csv(pp(gem.raw.inputs,'trucks/truckdemand.csv')))
@@ -151,6 +151,19 @@ prep.inputs.mobility.truck <- function(exper.row,param.names,common.inputs){
   tspeeds[,value:=value*tspeed.scale]
   inputs$parameters$tspeed <- tspeeds[,.(t=t,td,rmob,value)]
 
+  #### truck battery cost ####
+  truckbattery.levels.str <- pp('tb',str_pad(truckbattery.levels,4,'left','0'))
+  inputs$sets$tb <- truckbattery.levels.str
+  if('tb250cost'%in%param.names){
+    tb250cost <- exper.row$tb250cost
+  }
+  if('tblinear'%in%param.names){
+    tblinear <- exper.row$tblinear
+  }
+  truckbatteryCapitalCost <- tb250cost + c(truckbattery.levels-min(truckbattery.levels))*tblinear
+  inputs$parameters$truckbatteryCapitalCost <- data.table(tl=truckbattery.levels.str,value=truckbatteryCapitalCost)
+  
+  
   ##### CHARGING INFRASTRUCTURE #####
   truckcharger.levels.str <- pp('tL',str_pad(truckcharger.levels,4,'left','0'))
   inputs$sets$tl <- truckcharger.levels.str
@@ -177,7 +190,7 @@ prep.inputs.mobility.truck <- function(exper.row,param.names,common.inputs){
   
   ##### Scaling Factors from RISE #####
   rise <- data.table(read.csv(pp(gem.raw.inputs,'trucks/rise-scaling-factors.csv')))
-  closest.mode.share <- u(rise$mode_share)[which.min(abs(u(rise$mode_share)-fractionSAEVs*electrificationPenetration))]
+  closest.mode.share <- u(rise$mode_share)[which.min(abs(u(rise$mode_share)-truckfractionSAEVs*electrificationPenetration))]
   rise[,chargeRelocationRatio:=d_chgempty+1]
   inputs$parameters$truckchargeRelocationRatio <- rise[mode_share==closest.mode.share,.(rmob=abbrev,value=chargeRelocationRatio)]
   inputs$parameters$truckfleetRatio <- rise[mode_share==closest.mode.share,.(rmob=abbrev,value=ntx_rat)]

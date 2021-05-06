@@ -49,8 +49,12 @@ if(interactive()){
 #    args<-'input/experiments/truckfractionSAEVs.yaml'
 #    args<-'input/experiments/truckb150ConversionEfficiency.yaml'
 #   args<-'input/experiments/truckbatteryCapitalCost.yaml'
+  
 #     args<-'input/experiments/base.yaml'
-     args<-'input/experiments/biketocarfactor.yaml'
+#     args<-'input/experiments/biketocarfactor.yaml'
+     args<-'input/experiments/bikechargercost.yaml'
+     
+          
 #  args<-'input/experiments/batteryCost.yaml'
 #  args<-'input/experiments/trucksharingFactor.yaml'
 #    args<-'input/experiments/truckb150ConversionEfficiency.yaml'

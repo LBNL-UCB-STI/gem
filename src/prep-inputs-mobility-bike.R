@@ -17,7 +17,7 @@ prep.inputs.mobility.bike <- function(exper.row,param.names,common.inputs){
 
   ##### GENERIC PROCESSING OF SIMPLE PARAMS #####
 
-  generic.params <- c('bikebatteryCapitalCost','bikechargerLifetime','bikevehicleCapitalCost','bikesharingFactor')
+  generic.params <- c('bikebatteryCapitalCost','bikechargerLifetime','bikevehicleCapitalCost','bikesharingFactor','bikechargercost')
 
   for(generic.param in generic.params){
     if(generic.param %in% param.names){
