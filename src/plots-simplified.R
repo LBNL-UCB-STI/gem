@@ -66,11 +66,8 @@ run.all <- function(exper,all.inputs,res,plots.dir) {
 	all.factors.prepped <- prepData.factor.all(all.inputs,inputs,res,lightduty.prepped$by.r,heavyduty.prepped$by.r.trck,lightduty.prepped$veh.ch,heavyduty.prepped$trck.ch,lightduty.prepped$personal.ev.ch,costs.prepped,lightduty.prepped$vmt.by.region,heavyduty.prepped$vmt.by.region.trck,generators.prepped$geners,lightduty.prepped$vehs)
 	bike.all.factors.prepped <- prepData.factor.all.bike(all.inputs,inputs,res,bike.prepped$by.r.bike,bike.prepped$bike.ch,costs.prepped,bike.prepped$vmt.by.region.bike,generators.prepped$geners,lightduty.prepped$vehs)
 	
-	
 	make.1d.plots(plots.dir,all.factors.prepped$all,res,lightduty.prepped$by.r,all.factors.prepped$the.cols,all.factors.prepped$factor.labels,all.factors.prepped$metric.units,all.factors.prepped$to.plot.ch.agg,all.factors.prepped$the.ch.cols)
 	make.1d.plots.bike(plots.dir,bike.all.factors.prepped$all,res,bike.prepped$by.r.bike,bike.all.factors.prepped$the.cols,bike.all.factors.prepped$factor.labels,bike.all.factors.prepped$metric.units,bike.all.factors.prepped$to.plot.ch.agg,bike.all.factors.prepped$the.ch.cols)
-	
-	
 	
 	make.2d.plots(all.factors.prepped$all,all.factors.prepped$to.plot.ch.agg,all.factors.prepped$the.cols,all.factors.prepped$the.ch.cols)
 }
@@ -404,26 +401,17 @@ prepData.factor.all.bike <- function(all.inputs,inputs,res,by.r,veh.ch,costs,vmt
   names(bike.lifetimes)[names(bike.lifetimes)=='bb'] <- 'b'
   if(is.character(res[['g-t']]$g[1]))res[['g-t']][,g:=as.numeric(g)]
   if(is.character(geners$g[1]))geners[,g:=as.numeric(g)]
-  
 
-  
   all.lifetimes <- bike.lifetimes
   
   to.plot.em <- join.on(res[['g-t']],geners,'g','g')[!Simplified%in%c('Solar','Wind','Hydro','Pumps','Nuclear','Geothermal')]
   to.plot.em[is.na(Simplified) | Simplified=='Biomass',Simplified:='Other']
-  to.plot.em <- to.plot.em[,list(emissions=sum(generationCO2*generation),base.emissions=sum(generationCO2*base.generation)),by=c('run','Simplified')]
-  to.plot.em[,value:=(emissions-base.emissions)/n.days.in.run]
+  to.plot.em <- to.plot.em[,.(em.rate=sum(generation*generationCO2)/sum(generation)),by=.(t,run)]
+  to.plot.em <- merge(x=veh.ch,y=to.plot.em,by=c('t','run'),all.x=TRUE)
+  to.plot.em <- to.plot.em[,.(emissions=sum(gw.charging*em.rate*1000)),by=run]
+  to.plot.em[,Simplified:='Charging Emissions (grid)']
+  to.plot.em[,value:=emissions/n.days.in.run]
   
-  privateVehicleLifetime <- 11*365
-  privateBatteryLifetime <- privateVehicleLifetime
-  veh.manuf.em <- to.plot.fleet[,.(n=sum(value),batteryCapacity=batteryCapacity[1]),by=c('run','b')]
-  veh.manuf.em <- join.on(veh.manuf.em,all.lifetimes,c('run','b'),c('run','b'))
-  veh.manuf.em[is.na(vehicleLifetime),':='(vehicleLifetime=privateVehicleLifetime/365,batteryLifetime=privateBatteryLifetime/365,veh.amort.ratio=dailyDiscount*(1+dailyDiscount)^(privateVehicleLifetime) / ((1+dailyDiscount)^(privateVehicleLifetime) - 1),batt.amort.ratio=dailyDiscount*(1+dailyDiscount)^(privateBatteryLifetime) / ((1+dailyDiscount)^(privateBatteryLifetime) - 1))]
-  veh.manuf.em[,value:=n*7.1*veh.amort.ratio+n*0.11*batteryCapacity*batt.amort.ratio] # 7.1 and 0.11 are tons per vehicle
-  veh.manuf.em[,Simplified:='Vehicle Manufacture']
-  to.plot.em <- rbindlist(list(to.plot.em,veh.manuf.em[,.(value=sum(value)),by=c('Simplified','run')]),use.names=T,fill=T)
-  to.plot.em[,value:=value*weekday.to.year.factor]
-  #to.plot.em<- to.plot.em[complete.cases(to.plot.em),]
   to.plot.em[,metric:='Emissions']
   to.plot.em[,variable:=factor(as.character(Simplified))]
   to.plot.em <- join.on(to.plot.em,run.params,'run','run')
